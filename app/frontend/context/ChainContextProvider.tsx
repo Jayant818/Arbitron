@@ -1,15 +1,20 @@
-"use client";
 import { mainnet, testnet } from "@solana/kit";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 import { ChainContext, DEFAULT_CHAIN_CONFIG } from "./ChainContext";
 
 const STORAGE_KEY = "solana-example-react-app:selected-chain";
 
 export function ChainContextProvider({ children }: { children: React.ReactNode }) {
-  const [chain, setChain] = useState(() => 
-    typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) ?? "solana:devnet" : "solana:devnet"
-  );
+  const [chain, setChain] = useState("solana:devnet");
+  
+  // Hydrate from localStorage after component mounts (client-side only)
+  useEffect(() => {
+    const storedChain = localStorage.getItem(STORAGE_KEY);
+    if (storedChain) {
+      setChain(storedChain);
+    }
+  }, []);
   const contextValue = useMemo<ChainContext>(() => {
     switch (chain) {
       // @ts-expect-error Intentional fall through
@@ -35,7 +40,9 @@ export function ChainContextProvider({ children }: { children: React.ReactNode }
       case "solana:devnet":
       default:
         if (chain !== "solana:devnet") {
-          localStorage.removeItem(STORAGE_KEY);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(STORAGE_KEY);
+          }
           console.error(`Unrecognized chain \`${chain}\``);
         }
         return DEFAULT_CHAIN_CONFIG;
@@ -47,7 +54,9 @@ export function ChainContextProvider({ children }: { children: React.ReactNode }
         () => ({
           ...contextValue,
           setChain(chain) {
-            localStorage.setItem(STORAGE_KEY, chain);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(STORAGE_KEY, chain);
+            }
             setChain(chain);
           },
         }),
