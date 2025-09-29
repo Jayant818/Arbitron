@@ -9,6 +9,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 import { SelectedWalletAccountContext, SelectedWalletAccountState } from "./SelectedWalletAccountContext";
+import { localStorage } from "../lib/storage";
 
 const STORAGE_KEY = "solana-wallet-standard-example-react:selected-wallet-and-address";
 
@@ -45,9 +46,7 @@ function getSavedWalletAccount(wallets: readonly UiWallet[]): UiWalletAccount | 
  */
 export function SelectedWalletAccountContextProvider({ children }: { children: React.ReactNode }) {
   const wallets = useWallets();
-  const [selectedWalletAccount, setSelectedWalletAccountInternal] = useState<SelectedWalletAccountState>(() =>
-    getSavedWalletAccount(wallets),
-  );
+  const [selectedWalletAccount, setSelectedWalletAccountInternal] = useState<SelectedWalletAccountState>(undefined);
   const setSelectedWalletAccount: React.Dispatch<React.SetStateAction<SelectedWalletAccountState>> = (
     setStateAction,
   ) => {

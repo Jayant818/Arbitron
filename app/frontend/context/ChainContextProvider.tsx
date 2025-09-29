@@ -2,6 +2,7 @@ import { mainnet, testnet } from "@solana/kit";
 import { useMemo, useState, useEffect } from "react";
 
 import { ChainContext, DEFAULT_CHAIN_CONFIG } from "./ChainContext";
+import { localStorage } from "../lib/storage";
 
 const STORAGE_KEY = "solana-example-react-app:selected-chain";
 
@@ -40,9 +41,7 @@ export function ChainContextProvider({ children }: { children: React.ReactNode }
       case "solana:devnet":
       default:
         if (chain !== "solana:devnet") {
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem(STORAGE_KEY);
-          }
+          localStorage.removeItem(STORAGE_KEY);
           console.error(`Unrecognized chain \`${chain}\``);
         }
         return DEFAULT_CHAIN_CONFIG;
@@ -54,9 +53,7 @@ export function ChainContextProvider({ children }: { children: React.ReactNode }
         () => ({
           ...contextValue,
           setChain(chain) {
-            if (typeof window !== 'undefined') {
-              localStorage.setItem(STORAGE_KEY, chain);
-            }
+            localStorage.setItem(STORAGE_KEY, chain);
             setChain(chain);
           },
         }),

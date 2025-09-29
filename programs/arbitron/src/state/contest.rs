@@ -1,5 +1,12 @@
 use anchor_lang::prelude::*;
 
+#[derive(AnchorDeserialize,AnchorSerialize,PartialEq,InitSpace,Clone)]
+pub enum ContestState{
+    Upcoming,
+    Ongoing,
+    Completed,
+}
+
 #[account]
 #[derive(InitSpace)]
 pub struct Contest{
@@ -10,10 +17,15 @@ pub struct Contest{
 
     pub start_time : i64,
 
-    pub end_time: i64,
+    pub host: Pubkey,
 
-    host: Pubkey,
+    pub entry_fees : u64,
 
-    #[max_len(30)]
-    participents : Vec<Pubkey>
+    pub max_participents: u32, 
+
+    pub participents_count: u32,
+
+    pub status: ContestState,
+
+    pub prize_pool_usdc_ata : Pubkey,
 }
