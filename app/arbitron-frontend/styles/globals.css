@@ -1,17 +1,9 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Arbitron Neon Grid Color Palette */
-  --quantum-void: #0a090c;
-  --ghost-white: #e0e0e0;
-  --electric-teal: #00f5d4;
-  --vibrant-purple: #9b5de5;
-  --hot-pink: #f15bb5;
-
-  /* Design System Colors */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -83,9 +75,8 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-roboto-mono);
-  --font-mono: var(--font-roboto-mono);
-  --font-display: var(--font-orbitron);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -130,100 +121,5 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image: linear-gradient(rgba(0, 245, 212, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 245, 212, 0.03) 1px, transparent 1px);
-    background-size: 50px 50px;
-  }
-}
-
-@layer utilities {
-  .font-display {
-    font-family: var(--font-orbitron);
-  }
-
-  .text-electric-teal {
-    color: var(--electric-teal);
-  }
-
-  .text-vibrant-purple {
-    color: var(--vibrant-purple);
-  }
-
-  .text-hot-pink {
-    color: var(--hot-pink);
-  }
-
-  .bg-electric-teal {
-    background-color: var(--electric-teal);
-  }
-
-  .bg-vibrant-purple {
-    background-color: var(--vibrant-purple);
-  }
-
-  .bg-hot-pink {
-    background-color: var(--hot-pink);
-  }
-
-  .border-electric-teal {
-    border-color: var(--electric-teal);
-  }
-
-  .border-vibrant-purple {
-    border-color: var(--vibrant-purple);
-  }
-
-  .glow-teal {
-    box-shadow: 0 0 20px rgba(0, 245, 212, 0.3);
-  }
-
-  .glow-purple {
-    box-shadow: 0 0 20px rgba(155, 93, 229, 0.3);
-  }
-
-  .glow-pink {
-    box-shadow: 0 0 20px rgba(241, 91, 181, 0.3);
-  }
-
-  .glass-card {
-    background: rgba(224, 224, 224, 0.05);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(224, 224, 224, 0.1);
-  }
-
-  .glass-card-hover:hover {
-    background: rgba(224, 224, 224, 0.08);
-    border-color: var(--electric-teal);
-    box-shadow: 0 0 20px rgba(0, 245, 212, 0.2);
-  }
-
-  .neon-text-teal {
-    color: var(--electric-teal);
-    text-shadow: 0 0 10px rgba(0, 245, 212, 0.5);
-  }
-
-  .neon-text-purple {
-    color: var(--vibrant-purple);
-    text-shadow: 0 0 10px rgba(155, 93, 229, 0.5);
-  }
-
-  /* Added 3D transform and animation utilities for NFT card flip */
-  .rotate-y-180 {
-    transform: rotateY(180deg);
-  }
-
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-in-out;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
   }
 }

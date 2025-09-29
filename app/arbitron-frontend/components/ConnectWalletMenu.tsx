@@ -44,9 +44,37 @@ export function ConnectWalletMenu({ children }: Props) {
       </ErrorBoundary>
     );
   }
+  
+  // Deduplicate wallets by name, keeping the most connected or newest version
+  function deduplicateWallets(walletList: readonly UiWallet[]): UiWallet[] {
+    const walletMap = new Map<string, UiWallet>();
+    
+    for (const wallet of walletList) {
+      const existingWallet = walletMap.get(wallet.name);
+      
+      if (!existingWallet) {
+        // First wallet with this name
+        walletMap.set(wallet.name, wallet);
+      } else {
+        // Choose the wallet with more accounts (connected), or the newer version
+        const shouldReplace = 
+          wallet.accounts.length > existingWallet.accounts.length ||
+          (wallet.accounts.length === existingWallet.accounts.length && 
+           (wallet.version || '0') > (existingWallet.version || '0'));
+           
+        if (shouldReplace) {
+          walletMap.set(wallet.name, wallet);
+        }
+      }
+    }
+    
+    return Array.from(walletMap.values());
+  }
+  
+  const deduplicatedWallets = deduplicateWallets(wallets);
   const walletsThatSupportStandardConnect = [];
   const unconnectableWallets = [];
-  for (const wallet of wallets) {
+  for (const wallet of deduplicatedWallets) {
     if (wallet.features.includes(StandardConnect) && wallet.features.includes(StandardDisconnect)) {
       walletsThatSupportStandardConnect.push(wallet);
     } else {

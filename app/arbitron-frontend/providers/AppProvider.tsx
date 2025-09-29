@@ -14,12 +14,7 @@ const AppProvider = ({
     <ChainContextProvider>
       <SelectedWalletAccountContextProvider>
         <ConnectionContextProvider>
-          <Flex direction="column">
-            <Nav />
-            <Section>
               {children}
-            </Section>
-          </Flex>
         </ConnectionContextProvider>
       </SelectedWalletAccountContextProvider>
     </ChainContextProvider>
