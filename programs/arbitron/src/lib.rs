@@ -16,9 +16,14 @@ declare_id!("ETjik8Bom7xHKv7HHawVM1igFNwJbKyWBZtnLp8jEkgD");
 pub mod arbitron {
     use super::*;
 
-    pub fn create_contest(context:Context<CreateContest>,name:String, start_time:i64, duration:u64,entry_fees:u64, max_participents:u64)->Result<()>{
+    pub fn create_contest(context:Context<CreateContest>,name:String, start_time:i64, duration:u64,entry_fees:u64, max_participents:u32,participents_count:u32)->Result<()>{
 
-        handlers::create_contest(context, name,start_time,duration,entry_fees,max_participents)?;
+        handlers::create_contest(context, name,start_time,duration,entry_fees,max_participents,participents_count)?;
+        Ok(())
+    }
+
+    pub fn join_contest(context:Context<JoinContest>)->Result<()>{
+        handlers::join_contest(context)?;
         Ok(())
     }
 }

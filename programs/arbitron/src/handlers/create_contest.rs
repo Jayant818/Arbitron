@@ -60,6 +60,7 @@ pub fn create_contest(context:Context<CreateContest>,name:String, start_time: i6
     contest.status = ContestState::Upcoming;
     contest.entry_fees = entry_fees;
     contest.prize_pool_usdc_ata = context.accounts.prize_pool_usdc_ata.key();
+    contest.bump = context.bumps.contest;
 
     Ok(())
 }

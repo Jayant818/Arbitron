@@ -27,5 +27,7 @@ pub struct Contest{
 
     pub status: ContestState,
 
-    pub prize_pool_usdc_ata : Pubkey,
+    pub bump: u8,
+
+    pub prize_pool_usdc_ata: Pubkey,
 }
