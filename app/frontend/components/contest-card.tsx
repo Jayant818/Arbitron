@@ -2,7 +2,10 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { NeonButton } from "@/components/ui/neon-button"
 import { Badge } from "@/components/ui/badge"
 import { Clock, Users, Trophy, Zap } from "lucide-react"
-import Link from "next/link"
+import { useContext } from "react"
+import { useRouter } from "next/navigation"
+import { SelectedWalletAccountContext } from "@/context/SelectedWalletAccountContext"
+import { useToast } from "@/hooks/use-toast"
 
 interface ContestCardProps {
   contest: {
@@ -20,6 +23,23 @@ interface ContestCardProps {
 }
 
 export function ContestCard({ contest }: ContestCardProps) {
+  const router = useRouter()
+  const [selectedWalletAccount] = useContext(SelectedWalletAccountContext)
+  const { toast } = useToast()
+
+  const handleEnterContest = () => {
+    if (!selectedWalletAccount) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please connect your wallet to enter the contest.",
+        variant: "destructive",
+      })
+      return
+    }
+    const href = contest.status === "active" ? `/arena/${contest.id}` : `/join/${contest.id}`
+    router.push(href)
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "waiting":
@@ -107,20 +127,19 @@ export function ContestCard({ contest }: ContestCardProps) {
       </div>
 
       {/* Action button */}
-      <Link href={contest.status === "active" ? `/arena/${contest.id}` : `/join/${contest.id}`}>
-        <NeonButton
-          size="sm"
-          className="w-full"
-          disabled={contest.currentPlayers === contest.maxPlayers}
-          variant={contest.status === "active" ? "secondary" : "primary"}
-        >
-          {contest.currentPlayers === contest.maxPlayers
-            ? "Contest Full"
-            : contest.status === "active"
-              ? "Enter Arena"
-              : "Join Contest"}
-        </NeonButton>
-      </Link>
+      <NeonButton
+        size="sm"
+        className="w-full"
+        disabled={contest.currentPlayers === contest.maxPlayers}
+        variant={contest.status === "active" ? "secondary" : "primary"}
+        onClick={handleEnterContest}
+      >
+        {contest.currentPlayers === contest.maxPlayers
+          ? "Contest Full"
+          : contest.status === "active"
+            ? "Enter Arena"
+            : "Join Contest"}
+      </NeonButton>
     </GlassCard>
   )
 }

@@ -20,7 +20,7 @@ export function getErrorMessage(error: unknown, fallbackMessage: React.ReactNode
     return (
       <Flex direction="column" gap="4">
         <Text as="p">
-          The wallet '{error.context.walletName}' (
+          The wallet &apos;{error.context.walletName}&apos; (
           {error.context.supportedChains.sort().map((chain, ii, { length }) => (
             <React.Fragment key={chain}>
               <Code>{chain}</Code>

@@ -26,4 +26,14 @@ pub mod arbitron {
         handlers::join_contest(context)?;
         Ok(())
     }
+
+    pub fn start_contest(context:Context<StartContest>)->Result<()>{
+        handlers::start_contest(context)?;
+        Ok(())
+    }
+
+    pub fn execute_swap(context:Context<ExecuteSwap>)->Result<()>{
+        handlers::execute_swap(context)?;
+        Ok(())
+    }
 }

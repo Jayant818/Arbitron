@@ -29,12 +29,12 @@ export function ConnectWalletMenu({ children }: Props) {
         key={`wallet:${wallet.name}:${index}:${wallet.version || 'unknown'}`}
       >
         <ConnectWalletMenuItem
-          onAccountSelect={(account) => {
-            setSelectedWalletAccount(account);
+          onAccountSelect={(account, wallet) => {
+            setSelectedWalletAccount({ wallet, account });
             setForceClose(true);
           }}
           onDisconnect={(wallet) => {
-            if (selectedWalletAccount && uiWalletAccountBelongsToUiWallet(selectedWalletAccount, wallet)) {
+            if (selectedWalletAccount && uiWalletAccountBelongsToUiWallet(selectedWalletAccount.account, wallet)) {
               setSelectedWalletAccount(undefined);
             }
           }}
@@ -88,8 +88,8 @@ export function ConnectWalletMenu({ children }: Props) {
           <Button>
             {selectedWalletAccount ? (
               <>
-                <WalletAccountIcon account={selectedWalletAccount} width="18" height="18" />
-                {selectedWalletAccount.address.slice(0, 8)}
+                <WalletAccountIcon account={selectedWalletAccount.account} width="18" height="18" />
+                {selectedWalletAccount.account.address.slice(0, 8)}
               </>
             ) : (
               children

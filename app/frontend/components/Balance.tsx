@@ -6,7 +6,7 @@ import { useContext, useMemo } from "react";
 import useSWRSubscription from "swr/subscription";
 
 import { ChainContext } from "../context/ChainContext";
-import { ConnectionContext } from "../context/ConnectionContext";
+import { RpcContext } from "../context/RpcContext";
 import { balanceSubscribe } from "../functions/balance";
 import { ErrorDialog } from "./ErrorDialog";
 import { getErrorMessage } from "@/lib/errors";
@@ -19,8 +19,8 @@ const seenErrors = new WeakSet();
 
 export function Balance({ account }: Props) {
   const { chain } = useContext(ChainContext);
-  const { connection } = useContext(ConnectionContext);
-  const subscribe = useMemo(() => balanceSubscribe.bind(null, connection), [connection]);
+  const { rpc, rpcSubscriptions } = useContext(RpcContext);
+  const subscribe = useMemo(() => balanceSubscribe.bind(null, rpc, rpcSubscriptions), [rpc, rpcSubscriptions]);
   const { data: lamports, error } = useSWRSubscription({ address: address(account.address), chain }, subscribe);
   if (error && !seenErrors.has(error)) {
     return (

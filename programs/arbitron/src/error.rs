@@ -24,5 +24,14 @@ pub enum ErrorCode {
     InvalidTokenAccountOwner,
 
     #[msg("Invalid platform fee wallet")]
-    InvalidPlatformFeeWallet
+    InvalidPlatformFeeWallet,
+
+    #[msg("Unauthorized host")]
+    UnauthorizedHost,
+
+    #[msg("Unauthorized action")]
+    UnauthorizedAction,
+
+    #[msg("Invalid contest state")]
+    InvalidContestState,
 }

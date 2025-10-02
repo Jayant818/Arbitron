@@ -1,9 +1,8 @@
 "use client";
-import { Nav } from '@/components/Nav'
 import { ChainContextProvider } from '@/context/ChainContextProvider'
-import { ConnectionContextProvider } from '@/context/ConnectionContextProvider'
+import { RpcContextProvider } from '@/context/RpcContextProvider';
 import { SelectedWalletAccountContextProvider } from '@/context/SelectedWalletAccountContextProvider'
-import { Flex, Section, Theme } from '@radix-ui/themes'
+import { Theme } from '@radix-ui/themes'
 import React from 'react'
 
 const AppProvider = ({
@@ -13,9 +12,9 @@ const AppProvider = ({
     <Theme>
     <ChainContextProvider>
       <SelectedWalletAccountContextProvider>
-        <ConnectionContextProvider>
+        <RpcContextProvider>
               {children}
-        </ConnectionContextProvider>
+        </RpcContextProvider>
       </SelectedWalletAccountContextProvider>
     </ChainContextProvider>
   </Theme>

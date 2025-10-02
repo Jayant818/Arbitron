@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import "./globals.css"
 import AppProvider from "@/providers/AppProvider"
+import { GlobalHeader } from "@/components/GlobalHeader"
 
 const orbitron = Orbitron({
   subsets: ["latin"],
@@ -34,6 +35,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`font-mono antialiased ${orbitron.variable} ${robotoMono.variable}`}>
         <AppProvider>
+          <GlobalHeader />
           <Suspense fallback={null}>{children}</Suspense>
           <Analytics />
         </AppProvider>

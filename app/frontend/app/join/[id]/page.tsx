@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useContext } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { GlassCard } from "@/components/ui/glass-card"
 import { NeonButton } from "@/components/ui/neon-button"
@@ -21,6 +21,8 @@ import {
   Shield,
   Star,
 } from "lucide-react"
+import { SelectedWalletAccountContext } from "@/context/SelectedWalletAccountContext"
+import { ConnectWalletMenu } from "@/components/ConnectWalletMenu"
 
 // Mock contest data
 const mockContest = {
@@ -59,6 +61,7 @@ export default function JoinContestPage() {
   const params = useParams()
   const router = useRouter()
   const contestId = params.id as string
+  const [selectedWalletAccount] = useContext(SelectedWalletAccountContext)
 
   const [isJoining, setIsJoining] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -83,6 +86,18 @@ export default function JoinContestPage() {
 
   const canAfford = walletBalance >= mockContest.entryFee
   const hasSpace = mockContest.currentPlayers < mockContest.maxPlayers
+
+  if (!selectedWalletAccount) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <GlassCard className="text-center">
+          <h1 className="text-2xl font-display font-bold neon-text-teal mb-4">Connect Your Wallet</h1>
+          <p className="text-muted-foreground mb-6">You need to connect your wallet to join this contest.</p>
+          <ConnectWalletMenu>Connect Wallet</ConnectWalletMenu>
+        </GlassCard>
+      </div>
+    )
+  }
 
   if (showSuccess) {
     return (

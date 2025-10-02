@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
 import { useParams } from "next/navigation"
 import { GlassCard } from "@/components/ui/glass-card"
 import { NeonButton } from "@/components/ui/neon-button"
@@ -8,17 +8,108 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { TradingChart } from "@/components/trading-chart"
 import { SwapInterface } from "@/components/swap-interface"
+import { localStorage } from "@/lib/storage"
 import { Leaderboard } from "@/components/leaderboard"
 import { PortfolioStats } from "@/components/portfolio-stats"
 import { TrendingDown, Target, Zap, Activity } from "lucide-react"
+import { SelectedWalletAccountContext } from "@/context/SelectedWalletAccountContext"
+import { ChainContext } from "@/context/ChainContext"
 
 // Mock trading data
 const mockTokens = [
-  { symbol: "SOL", name: "Solana", price: 98.45, change: 2.34, logo: "/solana-blockchain.png" },
-  { symbol: "USDC", name: "USD Coin", price: 1.0, change: 0.01, logo: "/usdc-coins.png" },
-  { symbol: "RAY", name: "Raydium", price: 1.87, change: -1.23, logo: "/raydium.jpg" },
-  { symbol: "ORCA", name: "Orca", price: 3.21, change: 4.56, logo: "/orca.jpg" },
+  {
+    "address": "So11111111111111111111111111111111111111112",
+    "chainId": 101,
+    "decimals": 9,
+    "name": "Wrapped SOL",
+    "symbol": "SOL",
+    "logoURI": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
+    "tags": [
+      "old-registry"
+    ],
+    "extensions": {
+      "coingeckoId": "wrapped-solana"
+    }
+  },
+  {
+    "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "chainId": 101,
+    "decimals": 6,
+    "name": "USD Coin",
+    "symbol": "USDC",
+    "logoURI": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png",
+    "tags": [
+      "old-registry",
+      "solana-fm"
+    ],
+    "extensions": {
+      "coingeckoId": "usd-coin"
+    }
+  },
+  {
+    "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+    "chainId": 101,
+    "decimals": 6,
+    "name": "USDT",
+    "symbol": "USDT",
+    "logoURI": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg",
+    "tags": [
+      "old-registry",
+      "solana-fm"
+    ],
+    "extensions": {
+      "coingeckoId": "tether"
+    }
+  },
+  {
+    "address": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+    "chainId": 101,
+    "decimals": 6,
+    "name": "PayPal USD",
+    "symbol": "PYUSD",
+    "logoURI": "https://424565.fs1.hubspotusercontent-na1.net/hubfs/424565/PYUSDLOGO.png",
+    "tags": [
+      "community",
+      "token-2022"
+    ],
+    "extensions": {
+      "coingeckoId": "paypal-usd"
+    }
+  },
+  {
+    "address": "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
+    "chainId": 101,
+    "decimals": 6,
+    "name": "dogwifhat",
+    "symbol": "$WIF",
+    "logoURI": "https://bafkreibk3covs5ltyqxa272uodhculbr6kea6betidfwy3ajsav2vjzyum.ipfs.nftstorage.link",
+    "tags": [
+      "community",
+      "solana-fm"
+    ],
+    "extensions": {
+      "coingeckoId": "dogwifcoin"
+    }
+  },
+  {
+    "address": "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr",
+    "chainId": 101,
+    "decimals": 9,
+    "name": "Popcat",
+    "symbol": "POPCAT",
+    "logoURI": "https://bafkreidvkvuzyslw5jh5z242lgzwzhbi2kxxnpkic5wsvyno5ikvpr7reu.ipfs.nftstorage.link",
+    "tags": [
+      "community"
+    ],
+    "extensions": {
+      "coingeckoId": "popcat"
+    }
+  },
 ]
+
+const USD_DEV = 'Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr';
+
+
 
 const mockLeaderboard = [
   { rank: 1, username: "CryptoNinja", pnl: 1247.83, pnlPercent: 12.48, avatar: "", isUser: false },
@@ -28,13 +119,63 @@ const mockLeaderboard = [
   { rank: 5, username: "BullRun2024", pnl: 298.34, pnlPercent: 2.98, avatar: "", isUser: false },
 ]
 
+const ALL_TOKEN_MAINNET = "Token_mint_jup_mainnet";
+const ALL_TOKEN_DEVNET = "Token_mint_jup_devnet";
+const CACHE_TIME = 60 * 60 * 24; // 1 day
+
+async function getAllToken(chain: string) {
+  let storageKey = '';
+  let tokens = [];
+
+  if (chain === 'solana:devnet') {
+    storageKey = ALL_TOKEN_DEVNET;
+    // Use hardcoded for Devnet
+    tokens = DEVNET_TOKENS;
+    // Cache it anyway for consistency
+    localStorage.setItem(storageKey, JSON.stringify({ tokens, timestamp: Date.now() }));
+    return tokens;
+  } else {
+    // Mainnet or Testnet: fetch real list
+    storageKey = ALL_TOKEN_MAINNET;
+    const data = localStorage.getItem(storageKey);
+    if (data) {
+      const { tokens: cachedTokens, timestamp } = JSON.parse(data);
+      if (CACHE_TIME > Date.now() - timestamp) {
+        return cachedTokens;
+      }
+    }
+
+    const res = await fetch('https://token.jup.ag/strict');
+    tokens = await res.json();
+
+    localStorage.setItem(storageKey, JSON.stringify({ tokens, timestamp: Date.now() }));
+    return tokens;
+  }
+}
+
+export interface MintTokenInterface {
+  address: string,
+    chainId: number,
+    decimals: number,
+    name: string,
+    symbol: string,
+    logoURI: string,
+    tags: string[],
+    extensions: {
+      coingeckoId: string
+    }
+}
+
 export default function TradingArenaPage() {
-  const params = useParams()
-  const contestId = params.id as string
-  const [timeLeft, setTimeLeft] = useState(287) // 4m 47s
-  const [userBalance, setUserBalance] = useState(10634.21)
-  const [userPnL, setUserPnL] = useState(634.21)
-  const [selectedToken, setSelectedToken] = useState(mockTokens[0])
+  const params = useParams();
+  const contestId = params.id as string;
+  const [timeLeft, setTimeLeft] = useState(287); // 4m 47s
+  const [userBalance, setUserBalance] = useState(10634.21);
+  const [userPnL, setUserPnL] = useState(634.21);
+  const [tokens, setTokens] = useState<MintTokenInterface[] | null>(null);
+  const [selectedToken, setSelectedToken] = useState<MintTokenInterface>(mockTokens[0]);
+  const [selectedWalletAccount] = useContext(SelectedWalletAccountContext);
+  const { chain } = useContext(ChainContext);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -43,6 +184,26 @@ export default function TradingArenaPage() {
 
     return () => clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    async function getTokens() {
+      const fetchedTokens = await getAllToken(chain);
+      // Dedup and logoURI cleanup logic
+      const uniqueTokens = fetchedTokens
+        .filter((token: MintTokenInterface, index: number, self: MintTokenInterface[]) => 
+          // Remove duplicates by address
+          index === self.findIndex((t: MintTokenInterface) => t.address === token.address)
+        )
+        .map((token: MintTokenInterface) => ({
+          ...token,
+          // Ensure logoURI exists, fallback to placeholder
+          logoURI: token.logoURI || '/placeholder.svg'
+        }));
+      setTokens(uniqueTokens);
+    }
+  
+    getTokens();
+  }, [chain]); // Re-fetch if chain changes
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -126,7 +287,7 @@ export default function TradingArenaPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  {/* <div className="flex items-center gap-2">
                     <span className="text-xl font-display font-bold">${selectedToken.price}</span>
                     <span
                       className={`text-sm font-mono ${selectedToken.change >= 0 ? "text-electric-teal" : "text-hot-pink"}`}
@@ -134,14 +295,17 @@ export default function TradingArenaPage() {
                       {selectedToken.change >= 0 ? "+" : ""}
                       {selectedToken.change}%
                     </span>
-                  </div>
+                  </div> */}
                 </div>
               </div>
-              <TradingChart token={selectedToken} />
+              {/* <TradingChart token={selectedToken} /> */}
             </GlassCard>
 
             {/* Swap Interface */}
-            <SwapInterface tokens={mockTokens} />
+            {
+              tokens && 
+              <SwapInterface tokens={tokens} userPublicKey={selectedWalletAccount?.account?.address} />
+            }
           </div>
 
           {/* Sidebar */}

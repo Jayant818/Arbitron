@@ -7,7 +7,7 @@ import { WalletMenuItemContent } from "./WalletMenuItemContent";
 
 type Props = Readonly<{
   onError(error: unknown): void;
-  onSignIn(account: UiWalletAccount | undefined): void;
+  onSignIn(account: UiWalletAccount | undefined, wallet: UiWallet): void;
   wallet: UiWallet;
 }>;
 
@@ -23,7 +23,7 @@ export function SignInMenuItem({ onSignIn, onError, wallet }: Props) {
           const { account } = await signIn({
             statement: "You will enjoy being signed in.",
           });
-          onSignIn(account);
+          onSignIn(account, wallet);
         } finally {
           setIsSigningIn(false);
         }
@@ -31,7 +31,7 @@ export function SignInMenuItem({ onSignIn, onError, wallet }: Props) {
         onError(error);
       }
     },
-    [signIn, onSignIn, onError],
+    [signIn, onSignIn, onError, wallet],
   );
   return (
     <DropdownMenu.Item onClick={handleSignInClick}>

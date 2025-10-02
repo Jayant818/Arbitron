@@ -7,7 +7,7 @@ import { SelectedWalletAccountContext } from "../context/SelectedWalletAccountCo
 import { WalletMenuItemContent } from "./WalletMenuItemContent";
 
 type Props = Readonly<{
-  onAccountSelect(account: UiWalletAccount | undefined): void;
+  onAccountSelect(account: UiWalletAccount, wallet: UiWallet): void;
   onDisconnect(wallet: UiWallet): void;
   onError(error: unknown): void;
   wallet: UiWallet;
@@ -26,18 +26,18 @@ export function ConnectWalletMenuItem({ onAccountSelect, onDisconnect, onError, 
       // Try to choose the first never-before-seen account.
       for (const nextAccount of nextAccounts) {
         if (!existingAccounts.some((existingAccount) => uiWalletAccountsAreSame(nextAccount, existingAccount))) {
-          onAccountSelect(nextAccount);
+          onAccountSelect(nextAccount, wallet);
           return;
         }
       }
       // Failing that, choose the first account in the list.
       if (nextAccounts[0]) {
-        onAccountSelect(nextAccounts[0]);
+        onAccountSelect(nextAccounts[0], wallet);
       }
     } catch (error) {
       onError(error);
     }
-  }, [connect, onAccountSelect, onError, wallet.accounts]);
+  }, [connect, onAccountSelect, onError, wallet]);
   return (
     <DropdownMenu.Sub open={!isConnected ? false : undefined}>
       <DropdownMenu.SubTrigger
@@ -53,13 +53,13 @@ export function ConnectWalletMenuItem({ onAccountSelect, onDisconnect, onError, 
       </DropdownMenu.SubTrigger>
       <DropdownMenu.SubContent>
         <DropdownMenu.Label>Accounts</DropdownMenu.Label>
-        <DropdownMenu.RadioGroup value={selectedWalletAccount?.address}>
+        <DropdownMenu.RadioGroup value={selectedWalletAccount?.account?.address}>
           {wallet.accounts.map((account) => (
             <DropdownMenu.RadioItem
               key={account.address}
               value={account.address}
               onSelect={() => {
-                onAccountSelect(account);
+                onAccountSelect(account, wallet);
               }}
             >
               {account.address.slice(0, 8)}&hellip;
