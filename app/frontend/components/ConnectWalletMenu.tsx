@@ -85,7 +85,9 @@ export function ConnectWalletMenu({ children }: Props) {
     <>
       <DropdownMenu.Root open={forceClose ? false : undefined} onOpenChange={setForceClose.bind(null, false)}>
         <DropdownMenu.Trigger>
-          <Button>
+          <div>
+
+          {/* <Button>
             {selectedWalletAccount ? (
               <>
                 <WalletAccountIcon account={selectedWalletAccount.account} width="18" height="18" />
@@ -94,8 +96,11 @@ export function ConnectWalletMenu({ children }: Props) {
             ) : (
               children
             )}
-            <DropdownMenu.TriggerIcon />
-          </Button>
+          </Button> */}
+          {children}
+            {/* <DropdownMenu.TriggerIcon /> */}
+          </div>
+
         </DropdownMenu.Trigger>
         <DropdownMenu.Content>
           {wallets.length === 0 ? (

@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{token::{Mint, TokenAccount}, token_interface::TokenInterface};
+use anchor_spl::{token_interface::{TokenInterface,TokenAccount,Mint}};
 
 use crate::{error::ErrorCode, Contest, ContestState};
 

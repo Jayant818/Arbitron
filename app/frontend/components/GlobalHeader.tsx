@@ -7,6 +7,7 @@ import { NeonButton } from "@/components/ui/neon-button"
 import { ConnectWalletMenu } from "@/components/ConnectWalletMenu"
 import { SelectedWalletAccountContext } from "@/context/SelectedWalletAccountContext"
 import { ArrowLeft, Home } from "lucide-react"
+import { DropdownMenu } from "@radix-ui/themes"
 
 export function GlobalHeader() {
   const router = useRouter()
@@ -46,7 +47,9 @@ export function GlobalHeader() {
           
           {/* Show wallet info if connected, otherwise show connect button */}
           {selectedWalletAccount ? (
-            <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">
+                          <ConnectWalletMenu>
+                              
               <div className="text-sm font-mono">
                 <div className="text-electric-teal">
                   {selectedWalletAccount.account.address.slice(0, 4)}...{selectedWalletAccount.account.address.slice(-4)}
@@ -54,15 +57,24 @@ export function GlobalHeader() {
                 <div className="text-xs text-muted-foreground">
                   {selectedWalletAccount.wallet.name}
                 </div>
-              </div>
-              <ConnectWalletMenu>
+            <DropdownMenu.TriggerIcon />
+                              </div>
+                              
+                          </ConnectWalletMenu>
+              {/* <ConnectWalletMenu>
                 <div className="w-8 h-8 bg-gradient-to-r from-electric-teal to-vibrant-purple rounded-full flex items-center justify-center text-xs font-bold">
                   {selectedWalletAccount.account.address.slice(0, 2).toUpperCase()}
                 </div>
-              </ConnectWalletMenu>
+              </ConnectWalletMenu> */}
             </div>
           ) : (
-            <ConnectWalletMenu>Connect Wallet</ConnectWalletMenu>
+            <ConnectWalletMenu>
+              <NeonButton variant="outline" size="sm">
+                Connect Wallet
+            <DropdownMenu.TriggerIcon />
+                              </NeonButton>
+                              
+            </ConnectWalletMenu>
           )}
         </div>
       </div>
