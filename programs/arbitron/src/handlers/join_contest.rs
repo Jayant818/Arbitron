@@ -1,11 +1,9 @@
-use std::str::FromStr;
-
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount,TokenInterface};
 
 use anchor_lang::account;
 
-use crate::{contest, error::ErrorCode, transfer_token, Contest, ContestState, Participent, PLATFORM_FEE, PLATFORM_FEE_WALLET};
+use crate::{ error::ErrorCode, transfer_token, Config, Contest, ContestState, Participent, Player, PLATFORM_FEE, PLATFORM_FEE_WALLET};
 
 // Task
 // 1) Join the Contest : PDA will be created for user to store his details in the contest
@@ -19,14 +17,35 @@ pub struct JoinContest<'info>{
 
     pub host: SystemAccount<'info>,
 
-    // will be USDT mint address
+    // will be USDT mint address : This is the token we are using for entry fees
     pub token_mint : InterfaceAccount<'info,Mint>,
 
     #[account(
         mut,
-        address = Pubkey::from_str(PLATFORM_FEE_WALLET).unwrap() @ErrorCode::InvalidPlatformFeeWallet,
+        // address = Pubkey::from_str(PLATFORM_FEE_WALLET).unwrap() @ErrorCode::InvalidPlatformFeeWallet,
+        constraint = platform_fee_wallet.key() == config.platform_fee_wallet @ErrorCode::InvalidPlatformFeeWallet,
     )]
     pub platform_fee_wallet:InterfaceAccount<'info,TokenAccount>,
+
+    #[account(
+        init_if_needed,
+        payer = participent,
+        space = Player::DISCRIMINATOR.len() + Player::INIT_SPACE,
+        seeds = [
+            b"player",
+            participent.key().as_ref()
+        ],
+        bump
+    )]
+    pub player_global_profile:Account<'info,Player>,
+
+    #[account(
+        seeds = [
+            b"config"
+        ],
+        bump = config.bump,
+    )]
+    pub config:Account<'info,Config>,
 
     #[account(
         mut,
@@ -42,6 +61,7 @@ pub struct JoinContest<'info>{
             contest.name.as_bytes(),
             host.key().as_ref()
         ],
+        has_one = host @ErrorCode::UnauthorizedHost,
         bump = contest.bump,
     )]
     pub contest : Account<'info,Contest>,
@@ -59,17 +79,30 @@ pub struct JoinContest<'info>{
     )]
     pub participent_info : Account<'info,Participent>,
 
+    // This is a empty account/PDA, we just need its PDA
+    #[account(
+        seeds = [
+            b"trading_pda",
+            contest.key().as_ref(),
+            participent.key().as_ref()
+        ],
+        bump
+    )]
+    /// CHECK:
+    pub trading_pda : UncheckedAccount<'info>,
+
     #[account(
         init,
         payer = participent,
         seeds = [
             b"participent_usdt_ata",
             participent.key().as_ref(),
-            token_mint.key().as_ref()
+            token_mint.key().as_ref(),
+            contest.key().as_ref()
         ],
         bump,
         token::mint = token_mint,
-        token::authority = participent_info,
+        token::authority = trading_pda,
     )]
     pub participent_usdt_ata : InterfaceAccount<'info,TokenAccount>,
 
@@ -80,21 +113,31 @@ pub struct JoinContest<'info>{
 
 pub fn join_contest(context: Context<JoinContest>) -> Result<()> {
 
-    let contest = &context.accounts.contest;
+    let contest = &mut context.accounts.contest;
+    let platform_fee = contest.entry_fees.checked_mul(PLATFORM_FEE as u64).ok_or(ErrorCode::Overflow)? / 100;
+    let player_global_profile = &mut context.accounts.player_global_profile;
     // verifications
+    
+    require!(player_global_profile.active_contest.is_none(), ErrorCode::AlreadyInContest);
     require!(contest.status == ContestState::Upcoming, ErrorCode::ContestNotUpcoming);
     require!(contest.participents_count < contest.max_participents, ErrorCode::ContestFull);
+    require!(context.accounts.user_ata.amount >= contest.entry_fees+platform_fee, ErrorCode::InvalidEntryFees);
 
     //  we need to somehow check if the user has already joined the contest or not, when we try to initialize the PDA it will fail if already exists
 
-    let participent_info = &mut context.accounts.participent_info;
+    let participent_info: &mut Account<'_, Participent> = &mut context.accounts.participent_info;
 
     participent_info.user = context.accounts.participent.key();
-    participent_info.contest = context.accounts.contest.key();
+    participent_info.contest = contest.key();
     participent_info.has_claimed = false;
     participent_info.bump = context.bumps.participent_info;
     participent_info.rank = 0;
     participent_info.score = 0;
+    contest.participents_count = contest.participents_count.checked_add(1).unwrap();
+
+    player_global_profile.user = context.accounts.participent.key();
+    player_global_profile.active_contest = Some(contest.key());
+    player_global_profile.bump = context.bumps.player_global_profile;
 
     // Transfer the token from user_ata to our pda
     let user_usdt_ata = &context.accounts.user_ata;
@@ -102,6 +145,7 @@ pub fn join_contest(context: Context<JoinContest>) -> Result<()> {
     let token_mint = &context.accounts.token_mint;
     let authority = &context.accounts.participent;
     let token_program = &context.accounts.token_program;
+
 
     transfer_token(
         &user_usdt_ata, 
@@ -116,7 +160,7 @@ pub fn join_contest(context: Context<JoinContest>) -> Result<()> {
     transfer_token(
         &user_usdt_ata, 
         &context.accounts.platform_fee_wallet, 
-        PLATFORM_FEE as u64 * contest.entry_fees as u64 / 1000u64, 
+        platform_fee,
         &token_mint, 
         &authority.to_account_info(), 
         &token_program, 

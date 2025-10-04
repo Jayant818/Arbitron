@@ -5,11 +5,17 @@ pub enum ErrorCode {
     #[msg("Custom error message")]
     CustomError,
 
+    #[msg("Overflow Occurred")]
+    Overflow,
+
     #[msg("Name max length Excedded")]
     MaxNameLengthExcedded,
 
     #[msg("Contest is full")]
     ContestFull,
+
+    #[msg("Already Participated in another contest")]
+    AlreadyInContest,
 
     #[msg("Already joined the contest")]
     AlreadyJoined,

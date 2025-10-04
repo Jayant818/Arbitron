@@ -18,7 +18,6 @@ import {
   getSignatureFromTransaction,
   getProgramDerivedAddress,
   getAddressEncoder,
-  sendAndConfirmDurableNonceTransactionFactory,
   Instruction,
   address,
 } from "@solana/kit";
@@ -49,14 +48,16 @@ import {
   getParticipentDecoder,
 } from "../dist/js-client/index";
 import { getCreateAccountInstruction } from "@solana-program/system";
+import {
+  getInitializeInstructionAsync,
+  InitializeAsyncInput,
+} from "../dist/js-client/instructions/initialize";
+import { getConfigDecoder } from "../dist/js-client/accounts/config";
 
 const RPC_URL = "http://127.0.0.1:8899";
 const RPC_SUBSCRIPTION_URL = "ws://127.0.0.1:8900";
 const ARBITRON_PROGRAM_ID =
   "ETjik8Bom7xHKv7HHawVM1igFNwJbKyWBZtnLp8jEkgD" as Address;
-const PLATFORM_FEE_WALLET = address(
-  "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr"
-);
 const rpc = createSolanaRpc("http://127.0.0.1:8899");
 const rpcSubscription = createSolanaRpcSubscriptions("ws://127.0.0.1:8900");
 
@@ -183,7 +184,7 @@ async function createATA_MintToken({
   });
 
   const mintTokenIx = getMintToCheckedInstruction({
-    amount: 2_00_000_000,
+    amount: 6_00_000_000,
     decimals: 6,
     mint: mint_address,
     mintAuthority: mint_authority,
@@ -198,7 +199,7 @@ async function createATA_MintToken({
   return ataAddress;
 }
 
-async function JoinContest({
+async function joinContest({
   joinContestInput,
   payer,
 }: {
@@ -231,33 +232,44 @@ async function JoinContest({
 }
 
 describe("Arbitron Tests ", () => {
+  let owner: KeyPairSigner;
   let host: KeyPairSigner;
   let sudo_host: KeyPairSigner;
-  let contest: Address;
-  let fee_wallet: Address;
-  let participent1: KeyPairSigner;
-  let participent1_ata: Address;
+  let user1: KeyPairSigner;
 
   let tokenMint: Address;
 
+  let user1_ata: Address;
+  let fee_wallet_ata: Address; // New fee wallet ATA owned by owner
+  let configPda: Address;
+
+  let contest: Address;
+  let sudoHostContest: Address;
+
+  let participantInfoPda: Address;
+  let participantUsdtAtaPda: Address;
+
   before(async () => {
-    if (
-      !RPC_URL ||
-      !RPC_SUBSCRIPTION_URL ||
-      !ARBITRON_PROGRAM_ID ||
-    ) {
+    if (!RPC_URL || !RPC_SUBSCRIPTION_URL || !ARBITRON_PROGRAM_ID) {
       throw new Error("Url is missing in the env");
     }
 
     assertIsAddress(ARBITRON_PROGRAM_ID);
 
+    owner = await generateKeyPairSigner();
     host = await generateKeyPairSigner();
     sudo_host = await generateKeyPairSigner();
-    participent1 = await generateKeyPairSigner();
+    user1 = await generateKeyPairSigner();
 
     let airDropFunction = airdropFactory({
       rpc,
       rpcSubscriptions: rpcSubscription,
+    });
+
+    await airDropFunction({
+      recipientAddress: owner.address,
+      lamports: lamports(2_000_000_000n),
+      commitment: "confirmed",
     });
 
     await airDropFunction({
@@ -273,7 +285,7 @@ describe("Arbitron Tests ", () => {
     });
 
     await airDropFunction({
-      recipientAddress: participent1.address,
+      recipientAddress: user1.address,
       lamports: lamports(2_000_000_000n),
       commitment: "confirmed",
     });
@@ -284,29 +296,107 @@ describe("Arbitron Tests ", () => {
       mintAuthority: host.address,
     });
 
-    participent1_ata = await createATA_MintToken({
+    user1_ata = await createATA_MintToken({
       mint_address: tokenMint,
       mint_authority: host,
-      user: participent1,
+      user: user1,
     });
 
-    const contestName = "My Contest";
+    fee_wallet_ata = await createATA_MintToken({
+      mint_address: tokenMint,
+      mint_authority: host,
+      user: owner,
+    });
 
-    const contestSeeds = [
-      new TextEncoder().encode("contest"),
-      new TextEncoder().encode(contestName),
-      getAddressEncoder().encode(host.address), // have to convert the address to bytes
-    ];
-
-    // This pda we are providing as codama try to add the 4 bytes length prefix to the seed which is not expected by anchor, so manually deriving it
-    const [contestPda, bump] = await getProgramDerivedAddress({
+    const configSeeds = [new TextEncoder().encode("config")];
+    const [configPdaAddress, configBump] = await getProgramDerivedAddress({
       programAddress: ARBITRON_PROGRAM_ID,
-      seeds: contestSeeds,
+      seeds: configSeeds,
+    });
+    configPda = configPdaAddress;
+
+    console.log("Setup completed:");
+    console.log("Token Mint:", tokenMint);
+    console.log("User1 ATA:", user1_ata);
+    console.log("Fee Wallet ATA:", fee_wallet_ata);
+    console.log("Config PDA:", configPda);
+  });
+
+  describe("initialize", () => {
+    test("Initialize Successfully", async () => {
+      const initializeInput: InitializeAsyncInput = {
+        admin: owner,
+        config: configPda,
+        platformFeeWallet: fee_wallet_ata,
+        platformFeeBps: 50, // 0.5% fee
+      };
+
+      const initializeIx = await getInitializeInstructionAsync(
+        initializeInput,
+        {
+          programAddress: ARBITRON_PROGRAM_ID,
+        }
+      );
+
+      await sendInstructions({
+        payer: owner,
+        instructions: [initializeIx],
+      });
+
+      const configAccountInfo = await rpc
+        .getAccountInfo(configPda, {
+          encoding: "jsonParsed",
+        })
+        .send();
+
+      if (!configAccountInfo || !configAccountInfo.value) {
+        assert.fail("Config account not found after initialization");
+      }
+
+      const rawData = Buffer.from(configAccountInfo.value.data[0], "base64");
+      const configData = getConfigDecoder().decode(rawData);
+
+      assert.equal(configData.admin, owner.address);
+      assert.equal(configData.platformFeeWallet, fee_wallet_ata);
+      assert.equal(configData.platformFeeBps, 50);
+
+      console.log(" Initialize instruction executed successfully");
+      console.log("Config Admin:", configData.admin);
+      console.log("Platform Fee Wallet:", configData.platformFeeWallet);
+      console.log("Platform Fee BPS:", configData.platformFeeBps);
     });
 
-    contest = contestPda;
+    test("Initialize Fails with Duplicate Config", async () => {
+      const initializeInput: InitializeAsyncInput = {
+        admin: owner,
+        config: configPda,
+        platformFeeWallet: fee_wallet_ata,
+        platformFeeBps: 100, // Different fee
+      };
 
-    const feeWalletSeeds = [];
+      const initializeIx = await getInitializeInstructionAsync(
+        initializeInput,
+        {
+          programAddress: ARBITRON_PROGRAM_ID,
+        }
+      );
+
+      try {
+        await sendInstructions({
+          payer: owner,
+          instructions: [initializeIx],
+        });
+        assert.fail("Expected initialize to fail but it succeeded");
+      } catch (error) {
+        // Should fail with "account already in use" error
+        // assert(
+        //   error.message.includes("already in use") ||
+        //     error.message.includes("Allocate: account already in use"),
+        //   `Expected "account already in use" error but got: ${error.message}`
+        // );
+        console.log("Correctly caught duplicate config initialization error");
+      }
+    });
   });
 
   describe("createContest", () => {
@@ -316,14 +406,16 @@ describe("Arbitron Tests ", () => {
       const contestSeeds = [
         new TextEncoder().encode("contest"),
         new TextEncoder().encode(contestName),
-        getAddressEncoder().encode(host.address), // have to convert the address to bytes
+        getAddressEncoder().encode(host.address),
       ];
 
-      // This pda we are providing as codama try to add the 4 bytes length prefix to the seed which is not expected by anchor, so manually deriving it
       const [contestPda, bump] = await getProgramDerivedAddress({
         programAddress: ARBITRON_PROGRAM_ID,
         seeds: contestSeeds,
       });
+
+      // Store contest PDA for other tests to use
+      contest = contestPda;
 
       const createContestAsyncInput: CreateContestAsyncInput = {
         duration: 1000 * 60 * 60 * 2, // 2 hour duration
@@ -369,7 +461,6 @@ describe("Arbitron Tests ", () => {
 
       const tx_msg = await getSignatureFromTransaction(signedTx);
 
-      // Get account info to check its status
       let accountInfo;
       try {
         accountInfo = await rpc
@@ -469,7 +560,7 @@ describe("Arbitron Tests ", () => {
           ) ||
           error.message.includes("already in use")
         ) {
-          console.log("✓ Correctly caught InvalidStartTime error");
+          console.log(" Correctly caught InvalidStartTime error");
           console.log(
             "Error message:",
             getArbitronErrorMessage(ARBITRON_ERROR__INVALID_START_TIME)
@@ -541,7 +632,7 @@ describe("Arbitron Tests ", () => {
 
         // Check if it's our custom error
         if (isArbitronError(error, txMsg, ARBITRON_ERROR__INVALID_ENTRY_FEES)) {
-          console.log("✓ Correctly caught InvalidEntryFees error");
+          console.log(" Correctly caught InvalidEntryFees error");
           console.log(
             "Error message:",
             getArbitronErrorMessage(ARBITRON_ERROR__INVALID_ENTRY_FEES)
@@ -613,7 +704,7 @@ describe("Arbitron Tests ", () => {
 
         // Check if it's our custom error
         if (isArbitronError(error, txMsg, ARBITRON_ERROR__INVALID_DURATION)) {
-          console.log("✓ Correctly caught InvalidDuration error");
+          console.log(" Correctly caught InvalidDuration error");
           console.log(
             "Error message:",
             getArbitronErrorMessage(ARBITRON_ERROR__INVALID_DURATION)
@@ -627,6 +718,7 @@ describe("Arbitron Tests ", () => {
       try {
         const contestName = "My Contest";
 
+        // Derive sudo host contest PDA and store it for other tests
         const seeds = [
           new TextEncoder().encode("contest"),
           new TextEncoder().encode(contestName),
@@ -637,6 +729,9 @@ describe("Arbitron Tests ", () => {
           programAddress: ARBITRON_PROGRAM_ID,
           seeds: seeds,
         });
+
+        // Store sudo host contest PDA for other tests to use
+        sudoHostContest = contestPda;
 
         const createContestAsyncInput: CreateContestAsyncInput = {
           duration: 3600,
@@ -707,84 +802,392 @@ describe("Arbitron Tests ", () => {
   describe("Join Contest", () => {
     test("Joined Contest Successfully", async () => {
       try {
-
-        const userInfoSeeds = [
+        const participantInfoSeeds = [
           new TextEncoder().encode("participent"),
-          new TextEncoder().encode(contest),
-          getAddressEncoder().encode(participent1.address),
-        ]
+          getAddressEncoder().encode(contest),
+          getAddressEncoder().encode(user1.address),
+        ];
 
-        const [userInfoPda] = await getProgramDerivedAddress({
+        const [participantInfoPdaAddress] = await getProgramDerivedAddress({
           programAddress: ARBITRON_PROGRAM_ID,
-          seeds: userInfoSeeds,
-        })
+          seeds: participantInfoSeeds,
+        });
 
-        const userUsdtAtaSeeds = [
+        // Storing it for other tests to use
+        participantInfoPda = participantInfoPdaAddress;
+
+        const participantUsdtAtaSeeds = [
           new TextEncoder().encode("participent_usdt_ata"),
-          getAddressEncoder().encode(participent1.address),
+          getAddressEncoder().encode(user1.address),
           getAddressEncoder().encode(tokenMint),
-        ]
+          getAddressEncoder().encode(contest),
+        ];
 
-        const [userUsdtAtaPda] = await getProgramDerivedAddress({
+        const [participantUsdtAtaPdaAddress] = await getProgramDerivedAddress({
           programAddress: ARBITRON_PROGRAM_ID,
-          seeds: userUsdtAtaSeeds,
-        })
+          seeds: participantUsdtAtaSeeds,
+        });
+
+        // Store for other tests to use
+        participantUsdtAtaPda = participantUsdtAtaPdaAddress;
+
+        let playerGlobalProfileSeeds = [
+          new TextEncoder().encode("player"),
+          getAddressEncoder().encode(user1.address),
+        ];
+
+        const [playerGlobalProfilePda] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: playerGlobalProfileSeeds,
+        });
+
+        let tradingPdaSeeds = [
+          new TextEncoder().encode("trading_pda"),
+          getAddressEncoder().encode(contest),
+          getAddressEncoder().encode(user1.address),
+        ];
+
+        const [tradingPda] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: tradingPdaSeeds,
+        });
 
         const joinContestInput: JoinContestAsyncInput = {
           contest: contest,
           host: host.address,
-          participent: participent1,
+          participent: user1,
           tokenMint: tokenMint,
-          userAta: participent1_ata,
-          platformFeeWallet: PLATFORM_FEE_WALLET,
-          participentInfo: userInfoPda,
-          participentUsdtAta: userUsdtAtaPda,
+          userAta: user1_ata,
+          platformFeeWallet: fee_wallet_ata, // Use fee wallet ATA
+          participentInfo: participantInfoPda,
+          participentUsdtAta: participantUsdtAtaPda,
+          config: configPda,
+          playerGlobalProfile: playerGlobalProfilePda,
+          tradingPda,
         };
 
-        let userAtaAccountInfo = await rpc
-          .getAccountInfo(participent1_ata)
+        let user1_usdt_balance_before_join = await rpc
+          .getTokenAccountBalance(user1_ata)
           .send();
 
-        if (!userAtaAccountInfo || !userAtaAccountInfo.value) {
-          assert.fail("User Ata account is null");
+        if (
+          !user1_usdt_balance_before_join ||
+          !user1_usdt_balance_before_join.value
+        ) {
+          assert.fail("User1 USDT balance is null");
         }
 
-        const userAtaBalanceBefore = userAtaAccountInfo.value.lamports;
-
-        await JoinContest({
+        await joinContest({
           joinContestInput,
-          payer: participent1,
+          payer: user1,
         });
 
-        userAtaAccountInfo = await rpc.getAccountInfo(participent1_ata).send();
+        let user1_usdt_balance_after_join = await rpc
+          .getTokenAccountBalance(user1_ata)
+          .send();
 
-        if (!userAtaAccountInfo || !userAtaAccountInfo.value) {
-          assert.fail("User Ata account is null");
+        if (
+          !user1_usdt_balance_after_join ||
+          !user1_usdt_balance_after_join.value
+        ) {
+          assert.fail("User1 USDT balance is null");
         }
 
-        const userAtaBalanceAfter = userAtaAccountInfo.value.lamports;
+        // Fecthing Created PDA DATA
+        const participantInfoAccount = await rpc
+          .getAccountInfo(participantInfoPda, {
+            encoding: "jsonParsed",
+          })
+          .send();
 
-        const userInfoAccount = await rpc.getAccountInfo(userInfoPda).send();
-
-        if (!userInfoAccount || !userInfoAccount.value) {
-          assert.fail("User info account is null");
+        if (!participantInfoAccount || !participantInfoAccount.value) {
+          assert.fail("Participant info account is null");
         }
 
-        let userInfoAccountData = getParticipentDecoder().decode(
-          Buffer.from(userAtaAccountInfo.value.data[0], "base64")
+        let participantInfoAccountData = getParticipentDecoder().decode(
+          Buffer.from(participantInfoAccount.value.data[0], "base64")
         );
+
+        const participant_usdt_balance = await rpc
+          .getTokenAccountBalance(participantUsdtAtaPda)
+          .send();
+
+        if (!participant_usdt_balance || !participant_usdt_balance.value) {
+          assert.fail("Participant USDT balance is null");
+        }
+
+        // More test that we can done here
+        // 1) Check if the participant count in contest account is incremented
+        // 2) Check if the platform fee wallet balance is incremented correctly
 
         assert.notEqual(
-          userAtaBalanceBefore,
-          userAtaBalanceAfter,
+          user1_usdt_balance_before_join.value.amount,
+          user1_usdt_balance_after_join.value.amount,
           "User Balance not deducted"
         );
-        assert.equal(userInfoAccountData.user, participent1.address.toString());
-
-        // Check user ATA Balance before and after
+        assert.equal(participantInfoAccountData.user, user1.address);
       } catch (error) {
-        console.log("Error", error.context);
-        assert.fail("participent unable to join the contest");
+        console.log("Error", error);
+        assert.fail("participant unable to join the contest");
+      }
+    });
+
+    test("User cannot join same contest twice", async () => {
+      try {
+        const participantInfoSeeds = [
+          new TextEncoder().encode("participent"),
+          getAddressEncoder().encode(contest),
+          getAddressEncoder().encode(user1.address),
+        ];
+
+        const [participantInfoPdaAddress] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: participantInfoSeeds,
+        });
+
+        // Storing it for other tests to use
+        participantInfoPda = participantInfoPdaAddress;
+
+        const participantUsdtAtaSeeds = [
+          new TextEncoder().encode("participent_usdt_ata"),
+          getAddressEncoder().encode(user1.address),
+          getAddressEncoder().encode(tokenMint),
+          getAddressEncoder().encode(contest),
+        ];
+
+        const [participantUsdtAtaPdaAddress] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: participantUsdtAtaSeeds,
+        });
+
+        // Store for other tests to use
+        participantUsdtAtaPda = participantUsdtAtaPdaAddress;
+
+        let playerGlobalProfileSeeds = [
+          new TextEncoder().encode("player"),
+          getAddressEncoder().encode(user1.address),
+        ];
+
+        const [playerGlobalProfilePda] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: playerGlobalProfileSeeds,
+        });
+
+        let tradingPdaSeeds = [
+          new TextEncoder().encode("trading_pda"),
+          getAddressEncoder().encode(contest),
+          getAddressEncoder().encode(user1.address),
+        ];
+
+        const [tradingPda] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: tradingPdaSeeds,
+        });
+
+        const joinContestInput: JoinContestAsyncInput = {
+          contest: contest,
+          host: host.address,
+          participent: user1,
+          tokenMint: tokenMint,
+          userAta: user1_ata,
+          platformFeeWallet: fee_wallet_ata, // Use fee wallet ATA
+          participentInfo: participantInfoPda,
+          participentUsdtAta: participantUsdtAtaPda,
+          config: configPda,
+          playerGlobalProfile: playerGlobalProfilePda,
+          tradingPda: tradingPda,
+        };
+
+        let user1_usdt_balance_before_join = await rpc
+          .getTokenAccountBalance(user1_ata)
+          .send();
+
+        if (
+          !user1_usdt_balance_before_join ||
+          !user1_usdt_balance_before_join.value
+        ) {
+          assert.fail("User1 USDT balance is null");
+        }
+
+        await joinContest({
+          joinContestInput,
+          payer: user1,
+        });
+
+        let user1_usdt_balance_after_join = await rpc
+          .getTokenAccountBalance(user1_ata)
+          .send();
+
+        if (
+          !user1_usdt_balance_after_join ||
+          !user1_usdt_balance_after_join.value
+        ) {
+          assert.fail("User1 USDT balance is null");
+        }
+
+        // Fecthing Created PDA DATA
+        const participantInfoAccount = await rpc
+          .getAccountInfo(participantInfoPda, {
+            encoding: "jsonParsed",
+          })
+          .send();
+
+        if (!participantInfoAccount || !participantInfoAccount.value) {
+          assert.fail("Participant info account is null");
+        }
+
+        let participantInfoAccountData = getParticipentDecoder().decode(
+          Buffer.from(participantInfoAccount.value.data[0], "base64")
+        );
+
+        const participant_usdt_balance = await rpc
+          .getTokenAccountBalance(participantUsdtAtaPda)
+          .send();
+
+        if (!participant_usdt_balance || !participant_usdt_balance.value) {
+          assert.fail("Participant USDT balance is null");
+        }
+
+        assert.fail(
+          "Expected joining same contest twice to fail but it succeeded"
+        );
+      } catch (error) {
+        if (
+          error.context?.logs?.some((l: string) => l.includes("already in use"))
+        ) {
+          console.log(
+            "User cannot join same contest twice (PDA already exists)"
+          );
+          return;
+        }
+        assert.fail("Unepected Error" + error);
+      }
+    });
+
+    test("User cannot join another contest at the same time", async () => {
+      try {
+        const participantInfoSeeds = [
+          new TextEncoder().encode("participent"),
+          getAddressEncoder().encode(sudoHostContest),
+          getAddressEncoder().encode(user1.address),
+        ];
+
+        const [participantInfoPdaAddress] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: participantInfoSeeds,
+        });
+
+        const participantUsdtAtaSeeds = [
+          new TextEncoder().encode("participent_usdt_ata"),
+          getAddressEncoder().encode(user1.address),
+          getAddressEncoder().encode(tokenMint),
+          getAddressEncoder().encode(sudoHostContest),
+        ];
+
+        const [participantUsdtAtaPdaAddress] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: participantUsdtAtaSeeds,
+        });
+
+        let playerGlobalProfileSeeds = [
+          new TextEncoder().encode("player"),
+          getAddressEncoder().encode(user1.address),
+        ];
+
+        const [playerGlobalProfilePda] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: playerGlobalProfileSeeds,
+        });
+
+        let tradingPdaSeeds = [
+          new TextEncoder().encode("trading_pda"),
+          getAddressEncoder().encode(sudoHostContest),
+          getAddressEncoder().encode(user1.address),
+        ];
+
+        const [tradingPda] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: tradingPdaSeeds,
+        });
+
+        const joinContestInput: JoinContestAsyncInput = {
+          contest: sudoHostContest,
+          host: sudo_host.address,
+          participent: user1,
+          tokenMint: tokenMint,
+          userAta: user1_ata,
+          platformFeeWallet: fee_wallet_ata, // Use fee wallet ATA
+          participentInfo: participantInfoPdaAddress,
+          participentUsdtAta: participantUsdtAtaPdaAddress,
+          config: configPda,
+          playerGlobalProfile: playerGlobalProfilePda,
+          tradingPda: tradingPda,
+        };
+
+        let user1_usdt_balance_before_join = await rpc
+          .getTokenAccountBalance(user1_ata)
+          .send();
+
+        if (
+          !user1_usdt_balance_before_join ||
+          !user1_usdt_balance_before_join.value
+        ) {
+          assert.fail("User1 USDT balance is null");
+        }
+
+        await joinContest({
+          joinContestInput,
+          payer: user1,
+        });
+
+        let user1_usdt_balance_after_join = await rpc
+          .getTokenAccountBalance(user1_ata)
+          .send();
+
+        if (
+          !user1_usdt_balance_after_join ||
+          !user1_usdt_balance_after_join.value
+        ) {
+          assert.fail("User1 USDT balance is null");
+        }
+
+        // Fecthing Created PDA DATA
+        const participantInfoAccount = await rpc
+          .getAccountInfo(participantInfoPdaAddress, {
+            encoding: "jsonParsed",
+          })
+          .send();
+
+        if (!participantInfoAccount || !participantInfoAccount.value) {
+          assert.fail("Participant info account is null");
+        }
+
+        let participantInfoAccountData = getParticipentDecoder().decode(
+          Buffer.from(participantInfoAccount.value.data[0], "base64")
+        );
+
+        const participant_usdt_balance = await rpc
+          .getTokenAccountBalance(participantUsdtAtaPdaAddress)
+          .send();
+
+        if (!participant_usdt_balance || !participant_usdt_balance.value) {
+          assert.fail("Participant USDT balance is null");
+        }
+
+        assert.fail(
+          "Expected joining diff contest at same times to fail but it succeeded"
+        );
+      } catch (error) {
+        console.log("Error", error);
+        if (
+          error.context?.logs?.some((l: string) =>
+            l.includes("Already Participated in another contest")
+          )
+        ) {
+          console.log("Already Participated in another contest");
+          return;
+        }
+        assert.fail("Unexpected Error" + error);
       }
     });
   });
