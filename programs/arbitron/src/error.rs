@@ -34,4 +34,19 @@ pub enum ErrorCode {
 
     #[msg("Invalid contest state")]
     InvalidContestState,
+
+    #[msg("Contest already exists")]
+    ContestAlreadyExists,
+
+    #[msg("Invalid entry fees amount")]
+    InvalidEntryFees,
+
+    #[msg("Invalid duration")]
+    InvalidDuration,
+
+    #[msg("Invalid start time")]
+    InvalidStartTime,
+
+    #[msg("Invalid max participants")]
+    InvalidMaxParticipants,
 }

@@ -29,5 +29,5 @@ pub struct Contest{
 
     pub bump: u8,
 
-    pub prize_pool_usdc_ata: Pubkey,
+    pub prize_pool_vault_usdt: Pubkey,
 }

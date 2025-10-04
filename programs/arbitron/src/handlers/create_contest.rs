@@ -30,23 +30,31 @@ pub struct CreateContest<'info>{
         init,
         payer = signer,
         seeds = [
-            b"prize_pool_usdc_ata",
+            b"prize_pool_usdt",
             contest.key().as_ref()
         ],
         bump,
         token::mint = token_mint,
         token::authority = contest,
     )]
-    pub prize_pool_usdc_ata : InterfaceAccount<'info,TokenAccount>,
+    pub prize_pool_vault_usdt : InterfaceAccount<'info,TokenAccount>,
 
     pub system_program : Program<'info,System>,
 
     pub token_program : Interface<'info, TokenInterface>,
 }
 
-pub fn create_contest(context:Context<CreateContest>,name:String, start_time: i64, duration:u64, entry_fees:u64, max_participents:u32,participents_count:u32)->Result<()>{
+pub fn create_contest(context:Context<CreateContest>,name:String, start_time: i64, duration:u64, entry_fees:u64, max_participents:u32)->Result<()>{
 
     require!(!name.is_empty() && name.len()<=50,ErrorCode::MaxNameLengthExcedded);
+    
+    require!(entry_fees > 0, ErrorCode::InvalidEntryFees);
+    
+    require!(duration > 0, ErrorCode::InvalidDuration);
+    
+    require!(start_time > 0, ErrorCode::InvalidStartTime);
+    
+    require!(max_participents > 0, ErrorCode::InvalidMaxParticipants);
 
     let contest = &mut context.accounts.contest;
     let host = &context.accounts.signer;
@@ -56,10 +64,10 @@ pub fn create_contest(context:Context<CreateContest>,name:String, start_time: i6
     contest.duration = duration;
     contest.host = host.key();
     contest.max_participents = max_participents;
-    contest.participents_count = participents_count;
+    contest.participents_count = 0;
     contest.status = ContestState::Upcoming;
     contest.entry_fees = entry_fees;
-    contest.prize_pool_usdc_ata = context.accounts.prize_pool_usdc_ata.key();
+    contest.prize_pool_vault_usdt = context.accounts.prize_pool_vault_usdt.key();
     contest.bump = context.bumps.contest;
 
     Ok(())
