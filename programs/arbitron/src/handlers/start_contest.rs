@@ -14,10 +14,10 @@ pub struct StartContest<'info>{
         seeds = [
             b"contest",
             contest.name.as_bytes(),
-            host.key().as_ref()
+            contest.host.key().as_ref()
         ],
         bump = contest.bump,
-        constraint = contest.host == host.key() @ErrorCode::UnauthorizedHost,
+        // constraint = contest.host == host.key() @ErrorCode::UnauthorizedHost,
         constraint = contest.status == ContestState::Upcoming @ErrorCode::InvalidContestState,
     )]
     pub contest: Account<'info, Contest>,
@@ -26,6 +26,15 @@ pub struct StartContest<'info>{
 pub fn start_contest(ctx:Context<StartContest>)->Result<()>{
 
     let contest = &mut ctx.accounts.contest;
+
+    let clock = Clock::get()?;
+
+    require!(contest.participents_count > 1, ErrorCode::MinContestParticipantsError);
+    require!(clock.unix_timestamp >= contest.start_time, ErrorCode::ContestNotStartedYet);
+
     contest.status = ContestState::Ongoing;
+    // Contest started and we have recorded the actual start time.
+    contest.start_time = clock.unix_timestamp;
+
     Ok(())
 }

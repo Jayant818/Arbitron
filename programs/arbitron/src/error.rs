@@ -17,6 +17,12 @@ pub enum ErrorCode {
     #[msg("Already Participated in another contest")]
     AlreadyInContest,
 
+    #[msg("The contest has not reached its scheduled start time yet.")]
+    ContestNotStartedYet,
+
+    #[msg("Minimum participants not reached")]
+    MinContestParticipantsError,
+
     #[msg("Already joined the contest")]
     AlreadyJoined,
 

@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
@@ -19,18 +18,38 @@ import { Plus, DollarSign, Target, CalendarIcon, Sparkles, Trophy, Settings } fr
 import { format } from "date-fns"
 import { SelectedWalletAccountContext } from "@/context/SelectedWalletAccountContext"
 import { ConnectWalletMenu } from "@/components/ConnectWalletMenu"
+import { address, getAddressEncoder, getBase58Decoder, getProgramDerivedAddress, signAndSendTransactionMessageWithSigners } from "@solana/kit"
+import { ChainContext } from "@/context/ChainContext"
+import {
+	CreateContestAsyncInput,
+	ARBITRON_PROGRAM_ADDRESS as ARBITRON_PROGRAM_ID,
+	getCreateContestInstructionAsync,
+} from "../../../../dist/js-client/index"
 
-const contestTypes = [
+import {
+	createTransactionMessage,
+	setTransactionMessageFeePayerSigner,
+	setTransactionMessageLifetimeUsingBlockhash,
+	appendTransactionMessageInstructions,
+	pipe,
+} from "@solana/kit";
+import { RpcContext } from "@/context/RpcContext"
+import { useWalletAccountTransactionSendingSigner } from "@solana/react";  
+import { log } from "console"
+  
+export const USD_MINT = address("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr");
+
+interface contestType {
+	id: string;
+	name: string;
+	duration: string;
+	icon: string;
+}
+
+const contestTypes: contestType[] = [
 	{ id: "lightning", name: "Lightning Round", duration: "5 minutes", icon: "⚡" },
-	{ id: "blitz", name: "Blitz Battle", duration: "15 minutes", icon: "🚀" },
 	{ id: "marathon", name: "Marathon", duration: "1 hour", icon: "🏃" },
 	{ id: "endurance", name: "Endurance", duration: "4 hours", icon: "💪" },
-]
-
-const difficultyLevels = [
-	{ id: "beginner", name: "Beginner", color: "text-electric-teal", description: "Perfect for new traders" },
-	{ id: "intermediate", name: "Intermediate", color: "text-vibrant-purple", description: "For experienced traders" },
-	{ id: "expert", name: "Expert", color: "text-hot-pink", description: "High-stakes competition" },
 ]
 
 const prizeStructures = [
@@ -42,46 +61,25 @@ const prizeStructures = [
 
 export default function CreateContestPage() {
 	const router = useRouter()
+	const { chain } = useContext(ChainContext);
+	const { rpc } = useContext(RpcContext);
+	
 	const [selectedWalletAccount] = useContext(SelectedWalletAccountContext)
 	const [formData, setFormData] = useState({
 		title: "",
 		description: "",
-		type: "",
-		difficulty: "",
+		type: contestTypes[0].id, // Storing the ID string, not the entire object
 		entryFee: [100],
-		prizePool: [2500],
 		maxParticipants: [50],
 		prizeStructure: "",
 		startDate: undefined as Date | undefined,
 		startTime: "12:00",
-		allowedTokens: [] as string[],
 		isPrivate: false,
 		requiresApproval: false,
 		customRules: "",
 	})
 
-	const [selectedTokens, setSelectedTokens] = useState<string[]>([])
 	const [isCreating, setIsCreating] = useState(false)
-
-	const availableTokens = ["SOL", "USDC", "USDT", "RAY", "ORCA", "MNGO", "SRM", "FIDA", "COPE", "STEP"]
-
-	const handleTokenToggle = (token: string) => {
-		setSelectedTokens((prev) => (prev.includes(token) ? prev.filter((t) => t !== token) : [...prev, token]))
-	}
-
-	const handleCreateContest = async () => {
-		setIsCreating(true)
-
-		// Simulate API call
-		await new Promise((resolve) => setTimeout(resolve, 2000))
-
-		// Redirect to contest lobby
-		router.push("/contest/new-contest-001")
-	}
-
-	const selectedType = contestTypes.find((t) => t.id === formData.type)
-	const selectedDifficulty = difficultyLevels.find((d) => d.id === formData.difficulty)
-	const selectedPrizeStructure = prizeStructures.find((p) => p.id === formData.prizeStructure)
 
 	if (!selectedWalletAccount) {
 		return (
@@ -95,6 +93,106 @@ export default function CreateContestPage() {
 		)
 	}
 
+
+	// Create the wallet-compatible signer (must be at component top-level)
+	// eslint-disable-next-line react-hooks/rules-of-hooks
+	const signer = useWalletAccountTransactionSendingSigner(
+		selectedWalletAccount?.account,
+		chain   // Use your chain context; fallback to devnet if undefined
+	);
+
+	const handleCreateContest = async () => {
+		try {
+		  setIsCreating(true);
+	  
+		  const contestName = formData.title;
+		  
+		  // Get the selected contest type to extract duration
+		  const selectedType = contestTypes.find(t => t.id === formData.type);
+		  if (!selectedType) {
+			alert("Please select a valid contest type.");
+			setIsCreating(false);
+			return;
+		  }
+		  
+		  // Parse duration from "5 minutes" or "1 hour" format
+		  const durationMatch = selectedType.duration.match(/(\d+)\s*(minute|hour)/i);
+		  if (!durationMatch) {
+			alert("Invalid duration format.");
+			setIsCreating(false);
+			return;
+		  }
+		  
+		  const durationValue = parseInt(durationMatch[1]);
+		  const durationUnit = durationMatch[2].toLowerCase();
+		  const durationInSeconds = durationUnit === 'hour' 
+			? durationValue * 60 * 60 
+			: durationValue * 60;
+	  
+		  // 1️⃣ Generate Contest PDA (use signer.address)
+		  const contestSeeds = [
+			new TextEncoder().encode("contest"),
+			new TextEncoder().encode(contestName),
+			getAddressEncoder().encode(signer.address),
+		  ];
+	  
+		  const [contestPda] = await getProgramDerivedAddress({
+			programAddress: ARBITRON_PROGRAM_ID,
+			seeds: contestSeeds,
+		  });
+			
+			console.log("durationInSeconds:", durationInSeconds);
+			console.log("signer.address:", signer.address);
+			console.log("entryFees", formData.entryFee);
+			console.log("maxParticipants", formData.maxParticipants);
+	  
+		  // 2️⃣ Prepare instruction input (use signer)
+		  const createContestAsyncInput: CreateContestAsyncInput = {
+			duration: durationInSeconds, // duration in seconds
+			entryFees: BigInt(formData.entryFee[0] * 10 ** 6), // e.g. 100 USDC (6 decimals)
+			maxParticipents: Number(formData.maxParticipants[0]),
+			name: contestName,
+			startTime: Math.floor(Date.now() / 1000) + 60, // start in 1 min
+			signer: signer,  // <-- Use signer here
+			tokenMint: USD_MINT,
+			contest: contestPda,
+		  };
+	  
+		  // 3️⃣ Get instruction
+		  const createContestIx = await getCreateContestInstructionAsync(
+			createContestAsyncInput,
+			{
+			  programAddress: ARBITRON_PROGRAM_ID,
+			}
+		  );
+	  
+		  // 4️⃣ Build transaction
+		  const { value: blockhash } = await rpc.getLatestBlockhash().send();
+	  
+		  const txMsg = pipe(
+			createTransactionMessage({ version: 0 }),
+			(tx) => setTransactionMessageFeePayerSigner(signer, tx),  // <-- Use signer here
+			(tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+			(tx) => appendTransactionMessageInstructions([createContestIx], tx)
+		  );
+	  
+		  // 5️⃣ Sign & Send transaction via wallet (this should prompt the wallet UI)
+		  const signatureBytes = await signAndSendTransactionMessageWithSigners(txMsg);
+		  const sig = getBase58Decoder().decode(signatureBytes);  // Decode to base58 if needed for logging/explorer
+		  
+		  console.log("✅ Contest created successfully! Signature:", sig);
+	  
+		  alert("Contest created successfully!");
+		  router.push("/contest/" + contestName);
+		} catch (error) {
+		  console.error("❌ Error creating contest:", error);
+		  alert("Error creating contest. Check console for details.");
+		} finally {
+		  setIsCreating(false);
+		}
+	  };
+
+	const selectedPrizeStructure = prizeStructures.find((p) => p.id === formData.prizeStructure)
 	return (
 		<div className="min-h-screen bg-background">
 			<div className="container mx-auto px-4 py-8">
@@ -165,27 +263,6 @@ export default function CreateContestPage() {
 										</Select>
 									</div>
 
-									<div>
-										<Label className="text-sm font-mono text-muted-foreground">Difficulty</Label>
-										<Select
-											value={formData.difficulty}
-											onValueChange={(value) => setFormData((prev) => ({ ...prev, difficulty: value }))}
-										>
-											<SelectTrigger className="mt-1">
-												<SelectValue placeholder="Select difficulty..." />
-											</SelectTrigger>
-											<SelectContent>
-												{difficultyLevels.map((level) => (
-													<SelectItem key={level.id} value={level.id}>
-														<div>
-															<div className={`font-mono ${level.color}`}>{level.name}</div>
-															<div className="text-xs text-muted-foreground">{level.description}</div>
-														</div>
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									</div>
 								</div>
 							</div>
 						</GlassCard>
@@ -213,25 +290,6 @@ export default function CreateContestPage() {
 											<span>$10</span>
 											<span className="text-electric-teal font-mono">${formData.entryFee[0]}</span>
 											<span>$1,000</span>
-										</div>
-									</div>
-								</div>
-
-								<div>
-									<Label className="text-sm font-mono text-muted-foreground">Prize Pool (USDC)</Label>
-									<div className="mt-2">
-										<Slider
-											value={formData.prizePool}
-											onValueChange={(value) => setFormData((prev) => ({ ...prev, prizePool: value }))}
-											max={50000}
-											min={100}
-											step={100}
-											className="w-full"
-										/>
-										<div className="flex justify-between text-xs text-muted-foreground mt-1">
-											<span>$100</span>
-											<span className="text-vibrant-purple font-mono">${formData.prizePool[0].toLocaleString()}</span>
-											<span>$50,000</span>
 										</div>
 									</div>
 								</div>
@@ -317,26 +375,6 @@ export default function CreateContestPage() {
 									</div>
 								</div>
 
-								<div>
-									<Label className="text-sm font-mono text-muted-foreground mb-3 block">Allowed Trading Tokens</Label>
-									<div className="grid grid-cols-5 gap-2">
-										{availableTokens.map((token) => (
-											<Badge
-												key={token}
-												variant={selectedTokens.includes(token) ? "default" : "outline"}
-												className={`cursor-pointer text-center justify-center py-2 transition-colors ${
-													selectedTokens.includes(token)
-														? "bg-electric-teal/20 text-electric-teal border-electric-teal"
-														: "hover:bg-electric-teal/10"
-												}`}
-												onClick={() => handleTokenToggle(token)}
-											>
-												{token}
-											</Badge>
-										))}
-									</div>
-								</div>
-
 								<Separator />
 
 								<div className="space-y-4">
@@ -396,22 +434,6 @@ export default function CreateContestPage() {
 									</p>
 								</div>
 
-								{selectedType && (
-									<div className="flex items-center gap-2">
-										<Badge variant="outline" className="text-electric-teal border-electric-teal">
-											{selectedType.icon} {selectedType.name}
-										</Badge>
-									</div>
-								)}
-
-								{selectedDifficulty && (
-									<div className="flex items-center gap-2">
-										<Badge variant="outline" className={`${selectedDifficulty.color} border-current`}>
-											{selectedDifficulty.name}
-										</Badge>
-									</div>
-								)}
-
 								<Separator />
 
 								<div className="space-y-2 text-sm font-mono">
@@ -420,8 +442,8 @@ export default function CreateContestPage() {
 										<span className="text-electric-teal">${formData.entryFee[0]} USDC</span>
 									</div>
 									<div className="flex justify-between">
-										<span className="text-muted-foreground">Prize Pool:</span>
-										<span className="text-vibrant-purple">${formData.prizePool[0].toLocaleString()} USDC</span>
+										<span className="text-muted-foreground">Expected Prize Pool:</span>
+										<span className="text-vibrant-purple">${formData.entryFee[0] * formData.maxParticipants[0]} USDC</span>
 									</div>
 									<div className="flex justify-between">
 										<span className="text-muted-foreground">Max Participants:</span>
@@ -435,21 +457,6 @@ export default function CreateContestPage() {
 									)}
 								</div>
 
-								{selectedTokens.length > 0 && (
-									<>
-										<Separator />
-										<div>
-											<div className="text-sm text-muted-foreground font-mono mb-2">Allowed Tokens:</div>
-											<div className="flex flex-wrap gap-1">
-												{selectedTokens.map((token) => (
-													<Badge key={token} variant="outline" className="text-xs">
-														{token}
-													</Badge>
-												))}
-											</div>
-										</div>
-									</>
-								)}
 							</div>
 						</GlassCard>
 
@@ -462,7 +469,7 @@ export default function CreateContestPage() {
 								</h3>
 								<div className="space-y-2">
 									{selectedPrizeStructure.distribution.map((percentage, index) => {
-										const amount = (formData.prizePool[0] * percentage) / 100
+										const amount = (formData.entryFee[0] * formData.maxParticipants[0] * percentage) / 100  // Adjusted to use entryFee * maxParticipants as prize pool estimate
 										return (
 											<div key={index} className="flex justify-between text-sm font-mono">
 												<span className="text-muted-foreground">#{index + 1}:</span>
@@ -481,7 +488,7 @@ export default function CreateContestPage() {
 							size="lg"
 							className="w-full"
 							onClick={handleCreateContest}
-							disabled={!formData.title || !formData.type || !formData.difficulty || isCreating}
+							disabled={!formData.title || !formData.type  || isCreating}
 						>
 							{isCreating ? (
 								<>

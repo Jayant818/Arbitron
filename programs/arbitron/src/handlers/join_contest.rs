@@ -3,7 +3,7 @@ use anchor_spl::token_interface::{Mint, TokenAccount,TokenInterface};
 
 use anchor_lang::account;
 
-use crate::{ error::ErrorCode, transfer_token, Config, Contest, ContestState, Participent, Player, PLATFORM_FEE, PLATFORM_FEE_WALLET};
+use crate::{ error::ErrorCode, transfer_token, Config, Contest, ContestState, Participent, Player};
 
 // Task
 // 1) Join the Contest : PDA will be created for user to store his details in the contest
@@ -114,7 +114,8 @@ pub struct JoinContest<'info>{
 pub fn join_contest(context: Context<JoinContest>) -> Result<()> {
 
     let contest = &mut context.accounts.contest;
-    let platform_fee = contest.entry_fees.checked_mul(PLATFORM_FEE as u64).ok_or(ErrorCode::Overflow)? / 100;
+    let config = &context.accounts.config;
+    let platform_fee = contest.entry_fees.checked_mul(config.platform_fee_bps as u64).ok_or(ErrorCode::Overflow)? / 10000; // BPS calculation
     let player_global_profile = &mut context.accounts.player_global_profile;
     // verifications
     

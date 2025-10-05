@@ -19,6 +19,7 @@ interface ContestCardProps {
     timeRemaining: string
     status: "waiting" | "active" | "ending"
     difficulty: "beginner" | "intermediate" | "expert"
+    isHost?: boolean
   }
 }
 
@@ -69,7 +70,12 @@ export function ContestCard({ contest }: ContestCardProps) {
   return (
     <GlassCard hover className="relative overflow-hidden">
       {/* Status indicator */}
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex gap-2">
+        {contest.isHost && (
+          <Badge variant="outline" className="bg-vibrant-purple/20 text-vibrant-purple border-vibrant-purple">
+            HOST
+          </Badge>
+        )}
         <Badge variant="outline" className={`${getStatusColor(contest.status)} border-current`}>
           {contest.status.toUpperCase()}
         </Badge>

@@ -1,101 +1,117 @@
 "use client"
 
-import { useState, useMemo, useContext } from "react"
-import { useRouter } from "next/navigation"
-import { NeonButton } from "@/components/ui/neon-button"
-import { ContestCard } from "@/components/contest-card"
-import { ContestFilters } from "@/components/contest-filters"
-import { TrendingUp, Users, Trophy } from "lucide-react"
-import { SelectedWalletAccountContext } from "@/context/SelectedWalletAccountContext"
-import { useToast } from "@/hooks/use-toast"
+import { useState, useMemo, useContext, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { NeonButton } from "@/components/ui/neon-button";
+import { ContestCard } from "@/components/contest-card";
+import { ContestFilters } from "@/components/contest-filters";
+import { TrendingUp, Users, Trophy } from "lucide-react";
+import { SelectedWalletAccountContext } from "@/context/SelectedWalletAccountContext";
+import { useToast } from "@/hooks/use-toast";
+import axios from "axios";
 
-// Mock contest data
-const mockContests = [
-	{
-		id: "001",
-		title: "Lightning Round Alpha",
-		type: "lightning" as const,
-		entryFee: 100,
-		prizePool: 2500,
-		currentPlayers: 24,
-		maxPlayers: 25,
-		timeRemaining: "2m 34s",
-		status: "waiting" as const,
-		difficulty: "beginner" as const,
-	},
-	{
-		id: "002",
-		title: "Endurance Marathon",
-		type: "endurance" as const,
-		entryFee: 250,
-		prizePool: 10000,
-		currentPlayers: 18,
-		maxPlayers: 40,
-		timeRemaining: "45m 12s",
-		status: "active" as const,
-		difficulty: "intermediate" as const,
-	},
-	{
-		id: "003",
-		title: "Precision Strike",
-		type: "precision" as const,
-		entryFee: 500,
-		prizePool: 25000,
-		currentPlayers: 12,
-		maxPlayers: 20,
-		timeRemaining: "1h 23m",
-		status: "waiting" as const,
-		difficulty: "expert" as const,
-	},
-	{
-		id: "004",
-		title: "Speed Demon",
-		type: "lightning" as const,
-		entryFee: 50,
-		prizePool: 1200,
-		currentPlayers: 15,
-		maxPlayers: 15,
-		timeRemaining: "Ending Soon",
-		status: "ending" as const,
-		difficulty: "beginner" as const,
-	},
-	{
-		id: "005",
-		title: "Whale Hunter",
-		type: "precision" as const,
-		entryFee: 1000,
-		prizePool: 50000,
-		currentPlayers: 8,
-		maxPlayers: 10,
-		timeRemaining: "3h 45m",
-		status: "waiting" as const,
-		difficulty: "expert" as const,
-	},
-	{
-		id: "006",
-		title: "Day Trader Special",
-		type: "endurance" as const,
-		entryFee: 200,
-		prizePool: 8000,
-		currentPlayers: 32,
-		maxPlayers: 50,
-		timeRemaining: "6h 12m",
-		status: "active" as const,
-		difficulty: "intermediate" as const,
-	},
-]
+interface Contest {
+	id: string,
+    title: string,
+    entryFee: number,
+    currentPlayers: number,
+    maxPlayers: number,
+    duration: number,
+    status: number,
+    host: string,
+    waitingTime: number,
+	prizePoolAccount: string;
+	decimals: number;
+}
+
+async function fetchContests() { 
+	const contests = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/contest/all`);
+
+	return contests.data;
+}
 
 export default function HomePage() {
-	const router = useRouter()
-	const [selectedWalletAccount] = useContext(SelectedWalletAccountContext)
-	const { toast } = useToast()
-	const [searchTerm, setSearchTerm] = useState("")
-	const [statusFilter, setStatusFilter] = useState("all")
-	const [typeFilter, setTypeFilter] = useState("all")
-	const [difficultyFilter, setDifficultyFilter] = useState("all")
+	const router = useRouter();
+	const [contests, setContests] = useState<Contest[]>([]);
+	const [selectedWalletAccount] = useContext(SelectedWalletAccountContext);
+	const { toast } = useToast();
+	const [searchTerm, setSearchTerm] = useState("");
+	const [statusFilter, setStatusFilter] = useState("all");
+	const [typeFilter, setTypeFilter] = useState("all");
+	const [difficultyFilter, setDifficultyFilter] = useState("all");
+
+	// Transform API contests to UI format
+	const transformedContests = useMemo(() => {
+		return contests.map((contest) => {
+			// Derive contest type from duration (in seconds)
+			const getContestType = (duration: number): "lightning" | "endurance" | "precision" => {
+				if (duration <= 600) return "lightning" // <= 10 minutes
+				if (duration <= 3600) return "precision" // <= 1 hour
+				return "endurance" // > 1 hour
+			}
+
+			// Derive difficulty from entry fee (in base units)
+			const getDifficulty = (entryFee: number, decimals: number): "beginner" | "intermediate" | "expert" => {
+				const fee = entryFee / Math.pow(10, decimals)
+				if (fee < 100) return "beginner"
+				if (fee < 500) return "intermediate"
+				return "expert"
+			}
+
+			// Convert status number to string
+			const getStatus = (status: number): "waiting" | "active" | "ending" => {
+				if (status === 0) return "waiting"
+				if (status === 1) return "active"
+				return "ending"
+			}
+
+			// Calculate time remaining
+			const getTimeRemaining = (waitingTime: number, duration: number, status: number): string => {
+				const now = Math.floor(Date.now() / 1000)
+				
+				if (status === 0) {
+					// Waiting phase
+					const timeUntilStart = waitingTime - now
+					if (timeUntilStart <= 0) return "Starting Soon"
+					const minutes = Math.floor(timeUntilStart / 60)
+					const seconds = timeUntilStart % 60
+					return `${minutes}m ${seconds}s`
+				} else if (status === 1) {
+					// Active phase
+					const endTime = waitingTime + duration
+					const timeRemaining = endTime - now
+					if (timeRemaining <= 0) return "Ending Soon"
+					const hours = Math.floor(timeRemaining / 3600)
+					const minutes = Math.floor((timeRemaining % 3600) / 60)
+					return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+				}
+				return "Ended"
+			}
+
+			// Calculate prize pool (entry fee * current players)
+			const prizePool = (contest.entryFee / Math.pow(10, contest.decimals)) * contest.currentPlayers
+
+			// Check if user is host
+			const isHost = selectedWalletAccount?.account.address === contest.host
+
+			return {
+				id: contest.id,
+				title: contest.title,
+				type: getContestType(contest.duration),
+				entryFee: contest.entryFee / Math.pow(10, contest.decimals),
+				prizePool,
+				currentPlayers: contest.currentPlayers,
+				maxPlayers: contest.maxPlayers,
+				timeRemaining: getTimeRemaining(contest.waitingTime, contest.duration, contest.status),
+				status: getStatus(contest.status),
+				difficulty: getDifficulty(contest.entryFee, contest.decimals),
+				isHost,
+			}
+		})
+	}, [contests, selectedWalletAccount])
 
 	const filteredContests = useMemo(() => {
-		return mockContests.filter((contest) => {
+		return transformedContests.filter((contest) => {
 			const matchesSearch =
 				contest.title.toLowerCase().includes(searchTerm.toLowerCase()) || contest.id.includes(searchTerm)
 			const matchesStatus = statusFilter === "all" || contest.status === statusFilter
@@ -104,11 +120,11 @@ export default function HomePage() {
 
 			return matchesSearch && matchesStatus && matchesType && matchesDifficulty
 		})
-	}, [searchTerm, statusFilter, typeFilter, difficultyFilter])
+	}, [transformedContests, searchTerm, statusFilter, typeFilter, difficultyFilter])
 
-	const totalPrizePool = mockContests.reduce((sum, contest) => sum + contest.prizePool, 0)
-	const totalPlayers = mockContests.reduce((sum, contest) => sum + contest.currentPlayers, 0)
-	const activeContests = mockContests.filter((c) => c.status === "active").length
+	const totalPrizePool = transformedContests.reduce((sum, contest) => sum + contest.prizePool, 0)
+	const totalPlayers = transformedContests.reduce((sum, contest) => sum + contest.currentPlayers, 0)
+	const activeContests = transformedContests.filter((c) => c.status === "active").length
 
 	const handleCreateContest = () => {
 		if (!selectedWalletAccount) {
@@ -122,6 +138,15 @@ export default function HomePage() {
 		// Navigate to create contest page
 		router.push("/create")
 	}
+
+	useEffect(() => {
+		const fetchData = async () => {
+			const contests = await fetchContests();
+			console.log("Fetched Contests:", contests);
+			setContests(contests);
+		};
+		fetchData();
+	}, []);
 
 	return (
 		<div className="min-h-screen bg-background">

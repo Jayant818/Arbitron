@@ -1357,16 +1357,256 @@ describe("Arbitron Tests ", () => {
   });
 
   describe("Start Contest", () => {
-    test("Contest Started Successfully", async () => {
+    let secondParticipant: KeyPairSigner;
+    let secondParticipant_ata: Address;
+
+    before(async () => {
+      // Add a second participant to meet the minimum requirement
+      secondParticipant = await generateKeyPairSigner();
+
+      // Airdrop SOL to second participant
+      const airDropFunction = airdropFactory({
+        rpc,
+        rpcSubscriptions: rpcSubscription,
+      });
+
+      await airDropFunction({
+        recipientAddress: secondParticipant.address,
+        lamports: lamports(1_000_000_000n),
+        commitment: "confirmed",
+      });
+
+      // Create ATA for second participant
+      secondParticipant_ata = await createATA_MintToken({
+        mint_address: tokenMint,
+        mint_authority: host,
+        user: secondParticipant,
+      });
+
+      // Second participant joins the contest
+      const participant2InfoSeeds = [
+        new TextEncoder().encode("participent"),
+        getAddressEncoder().encode(contest),
+        getAddressEncoder().encode(secondParticipant.address),
+      ];
+
+      const [participant2InfoPda] = await getProgramDerivedAddress({
+        programAddress: ARBITRON_PROGRAM_ID,
+        seeds: participant2InfoSeeds,
+      });
+
+      const participant2UsdtAtaSeeds = [
+        new TextEncoder().encode("participent_usdt_ata"),
+        getAddressEncoder().encode(secondParticipant.address),
+        getAddressEncoder().encode(tokenMint),
+        getAddressEncoder().encode(contest),
+      ];
+
+      const [participant2UsdtAtaPda] = await getProgramDerivedAddress({
+        programAddress: ARBITRON_PROGRAM_ID,
+        seeds: participant2UsdtAtaSeeds,
+      });
+
+      const participant2GlobalProfileSeeds = [
+        new TextEncoder().encode("player"),
+        getAddressEncoder().encode(secondParticipant.address),
+      ];
+
+      const [participant2GlobalProfilePda] = await getProgramDerivedAddress({
+        programAddress: ARBITRON_PROGRAM_ID,
+        seeds: participant2GlobalProfileSeeds,
+      });
+
+      const participant2TradingPdaSeeds = [
+        new TextEncoder().encode("trading_pda"),
+        getAddressEncoder().encode(contest),
+        getAddressEncoder().encode(secondParticipant.address),
+      ];
+
+      const [participant2TradingPda] = await getProgramDerivedAddress({
+        programAddress: ARBITRON_PROGRAM_ID,
+        seeds: participant2TradingPdaSeeds,
+      });
+
+      // Join contest with second participant
+      await joinContest({
+        joinContestInput: {
+          contest: contest,
+          host: host.address,
+          participent: secondParticipant,
+          tokenMint: tokenMint,
+          userAta: secondParticipant_ata,
+          platformFeeWallet: fee_wallet_ata,
+          participentInfo: participant2InfoPda,
+          participentUsdtAta: participant2UsdtAtaPda,
+          config: configPda,
+          playerGlobalProfile: participant2GlobalProfilePda,
+          tradingPda: participant2TradingPda,
+        },
+        payer: secondParticipant,
+      });
+
+      console.log("✓ Second participant added successfully");
+    });
+
+    test("Anyone can start contest when conditions are met", async () => {
+      // Create a new contest with past start time and 2 participants
+      const contestName = "Immediate Start Contest";
+
+      const seeds = [
+        new TextEncoder().encode("contest"),
+        new TextEncoder().encode(contestName),
+        getAddressEncoder().encode(host.address),
+      ];
+
+      const [immediateContestPda, bump] = await getProgramDerivedAddress({
+        programAddress: ARBITRON_PROGRAM_ID,
+        seeds: seeds,
+      });
+
+      const createContestAsyncInput: CreateContestAsyncInput = {
+        duration: 1000 * 60 * 60 * 2, // 2 hour duration
+        entryFees: 1_00_000_000n, // 100 USDT (same as main contest)
+        maxParticipents: 100,
+        name: contestName,
+        startTime: Math.floor(Date.now() / 1000) - 60, // Start time in the past
+        signer: host,
+        tokenMint: tokenMint,
+        contest: immediateContestPda,
+      };
+
+      const getCreateContestIx = await getCreateContestInstructionAsync(
+        createContestAsyncInput,
+        {
+          programAddress: ARBITRON_PROGRAM_ID,
+        }
+      );
+
+      const { value: blockhash } = await rpc.getLatestBlockhash().send();
+
+      const txMsg = pipe(
+        createTransactionMessage({
+          version: 0,
+        }),
+        (tx) => setTransactionMessageFeePayerSigner(host, tx),
+        (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+        (tx) => appendTransactionMessageInstructions([getCreateContestIx], tx)
+      );
+
+      assertIsTransactionMessageWithinSizeLimit(txMsg);
+
+      const signedTx = await signTransactionMessageWithSigners(txMsg);
+
+      const sendAndConfirmTransactionMethod = sendAndConfirmTransactionFactory({
+        rpc,
+        rpcSubscriptions: rpcSubscription,
+      });
+
+      await sendAndConfirmTransactionMethod(signedTx, {
+        commitment: "confirmed",
+      });
+
+      // Add 2 participants to meet minimum requirement
+      const participant1 = await generateKeyPairSigner();
+      const participant2 = await generateKeyPairSigner();
+
+      const airDropFunction = airdropFactory({
+        rpc,
+        rpcSubscriptions: rpcSubscription,
+      });
+
+      for (const [index, participant] of [
+        participant1,
+        participant2,
+      ].entries()) {
+        await airDropFunction({
+          recipientAddress: participant.address,
+          lamports: lamports(1_000_000_000n),
+          commitment: "confirmed",
+        });
+
+        const participantAta = await createATA_MintToken({
+          mint_address: tokenMint,
+          mint_authority: host,
+          user: participant,
+        });
+
+        // Create PDAs for participant
+        const participantInfoSeeds = [
+          new TextEncoder().encode("participent"),
+          getAddressEncoder().encode(immediateContestPda),
+          getAddressEncoder().encode(participant.address),
+        ];
+
+        const [participantInfoPda] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: participantInfoSeeds,
+        });
+
+        const participantUsdtAtaSeeds = [
+          new TextEncoder().encode("participent_usdt_ata"),
+          getAddressEncoder().encode(participant.address),
+          getAddressEncoder().encode(tokenMint),
+          getAddressEncoder().encode(immediateContestPda),
+        ];
+
+        const [participantUsdtAtaPda] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: participantUsdtAtaSeeds,
+        });
+
+        const participantGlobalProfileSeeds = [
+          new TextEncoder().encode("player"),
+          getAddressEncoder().encode(participant.address),
+        ];
+
+        const [participantGlobalProfilePda] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: participantGlobalProfileSeeds,
+        });
+
+        const participantTradingPdaSeeds = [
+          new TextEncoder().encode("trading_pda"),
+          getAddressEncoder().encode(immediateContestPda),
+          getAddressEncoder().encode(participant.address),
+        ];
+
+        const [participantTradingPda] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: participantTradingPdaSeeds,
+        });
+
+        // Join contest
+        await joinContest({
+          joinContestInput: {
+            contest: immediateContestPda,
+            host: host.address,
+            participent: participant,
+            tokenMint: tokenMint,
+            userAta: participantAta,
+            platformFeeWallet: fee_wallet_ata,
+            participentInfo: participantInfoPda,
+            participentUsdtAta: participantUsdtAtaPda,
+            config: configPda,
+            playerGlobalProfile: participantGlobalProfilePda,
+            tradingPda: participantTradingPda,
+          },
+          payer: participant,
+        });
+
+        console.log(`✓ Participant ${index + 1} joined successfully`);
+      }
+
       const startContestInput: StartContestInput = {
-        contest: contest,
+        contest: immediateContestPda,
         host: host,
       };
 
+      // Anyone can start the contest (using user1 who is not the host)
       await StartContest(startContestInput, user1);
 
       const contestAccountInfo = await rpc
-        .getAccountInfo(contest, {
+        .getAccountInfo(immediateContestPda, {
           encoding: "jsonParsed",
         })
         .send();
@@ -1380,31 +1620,181 @@ describe("Arbitron Tests ", () => {
       );
 
       assert.equal(decodedData.status, ContestState.Ongoing);
+      console.log("✓ Contest started successfully by non-host user");
     });
 
-    test("Non-host cannot start the contest", async () => {
+    test("Cannot start contest before start time", async () => {
       try {
+        const contestName = "Future Start Time Contest";
+
+        const seeds = [
+          new TextEncoder().encode("contest"),
+          new TextEncoder().encode(contestName),
+          getAddressEncoder().encode(host.address),
+        ];
+
+        const [futureContestPda, bump] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: seeds,
+        });
+
+        const createContestAsyncInput: CreateContestAsyncInput = {
+          duration: 1000 * 60 * 60 * 2, // 2 hour duration
+          entryFees: 1_00_000_000n, // 100 USDT
+          maxParticipents: 100,
+          name: contestName,
+          startTime: Math.floor(Date.now() / 1000) + 3600, // Start time 1 hour in the future
+          signer: host,
+          tokenMint: tokenMint,
+          contest: futureContestPda,
+        };
+
+        const getCreateContestIx = await getCreateContestInstructionAsync(
+          createContestAsyncInput,
+          {
+            programAddress: ARBITRON_PROGRAM_ID,
+          }
+        );
+
+        const { value: blockhash } = await rpc.getLatestBlockhash().send();
+
+        const txMsg = pipe(
+          createTransactionMessage({
+            version: 0,
+          }),
+          (tx) => setTransactionMessageFeePayerSigner(host, tx),
+          (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+          (tx) => appendTransactionMessageInstructions([getCreateContestIx], tx)
+        );
+
+        assertIsTransactionMessageWithinSizeLimit(txMsg);
+
+        const signedTx = await signTransactionMessageWithSigners(txMsg);
+
+        const sendAndConfirmTransactionMethod =
+          sendAndConfirmTransactionFactory({
+            rpc,
+            rpcSubscriptions: rpcSubscription,
+          });
+
+        await sendAndConfirmTransactionMethod(signedTx, {
+          commitment: "confirmed",
+        });
+
+        // Add 2 participants to meet minimum requirement
+        const participant1 = await generateKeyPairSigner();
+        const participant2 = await generateKeyPairSigner();
+
+        // Setup participants (similar to earlier logic but abbreviated for space)
+        const airDropFunction = airdropFactory({
+          rpc,
+          rpcSubscriptions: rpcSubscription,
+        });
+
+        for (const participant of [participant1, participant2]) {
+          await airDropFunction({
+            recipientAddress: participant.address,
+            lamports: lamports(1_000_000_000n),
+            commitment: "confirmed",
+          });
+
+          const participantAta = await createATA_MintToken({
+            mint_address: tokenMint,
+            mint_authority: host,
+            user: participant,
+          });
+
+          // Create PDAs for participant
+          const participantInfoSeeds = [
+            new TextEncoder().encode("participent"),
+            getAddressEncoder().encode(futureContestPda),
+            getAddressEncoder().encode(participant.address),
+          ];
+
+          const [participantInfoPda] = await getProgramDerivedAddress({
+            programAddress: ARBITRON_PROGRAM_ID,
+            seeds: participantInfoSeeds,
+          });
+
+          const participantUsdtAtaSeeds = [
+            new TextEncoder().encode("participent_usdt_ata"),
+            getAddressEncoder().encode(participant.address),
+            getAddressEncoder().encode(tokenMint),
+            getAddressEncoder().encode(futureContestPda),
+          ];
+
+          const [participantUsdtAtaPda] = await getProgramDerivedAddress({
+            programAddress: ARBITRON_PROGRAM_ID,
+            seeds: participantUsdtAtaSeeds,
+          });
+
+          const participantGlobalProfileSeeds = [
+            new TextEncoder().encode("player"),
+            getAddressEncoder().encode(participant.address),
+          ];
+
+          const [participantGlobalProfilePda] = await getProgramDerivedAddress({
+            programAddress: ARBITRON_PROGRAM_ID,
+            seeds: participantGlobalProfileSeeds,
+          });
+
+          const participantTradingPdaSeeds = [
+            new TextEncoder().encode("trading_pda"),
+            getAddressEncoder().encode(futureContestPda),
+            getAddressEncoder().encode(participant.address),
+          ];
+
+          const [participantTradingPda] = await getProgramDerivedAddress({
+            programAddress: ARBITRON_PROGRAM_ID,
+            seeds: participantTradingPdaSeeds,
+          });
+
+          // Join contest
+          await joinContest({
+            joinContestInput: {
+              contest: futureContestPda,
+              host: host.address,
+              participent: participant,
+              tokenMint: tokenMint,
+              userAta: participantAta,
+              platformFeeWallet: fee_wallet_ata,
+              participentInfo: participantInfoPda,
+              participentUsdtAta: participantUsdtAtaPda,
+              config: configPda,
+              playerGlobalProfile: participantGlobalProfilePda,
+              tradingPda: participantTradingPda,
+            },
+            payer: participant,
+          });
+        }
+
+        // Try to start contest before start time
         const startContestInput: StartContestInput = {
-          contest: contest,
-          host: user1, // Non-host trying to start the contest
+          contest: futureContestPda,
+          host: host,
         };
 
         await StartContest(startContestInput, user1);
         assert.fail(
-          "Expected non-host starting contest to fail but it succeeded"
+          "Expected starting contest before start time to fail but it succeeded"
         );
       } catch (error) {
         console.log("Caught expected error:", error.message);
         console.log("Error context:", error.context);
 
         const errorLogs = error.context?.logs || [];
-        const isHostError =
-          error.message.includes("host") ||
-          errorLogs.some((log: string) =>
-            log.includes("Only the host can start the contest")
+        const isTimeError =
+          error.message.includes("ContestNotStartedYet") ||
+          error.message.includes("start") ||
+          errorLogs.some(
+            (log: string) =>
+              log.includes("ContestNotStartedYet") ||
+              log.includes("Contest not started yet") ||
+              log.includes("start time")
           );
-        if (isHostError) {
-          console.log("Correctly caught non-host start contest error");
+
+        if (isTimeError) {
+          console.log("✓ Correctly caught contest not started yet error");
         } else {
           console.log(
             "Unexpected error type - logging full error for debugging:"
@@ -1412,20 +1802,206 @@ describe("Arbitron Tests ", () => {
           console.log("Error code:", error.context?.code);
           console.log("Error logs:", errorLogs);
           console.log(
-            "Got different error than expected, but transaction still failed as intended"
+            "⚠️ Got different error than expected, but transaction still failed as intended"
           );
         }
+      }
+    });
+
+    test("Anyone can start the contest if required time has passed", async () => {
+      try {
+        // Create a new contest with start time in the past
+        const contestName = "Past Start Time Contest";
+
+        const seeds = [
+          new TextEncoder().encode("contest"),
+          new TextEncoder().encode(contestName),
+          getAddressEncoder().encode(host.address),
+        ];
+
+        const [pastContestPda, bump] = await getProgramDerivedAddress({
+          programAddress: ARBITRON_PROGRAM_ID,
+          seeds: seeds,
+        });
+
+        const createContestAsyncInput: CreateContestAsyncInput = {
+          duration: 1000 * 60 * 60 * 2, // 2 hour duration
+          entryFees: 1_00_000_000n, // 100 USDT (same as main contest)
+          maxParticipents: 100,
+          name: contestName,
+          startTime: Math.floor(Date.now() / 1000) - 60, // Start time 1 minute ago (in the past)
+          signer: host,
+          tokenMint: tokenMint,
+          contest: pastContestPda,
+        };
+
+        const getCreateContestIx = await getCreateContestInstructionAsync(
+          createContestAsyncInput,
+          {
+            programAddress: ARBITRON_PROGRAM_ID,
+          }
+        );
+
+        const { value: blockhash } = await rpc.getLatestBlockhash().send();
+
+        const txMsg = pipe(
+          createTransactionMessage({
+            version: 0,
+          }),
+          (tx) => setTransactionMessageFeePayerSigner(host, tx),
+          (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+          (tx) => appendTransactionMessageInstructions([getCreateContestIx], tx)
+        );
+
+        assertIsTransactionMessageWithinSizeLimit(txMsg);
+
+        const signedTx = await signTransactionMessageWithSigners(txMsg);
+
+        const sendAndConfirmTransactionMethod =
+          sendAndConfirmTransactionFactory({
+            rpc,
+            rpcSubscriptions: rpcSubscription,
+          });
+
+        await sendAndConfirmTransactionMethod(signedTx, {
+          commitment: "confirmed",
+        });
+
+        // Add 2 participants to meet minimum requirement
+        const participant1 = await generateKeyPairSigner();
+        const participant2 = await generateKeyPairSigner();
+
+        // Airdrop SOL to both participants
+        const airDropFunction = airdropFactory({
+          rpc,
+          rpcSubscriptions: rpcSubscription,
+        });
+
+        for (const [index, participant] of [
+          participant1,
+          participant2,
+        ].entries()) {
+          await airDropFunction({
+            recipientAddress: participant.address,
+            lamports: lamports(1_000_000_000n),
+            commitment: "confirmed",
+          });
+
+          // Create ATA for participant
+          const participantAta = await createATA_MintToken({
+            mint_address: tokenMint,
+            mint_authority: host,
+            user: participant,
+          });
+
+          // Participant joins the contest
+          const participantInfoSeeds = [
+            new TextEncoder().encode("participent"),
+            getAddressEncoder().encode(pastContestPda),
+            getAddressEncoder().encode(participant.address),
+          ];
+
+          const [participantInfoPda] = await getProgramDerivedAddress({
+            programAddress: ARBITRON_PROGRAM_ID,
+            seeds: participantInfoSeeds,
+          });
+
+          const participantUsdtAtaSeeds = [
+            new TextEncoder().encode("participent_usdt_ata"),
+            getAddressEncoder().encode(participant.address),
+            getAddressEncoder().encode(tokenMint),
+            getAddressEncoder().encode(pastContestPda),
+          ];
+
+          const [participantUsdtAtaPda] = await getProgramDerivedAddress({
+            programAddress: ARBITRON_PROGRAM_ID,
+            seeds: participantUsdtAtaSeeds,
+          });
+
+          const participantGlobalProfileSeeds = [
+            new TextEncoder().encode("player"),
+            getAddressEncoder().encode(participant.address),
+          ];
+
+          const [participantGlobalProfilePda] = await getProgramDerivedAddress({
+            programAddress: ARBITRON_PROGRAM_ID,
+            seeds: participantGlobalProfileSeeds,
+          });
+
+          const participantTradingPdaSeeds = [
+            new TextEncoder().encode("trading_pda"),
+            getAddressEncoder().encode(pastContestPda),
+            getAddressEncoder().encode(participant.address),
+          ];
+
+          const [participantTradingPda] = await getProgramDerivedAddress({
+            programAddress: ARBITRON_PROGRAM_ID,
+            seeds: participantTradingPdaSeeds,
+          });
+
+          // Join contest with participant
+          await joinContest({
+            joinContestInput: {
+              contest: pastContestPda,
+              host: host.address,
+              participent: participant,
+              tokenMint: tokenMint,
+              userAta: participantAta,
+              platformFeeWallet: fee_wallet_ata,
+              participentInfo: participantInfoPda,
+              participentUsdtAta: participantUsdtAtaPda,
+              config: configPda,
+              playerGlobalProfile: participantGlobalProfilePda,
+              tradingPda: participantTradingPda,
+            },
+            payer: participant,
+          });
+
+          console.log(
+            `✓ Participant ${index + 1} joined the past contest successfully`
+          );
+        }
+
+        // Now anyone (even non-host) can start the contest since time has passed
+        const startContestInput: StartContestInput = {
+          contest: pastContestPda,
+          host: host,
+        };
+
+        await StartContest(startContestInput, user1); // Non-host starting the contest
+
+        const contestAccountInfo = await rpc
+          .getAccountInfo(pastContestPda, {
+            encoding: "jsonParsed",
+          })
+          .send();
+
+        if (!contestAccountInfo || !contestAccountInfo.value) {
+          assert.fail("Contest Account is Null");
+        }
+
+        const decodedData = getContestDecoder().decode(
+          Buffer.from(contestAccountInfo.value.data[0], "base64")
+        );
+
+        assert.equal(decodedData.status, ContestState.Ongoing);
+        console.log(
+          "✓ Contest started successfully by non-host after time passed"
+        );
+      } catch (error) {
+        console.log("Error in anyone can start test:", error);
+        assert.fail("Failed to start contest when time has passed");
       }
     });
 
     test("Cannot start an already started contest", async () => {
       try {
         const startContestInput: StartContestInput = {
-          contest: contest,
-          host: host, // Host trying to start the already started contest
+          contest: contest, // This contest was already started in the previous test
+          host: host,
         };
 
-        await StartContest(startContestInput, user1);
+        await StartContest(startContestInput, host);
         assert.fail(
           "Expected starting already started contest to fail but it succeeded"
         );
@@ -1436,11 +2012,15 @@ describe("Arbitron Tests ", () => {
         const errorLogs = error.context?.logs || [];
         const isStateError =
           error.message.includes("state") ||
-          errorLogs.some((log: string) =>
-            log.includes("Contest is not in a state that allows this action")
+          error.message.includes("InvalidContestState") ||
+          errorLogs.some(
+            (log: string) =>
+              log.includes(
+                "Contest is not in a state that allows this action"
+              ) || log.includes("InvalidContestState")
           );
         if (isStateError) {
-          console.log("Correctly caught already started contest error");
+          console.log("✓ Correctly caught already started contest error");
         } else {
           console.log(
             "Unexpected error type - logging full error for debugging:"
@@ -1448,13 +2028,13 @@ describe("Arbitron Tests ", () => {
           console.log("Error code:", error.context?.code);
           console.log("Error logs:", errorLogs);
           console.log(
-            "Got different error than expected, but transaction still failed as intended"
+            "⚠️ Got different error than expected, but transaction still failed as intended"
           );
         }
       }
     });
 
-    test("Cannot start a contest if the number of participants is less than 2", async () => {
+    test("Cannot start a contest with less than 2 participants", async () => {
       try {
         const contestName = "Low Participation Contest";
 
@@ -1471,10 +2051,10 @@ describe("Arbitron Tests ", () => {
 
         const createContestAsyncInput: CreateContestAsyncInput = {
           duration: 1000 * 60 * 60 * 2, // 2 hour duration
-          entryFees: 1_000_000_000n, // 1000 USDT
+          entryFees: 1_00_000_000n, // 100 USDT
           maxParticipents: 100,
           name: contestName,
-          startTime: Math.floor(Date.now() / 1000) + 120, // Start time 2 minutes from now
+          startTime: Math.floor(Date.now() / 1000) - 60, // Start time in the past
           signer: host,
           tokenMint: tokenMint,
           contest: lowPartContestPda,
@@ -1511,16 +2091,47 @@ describe("Arbitron Tests ", () => {
         await sendAndConfirmTransactionMethod(signedTx, {
           commitment: "confirmed",
         });
-        console.log("Contest created, waiting 3 minutes before starting...");
-        // Wait 3 minutes to ensure the contest start time has passed
-        await new Promise((resolve) => setTimeout(resolve, 180000));
 
+        console.log("Contest created with 0 participants");
+
+        // Try to start contest with less than 2 participants
         const startContestInput: StartContestInput = {
           contest: lowPartContestPda,
           host: host,
         };
+
+        await StartContest(startContestInput, host);
+        assert.fail(
+          "Expected starting contest with < 2 participants to fail but it succeeded"
+        );
       } catch (error) {
-        console.error("Error starting contest:", error);
+        console.log("Caught expected error:", error.message);
+        console.log("Error context:", error.context);
+
+        const errorLogs = error.context?.logs || [];
+        const isMinParticipantsError =
+          error.message.includes("MinContestParticipantsError") ||
+          error.message.includes("participant") ||
+          errorLogs.some(
+            (log: string) =>
+              log.includes("MinContestParticipantsError") ||
+              log.includes("Minimum 2 participants") ||
+              log.includes("Not enough participants") ||
+              log.includes("participants")
+          );
+
+        if (isMinParticipantsError) {
+          console.log("✓ Correctly caught minimum participants error");
+        } else {
+          console.log(
+            "Unexpected error type - logging full error for debugging:"
+          );
+          console.log("Error code:", error.context?.code);
+          console.log("Error logs:", errorLogs);
+          console.log(
+            "⚠️ Got different error than expected, but transaction still failed as intended"
+          );
+        }
       }
     });
   });
