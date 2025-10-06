@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useContext } from "react"
@@ -11,7 +12,7 @@ import { SwapInterface } from "@/components/swap-interface"
 import { localStorage } from "@/lib/storage"
 import { Leaderboard } from "@/components/leaderboard"
 import { PortfolioStats } from "@/components/portfolio-stats"
-import { TrendingDown, Target, Zap, Activity } from "lucide-react"
+import { TrendingDown, TrendingUp, Target, Zap, Activity } from "lucide-react"
 import { SelectedWalletAccountContext } from "@/context/SelectedWalletAccountContext"
 import { ChainContext } from "@/context/ChainContext"
 
@@ -128,12 +129,12 @@ async function getAllToken(chain: string) {
   let tokens = [];
 
   if (chain === 'solana:devnet') {
-    storageKey = ALL_TOKEN_DEVNET;
-    // Use hardcoded for Devnet
-    tokens = DEVNET_TOKENS;
-    // Cache it anyway for consistency
-    localStorage.setItem(storageKey, JSON.stringify({ tokens, timestamp: Date.now() }));
-    return tokens;
+    // storageKey = ALL_TOKEN_DEVNET;
+    // // Use hardcoded for Devnet
+    // tokens = DEVNET_TOKENS;
+    // // Cache it anyway for consistency
+    // localStorage.setItem(storageKey, JSON.stringify({ tokens, timestamp: Date.now() }));
+    // return tokens;
   } else {
     // Mainnet or Testnet: fetch real list
     storageKey = ALL_TOKEN_MAINNET;
@@ -222,27 +223,27 @@ export default function TradingArenaPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <h1 className="text-xl font-display font-bold neon-text-teal tracking-wider">TRADING ARENA</h1>
-              <Badge variant="outline" className="text-hot-pink border-hot-pink font-mono animate-pulse">
+              <Badge variant="outline" className="text-maximum-red border-maximum-red font-mono animate-pulse">
                 LIVE
               </Badge>
             </div>
 
             <div className="flex items-center gap-6">
               {/* Contest Timer */}
-              <div className="text-center">
-                <div className="text-2xl font-display font-bold text-hot-pink">{formatTime(timeLeft)}</div>
+              <div className="text-center animate-pulse-slow">
+                <div className="text-2xl font-display font-bold text-maximum-red">{formatTime(timeLeft)}</div>
                 <div className="text-xs text-muted-foreground font-mono">TIME LEFT</div>
               </div>
 
               {/* User Stats */}
-              <div className="text-center">
-                <div className="text-lg font-display font-bold text-electric-teal">${userBalance.toLocaleString()}</div>
+              <div className="text-center animate-pulse-slow">
+                <div className="text-lg font-display font-bold text-azure-teal">${userBalance.toLocaleString()}</div>
                 <div className="text-xs text-muted-foreground font-mono">BALANCE</div>
               </div>
 
-              <div className="text-center">
+              <div className="text-center animate-pulse-slow">
                 <div
-                  className={`text-lg font-display font-bold ${userPnL >= 0 ? "text-electric-teal" : "text-hot-pink"}`}
+                  className={`text-lg font-display font-bold ${userPnL >= 0 ? "text-azure-teal" : "text-maximum-red"}`}
                 >
                   {userPnL >= 0 ? "+" : ""}${userPnL.toFixed(2)}
                 </div>
@@ -266,7 +267,7 @@ export default function TradingArenaPage() {
             <PortfolioStats balance={userBalance} pnl={userPnL} pnlPercent={pnlPercent} rank={3} totalTrades={12} />
 
             {/* Trading Chart */}
-            <GlassCard className="p-0 overflow-hidden">
+            <GlassCard className="p-0 overflow-hidden animate-fade-in">
               <div className="p-4 border-b border-border/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -276,9 +277,9 @@ export default function TradingArenaPage() {
                         <button
                           key={token.symbol}
                           onClick={() => setSelectedToken(token)}
-                          className={`px-3 py-1 rounded-md text-sm font-mono transition-colors ${
+                          className={`px-3 py-1 rounded-md text-sm font-mono transition-colors animate-scale-hover ${
                             selectedToken.symbol === token.symbol
-                              ? "bg-electric-teal text-quantum-void"
+                              ? "bg-azure-teal text-quantum-void"
                               : "bg-background/50 hover:bg-background/80"
                           }`}
                         >
@@ -314,53 +315,53 @@ export default function TradingArenaPage() {
             <Leaderboard participants={mockLeaderboard} />
 
             {/* Contest Info */}
-            <GlassCard>
+            <GlassCard className="animate-slide-up">
               <h3 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
-                <Target className="w-5 h-5 text-vibrant-purple" />
+                <Target className="w-5 h-5 text-deep-purple" />
                 Contest Info
               </h3>
               <div className="space-y-3 text-sm font-mono">
-                <div className="flex justify-between">
+                <div className="flex justify-between animate-pulse-slow">
                   <span className="text-muted-foreground">Contest ID:</span>
-                  <span className="text-electric-teal">#{contestId}</span>
+                  <span className="text-azure-teal">#{contestId}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between animate-pulse-slow">
                   <span className="text-muted-foreground">Type:</span>
-                  <Badge variant="outline" className="text-hot-pink border-hot-pink">
+                  <Badge variant="outline" className="text-maximum-red border-maximum-red">
                     LIGHTNING
                   </Badge>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between animate-pulse-slow">
                   <span className="text-muted-foreground">Prize Pool:</span>
-                  <span className="text-electric-teal">2,500 USDC</span>
+                  <span className="text-azure-teal">2,500 USDC</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between animate-pulse-slow">
                   <span className="text-muted-foreground">Players:</span>
                   <span>25/25</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between animate-pulse-slow">
                   <span className="text-muted-foreground">Your Rank:</span>
-                  <span className="text-vibrant-purple">#3</span>
+                  <span className="text-deep-purple">#3</span>
                 </div>
               </div>
             </GlassCard>
 
             {/* Quick Actions */}
-            <GlassCard>
+            <GlassCard className="animate-slide-up">
               <h3 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-electric-teal" />
+                <Zap className="w-5 h-5 text-azure-teal" />
                 Quick Actions
               </h3>
               <div className="space-y-2">
-                <NeonButton size="sm" className="w-full">
+                <NeonButton size="sm" className="w-full animate-glow">
                   <Activity className="w-4 h-4" />
                   Market Buy SOL
                 </NeonButton>
-                <NeonButton variant="destructive" size="sm" className="w-full">
+                <NeonButton variant="destructive" size="sm" className="w-full animate-glow">
                   <TrendingDown className="w-4 h-4" />
                   Market Sell SOL
                 </NeonButton>
-                <NeonButton variant="outline" size="sm" className="w-full">
+                <NeonButton variant="outline" size="sm" className="w-full animate-glow">
                   Close All Positions
                 </NeonButton>
               </div>

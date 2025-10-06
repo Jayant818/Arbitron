@@ -1,16 +1,34 @@
 
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useContext } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { NeonButton } from "@/components/ui/neon-button"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Users, Trophy, Zap,  Target, TrendingUp,  Star, Clock } from "lucide-react"
+import { Users, Trophy, Zap, Target, TrendingUp, Star, Clock, Play } from "lucide-react"
 import axios from "axios"
 import type { Contest } from "@/app/page"
+import { RpcContext } from "@/context/RpcContext"
+import { ChainContext } from "@/context/ChainContext"
+import { useWalletAccountTransactionSendingSigner } from "@solana/react"
+import { 
+  address, 
+  appendTransactionMessageInstructions, 
+  compileTransaction, 
+  createTransactionMessage, 
+  getBase58Decoder, 
+  pipe, 
+  setTransactionMessageFeePayerSigner, 
+  setTransactionMessageLifetimeUsingBlockhash, 
+  signAndSendTransactionMessageWithSigners
+} from "@solana/kit"
+import { 
+  getStartContestInstruction,
+  StartContestInput,
+} from "../../../../../dist/js-client/index"
 
 const mockParticipants = [
   { id: "1", username: "CryptoNinja", avatar: "", rank: 1, winRate: 78, totalWins: 45 },
@@ -30,14 +48,31 @@ export async function fetchContestDetailsById(id: string) {
   }
 }
 
-export default function ContestLobbyPage() {
+export default function ContestLobbyPage({selectedWalletAccount}:{selectedWalletAccount:SelectedWalletAccountState}) {
   const params = useParams()
   const router = useRouter()
   const contestId = params.id as string
-  const [isJoined, setIsJoined] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const { rpc } = useContext(RpcContext)
+  const { chain } = useContext(ChainContext)
+  
+  const [isStarting, setIsStarting] = useState(false)
   const [contestData, setContestData] = useState<Contest | null>(null)
   const [isLoadingData, setIsLoadingData] = useState(true)
+  const [currentTime, setCurrentTime] = useState(Math.floor(Date.now() / 1000))
+
+  const signer = useWalletAccountTransactionSendingSigner(
+    selectedWalletAccount.account,
+    chain
+  )
+
+  // Update current time every second for countdown
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Math.floor(Date.now() / 1000))
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     async function fetchData() {
@@ -52,6 +87,10 @@ export default function ContestLobbyPage() {
     }
 
     fetchData()
+    
+    // Refresh contest data every 10 seconds
+    const interval = setInterval(fetchData, 10000)
+    return () => clearInterval(interval)
   }, [contestId])
 
   // Transform API contest data to UI format
@@ -81,8 +120,8 @@ export default function ContestLobbyPage() {
       status = "ending";
     }
 
-    // Calculate time remaining
-    const now = Math.floor(Date.now() / 1000)
+    // Calculate time remaining using currentTime for real-time updates
+    const now = currentTime
     let timeLeft: number;
     if (status === "waiting") {
       timeLeft = Math.max(0, contestData.waitingTime - now);
@@ -92,6 +131,9 @@ export default function ContestLobbyPage() {
     } else {
       timeLeft = 0;
     }
+
+    // Check if waiting time has ended and contest should start
+    const canStart = status === "waiting" && timeLeft === 0;
 
     // Generate description based on type and duration
     const durationMinutes = Math.floor(contestData.duration / 60);
@@ -121,8 +163,9 @@ export default function ContestLobbyPage() {
       description,
       prizeDistribution,
       timeLeft,
+      canStart,
     }
-  }, [contestData])
+  }, [contestData, currentTime])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -130,12 +173,47 @@ export default function ContestLobbyPage() {
     return `${mins}m ${secs.toString().padStart(2, "0")}s`
   }
 
-  const handleJoinContest = async () => {
-    setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsJoined(true)
-    setIsLoading(false)
+  const handleStartContest = async () => {
+    if (!contestData || !selectedWalletAccount) return
+
+    setIsStarting(true)
+    try {
+      // Build the start contest instruction  
+      const input: StartContestInput = {
+        host: signer,
+        contest: address(contestId),
+      }
+
+      const ix = getStartContestInstruction(input)
+
+      // Get latest blockhash
+      const { value: latestBlockhash } = await rpc.getLatestBlockhash().send()
+
+      // Build and compile the transaction
+      const txMsg = pipe(
+        createTransactionMessage({ version: 0 }),
+        (tx) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, tx),
+        (tx) => setTransactionMessageFeePayerSigner(signer, tx),
+        (tx) => appendTransactionMessageInstructions([ix], tx)
+      )
+
+      const signatureBytes = await signAndSendTransactionMessageWithSigners(txMsg);
+
+      const signature = getBase58Decoder().decode(signatureBytes);
+
+      console.log("✅ Contest started successfully! Signature:", signature)
+      alert("Contest started successfully!")
+
+      // Redirect to arena after 1.5 seconds
+      setTimeout(() => {
+        router.push(`/arena/${contestId}`)
+      }, 1500)
+    } catch (error) {
+      console.error("Error starting contest:", error)
+      alert("Error starting contest: " + error)
+    } finally {
+      setIsStarting(false)
+    }
   }
 
   if (isLoadingData) {
@@ -241,31 +319,79 @@ export default function ContestLobbyPage() {
                 <Progress value={progressPercentage} className="h-2" />
               </div>
 
-              {/* Join Button */}
-              {!isJoined ? (
-                <NeonButton
-                  size="lg"
-                  className="w-full animate-glow"
-                  onClick={handleJoinContest}
-                  disabled={isLoading || contest.currentPlayers >= contest.maxPlayers}
-                >
-                  {isLoading
-                    ? "Joining Contest..."
-                    : contest.currentPlayers >= contest.maxPlayers
-                      ? "Contest Full"
-                      : `Join for ${contest.entryFee} USDC`}
-                </NeonButton>
-              ) : (
-                <div className="text-center">
-                  <Badge variant="outline" className="text-azure-teal border-azure-teal mb-4">
-                    ✓ JOINED
+              {/* Contest Status and Action */}
+              <div className="space-y-4">
+                {/* Welcome Message - User has joined by being on this page */}
+                <div className="text-center p-4 rounded-lg bg-azure-teal/10 border border-azure-teal/30">
+                  <Badge variant="outline" className="text-azure-teal border-azure-teal mb-2">
+                    ✓ YOU&apos;RE IN THE LOBBY
                   </Badge>
-                  <NeonButton variant="secondary" size="lg" className="w-full animate-glow">
-                    <Target className="w-4 h-4" />
-                    Prepare for Battle
-                  </NeonButton>
+                  <p className="text-sm text-muted-foreground font-mono">
+                    You have successfully joined this contest
+                  </p>
                 </div>
-              )}
+
+                {/* Show different buttons based on contest status */}
+                {contest.status === "waiting" && contest.timeLeft > 0 && (
+                  <div className="text-center p-6 rounded-lg bg-deep-purple/10 border border-deep-purple/30">
+                    <Clock className="w-12 h-12 text-deep-purple mx-auto mb-3" />
+                    <h3 className="text-xl font-display font-bold mb-2">Waiting for Contest to Start</h3>
+                    <p className="text-sm text-muted-foreground font-mono mb-4">
+                      The competition will begin in {formatTime(contest.timeLeft)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Stay in the lobby. The arena will open once the timer reaches zero.
+                    </p>
+                  </div>
+                )}
+
+                {contest.canStart && (
+                  <div className="text-center">
+                    <NeonButton
+                      size="lg"
+                      className="w-full animate-glow"
+                      onClick={handleStartContest}
+                      disabled={isStarting}
+                    >
+                      {isStarting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+                          Starting Competition...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4 mr-2" />
+                          Start Competition
+                        </>
+                      )}
+                    </NeonButton>
+                    <p className="text-xs text-muted-foreground mt-2 font-mono">
+                      Click to start the trading competition
+                    </p>
+                  </div>
+                )}
+
+                {contest.status === "active" && (
+                  <NeonButton
+                    size="lg"
+                    className="w-full animate-glow"
+                    onClick={() => router.push(`/arena/${contestId}`)}
+                  >
+                    <Target className="w-4 h-4 mr-2" />
+                    Enter Arena
+                  </NeonButton>
+                )}
+
+                {contest.status === "ending" && (
+                  <div className="text-center p-6 rounded-lg bg-maximum-red/10 border border-maximum-red/30">
+                    <Trophy className="w-12 h-12 text-maximum-red mx-auto mb-3" />
+                    <h3 className="text-xl font-display font-bold mb-2">Contest Ended</h3>
+                    <p className="text-sm text-muted-foreground font-mono">
+                      This competition has concluded. Check the results page.
+                    </p>
+                  </div>
+                )}
+              </div>
             </GlassCard>
 
             {/* Prize Distribution */}

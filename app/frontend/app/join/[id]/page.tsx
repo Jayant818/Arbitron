@@ -6,9 +6,9 @@ export const metaData: Metadata = {
   title: "Join Contest | Arbitron"
 }
 
-const page = () => {
+const page = ({params}: {params: {id: string}}) => {
   return (
-    <JoinContestWrapper />
+    <JoinContestWrapper contestId={params.id} />
   )
 }
 

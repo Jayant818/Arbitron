@@ -6,9 +6,9 @@ export const metaData: Metadata = {
   title : "Contest Lobby | Arbitron"
 }
 
-const page = () => {
+const page = ({params}: {params: {id: string}}) => {
   return (
-    <ContestLobbyWrapper/>
+    <ContestLobbyWrapper contestId={params.id} />
   )
 }
 
