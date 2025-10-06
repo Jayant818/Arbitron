@@ -37,6 +37,7 @@ export function ContestCard({ contest }: ContestCardProps) {
       })
       return
     }
+    // TODO : If the contest is active then only allow the user to enter the arena directly
     const href = contest.status === "active" ? `/arena/${contest.id}` : `/join/${contest.id}`
     router.push(href)
   }
@@ -44,11 +45,11 @@ export function ContestCard({ contest }: ContestCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "waiting":
-        return "text-electric-teal"
+        return "text-azure-teal"
       case "active":
-        return "text-vibrant-purple"
+        return "text-deep-purple"
       case "ending":
-        return "text-hot-pink"
+        return "text-maximum-red"
       default:
         return "text-muted-foreground"
     }
@@ -68,11 +69,11 @@ export function ContestCard({ contest }: ContestCardProps) {
   }
 
   return (
-    <GlassCard hover className="relative overflow-hidden">
+    <GlassCard hover className="relative overflow-hidden animate-fade-in animate-scale-hover group">
       {/* Status indicator */}
       <div className="absolute top-4 right-4 flex gap-2">
         {contest.isHost && (
-          <Badge variant="outline" className="bg-vibrant-purple/20 text-vibrant-purple border-vibrant-purple">
+          <Badge variant="outline" className="bg-deep-purple/20 text-deep-purple border-deep-purple">
             HOST
           </Badge>
         )}
@@ -83,59 +84,45 @@ export function ContestCard({ contest }: ContestCardProps) {
 
       {/* Contest header */}
       <div className="mb-4">
-        <div className="flex items-center gap-2 text-sm text-vibrant-purple font-mono mb-2">
+        <div className="flex items-center gap-2 text-sm text-deep-purple font-mono mb-2">
           {getTypeIcon(contest.type)}
-          <span>CONTEST #{contest.id}</span>
+          <span>CONTEST #{contest.id.substring(0,6)}</span>
         </div>
-        <h3 className="text-xl font-display font-bold text-balance">{contest.title}</h3>
+        <h3 className="text-xl font-display font-bold text-balance group-hover:neon-text-teal transition-colors">{contest.title}</h3>
       </div>
 
-      {/* Contest stats */}
+      {/* Contest stats with pulse */}
       <div className="space-y-3 mb-6">
-        <div className="flex justify-between items-center text-sm font-mono">
+        <div className="flex justify-between items-center text-sm font-mono animate-pulse-slow">
           <span className="text-muted-foreground">Entry Fee:</span>
-          <span className="text-electric-teal font-bold">{contest.entryFee} USDC</span>
+          <span className="text-azure-teal font-bold">{contest.entryFee} USDC</span>
         </div>
-        <div className="flex justify-between items-center text-sm font-mono">
-          <span className="text-muted-foreground">Prize Pool:</span>
-          <span className="text-electric-teal font-bold">{contest.prizePool.toLocaleString()} USDC</span>
+        <div className="flex justify-between items-center text-sm font-mono animate-pulse-slow">
+          <span className="text-muted-foreground">Expected Prize Pool:</span>
+          <span className="text-azure-teal font-bold">{contest.prizePool.toLocaleString()} USDC</span>
         </div>
-        <div className="flex justify-between items-center text-sm font-mono">
+        <div className="flex justify-between items-center text-sm font-mono animate-pulse-slow">
           <span className="text-muted-foreground flex items-center gap-1">
             <Users className="w-3 h-3" />
             Players:
           </span>
-          <span className={contest.currentPlayers === contest.maxPlayers ? "text-hot-pink" : "text-foreground"}>
+          <span className={contest.currentPlayers === contest.maxPlayers ? "text-maximum-red" : "text-foreground"}>
             {contest.currentPlayers}/{contest.maxPlayers}
           </span>
         </div>
-        <div className="flex justify-between items-center text-sm font-mono">
+        <div className="flex justify-between items-center text-sm font-mono animate-pulse-slow">
           <span className="text-muted-foreground flex items-center gap-1">
             <Clock className="w-3 h-3" />
             Time:
           </span>
-          <span className="text-vibrant-purple">{contest.timeRemaining}</span>
+          <span className="text-deep-purple">{contest.timeRemaining}</span>
         </div>
       </div>
 
-      {/* Difficulty badge */}
-      <div className="mb-4">
-        <Badge
-          variant="secondary"
-          className={`
-            ${contest.difficulty === "beginner" ? "bg-electric-teal/20 text-electric-teal" : ""}
-            ${contest.difficulty === "intermediate" ? "bg-vibrant-purple/20 text-vibrant-purple" : ""}
-            ${contest.difficulty === "expert" ? "bg-hot-pink/20 text-hot-pink" : ""}
-          `}
-        >
-          {contest.difficulty.toUpperCase()}
-        </Badge>
-      </div>
-
-      {/* Action button */}
+      {/* Action button with glow */}
       <NeonButton
         size="sm"
-        className="w-full"
+        className="w-full animate-glow"
         disabled={contest.currentPlayers === contest.maxPlayers}
         variant={contest.status === "active" ? "secondary" : "primary"}
         onClick={handleEnterContest}

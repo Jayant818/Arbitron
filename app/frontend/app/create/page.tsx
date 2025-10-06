@@ -35,7 +35,6 @@ import {
 } from "@solana/kit";
 import { RpcContext } from "@/context/RpcContext"
 import { useWalletAccountTransactionSendingSigner } from "@solana/react";  
-import { log } from "console"
   
 export const USD_MINT = address("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr");
 
@@ -196,7 +195,7 @@ export default function CreateContestPage() {
 	return (
 		<div className="min-h-screen bg-background">
 			<div className="container mx-auto px-4 py-8">
-				<div className="mb-8">
+				<div className="mb-8 animate-slide-up">
 					<h1 className="text-3xl font-display font-bold neon-text-teal tracking-wider mb-2">CREATE CONTEST</h1>
 					<p className="text-muted-foreground font-mono">Build your custom trading arena</p>
 				</div>
@@ -204,9 +203,9 @@ export default function CreateContestPage() {
 					{/* Main Form */}
 					<div className="lg:col-span-2 space-y-6">
 						{/* Basic Information */}
-						<GlassCard>
+						<GlassCard className="animate-fade-in">
 							<h2 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
-								<Settings className="w-5 h-5 text-electric-teal" />
+								<Settings className="w-5 h-5 text-azure-teal" />
 								Basic Information
 							</h2>
 
@@ -220,7 +219,7 @@ export default function CreateContestPage() {
 										placeholder="Enter contest title..."
 										value={formData.title}
 										onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-										className="mt-1"
+										className="mt-1 animate-scale-hover"
 									/>
 								</div>
 
@@ -233,7 +232,7 @@ export default function CreateContestPage() {
 										placeholder="Describe your contest..."
 										value={formData.description}
 										onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-										className="mt-1 min-h-[100px]"
+										className="mt-1 min-h-[100px] animate-scale-hover"
 									/>
 								</div>
 
@@ -244,7 +243,7 @@ export default function CreateContestPage() {
 											value={formData.type}
 											onValueChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
 										>
-											<SelectTrigger className="mt-1">
+											<SelectTrigger className="mt-1 animate-scale-hover">
 												<SelectValue placeholder="Select type..." />
 											</SelectTrigger>
 											<SelectContent>
@@ -268,9 +267,9 @@ export default function CreateContestPage() {
 						</GlassCard>
 
 						{/* Financial Settings */}
-						<GlassCard>
+						<GlassCard className="animate-fade-in">
 							<h2 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
-								<DollarSign className="w-5 h-5 text-vibrant-purple" />
+								<DollarSign className="w-5 h-5 text-deep-purple" />
 								Financial Settings
 							</h2>
 
@@ -284,11 +283,11 @@ export default function CreateContestPage() {
 											max={1000}
 											min={10}
 											step={10}
-											className="w-full"
+											className="w-full animate-scale-hover"
 										/>
 										<div className="flex justify-between text-xs text-muted-foreground mt-1">
 											<span>$10</span>
-											<span className="text-electric-teal font-mono">${formData.entryFee[0]}</span>
+											<span className="text-azure-teal font-mono">${formData.entryFee[0]}</span>
 											<span>$1,000</span>
 										</div>
 									</div>
@@ -300,7 +299,7 @@ export default function CreateContestPage() {
 										value={formData.prizeStructure}
 										onValueChange={(value) => setFormData((prev) => ({ ...prev, prizeStructure: value }))}
 									>
-										<SelectTrigger className="mt-1">
+										<SelectTrigger className="mt-1 animate-scale-hover">
 											<SelectValue placeholder="Select prize structure..." />
 										</SelectTrigger>
 										<SelectContent>
@@ -321,9 +320,9 @@ export default function CreateContestPage() {
 						</GlassCard>
 
 						{/* Contest Settings */}
-						<GlassCard>
+						<GlassCard className="animate-fade-in">
 							<h2 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
-								<Target className="w-5 h-5 text-hot-pink" />
+								<Target className="w-5 h-5 text-maximum-red" />
 								Contest Settings
 							</h2>
 
@@ -337,11 +336,11 @@ export default function CreateContestPage() {
 											max={200}
 											min={5}
 											step={5}
-											className="w-full"
+											className="w-full animate-scale-hover"
 										/>
 										<div className="flex justify-between text-xs text-muted-foreground mt-1">
 											<span>5</span>
-											<span className="text-hot-pink font-mono">{formData.maxParticipants[0]} traders</span>
+											<span className="text-maximum-red font-mono">{formData.maxParticipants[0]} traders</span>
 											<span>200</span>
 										</div>
 									</div>
@@ -352,7 +351,7 @@ export default function CreateContestPage() {
 									<div className="flex gap-2 mt-1">
 										<Popover>
 											<PopoverTrigger asChild>
-												<Button variant="outline" className="flex-1 justify-start text-left font-normal bg-transparent">
+												<Button variant="outline" className="flex-1 justify-start text-left font-normal bg-transparent animate-scale-hover">
 													<CalendarIcon className="mr-2 h-4 w-4" />
 													{formData.startDate ? format(formData.startDate, "PPP") : "Pick a date"}
 												</Button>
@@ -370,7 +369,7 @@ export default function CreateContestPage() {
 											type="time"
 											value={formData.startTime}
 											onChange={(e) => setFormData((prev) => ({ ...prev, startTime: e.target.value }))}
-											className="w-32"
+											className="w-32 animate-scale-hover"
 										/>
 									</div>
 								</div>
@@ -410,7 +409,7 @@ export default function CreateContestPage() {
 										placeholder="Add any custom rules or restrictions..."
 										value={formData.customRules}
 										onChange={(e) => setFormData((prev) => ({ ...prev, customRules: e.target.value }))}
-										className="mt-1"
+										className="mt-1 animate-scale-hover"
 									/>
 								</div>
 							</div>
@@ -418,11 +417,11 @@ export default function CreateContestPage() {
 					</div>
 
 					{/* Preview Sidebar */}
-					<div className="space-y-6">
+					<div className="space-y-6 animate-slide-up">
 						{/* Contest Preview */}
 						<GlassCard>
 							<h3 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
-								<Sparkles className="w-5 h-5 text-electric-teal" />
+								<Sparkles className="w-5 h-5 text-azure-teal" />
 								Contest Preview
 							</h3>
 
@@ -437,22 +436,22 @@ export default function CreateContestPage() {
 								<Separator />
 
 								<div className="space-y-2 text-sm font-mono">
-									<div className="flex justify-between">
+									<div className="flex justify-between animate-pulse-slow">
 										<span className="text-muted-foreground">Entry Fee:</span>
-										<span className="text-electric-teal">${formData.entryFee[0]} USDC</span>
+										<span className="text-azure-teal">${formData.entryFee[0]} USDC</span>
 									</div>
-									<div className="flex justify-between">
+									<div className="flex justify-between animate-pulse-slow">
 										<span className="text-muted-foreground">Expected Prize Pool:</span>
-										<span className="text-vibrant-purple">${formData.entryFee[0] * formData.maxParticipants[0]} USDC</span>
+										<span className="text-deep-purple">${formData.entryFee[0] * formData.maxParticipants[0]} USDC</span>
 									</div>
-									<div className="flex justify-between">
+									<div className="flex justify-between animate-pulse-slow">
 										<span className="text-muted-foreground">Max Participants:</span>
 										<span>{formData.maxParticipants[0]}</span>
 									</div>
 									{selectedPrizeStructure && (
-										<div className="flex justify-between">
+										<div className="flex justify-between animate-pulse-slow">
 											<span className="text-muted-foreground">Prize Structure:</span>
-											<span className="text-hot-pink">{selectedPrizeStructure.name}</span>
+											<span className="text-maximum-red">{selectedPrizeStructure.name}</span>
 										</div>
 									)}
 								</div>
@@ -464,16 +463,16 @@ export default function CreateContestPage() {
 						{selectedPrizeStructure && (
 							<GlassCard>
 								<h3 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
-									<Trophy className="w-5 h-5 text-vibrant-purple" />
+									<Trophy className="w-5 h-5 text-deep-purple" />
 									Prize Breakdown
 								</h3>
 								<div className="space-y-2">
 									{selectedPrizeStructure.distribution.map((percentage, index) => {
 										const amount = (formData.entryFee[0] * formData.maxParticipants[0] * percentage) / 100  // Adjusted to use entryFee * maxParticipants as prize pool estimate
 										return (
-											<div key={index} className="flex justify-between text-sm font-mono">
+											<div key={index} className="flex justify-between text-sm font-mono animate-pulse-slow">
 												<span className="text-muted-foreground">#{index + 1}:</span>
-												<span className="text-electric-teal">
+												<span className="text-azure-teal">
 													${amount.toFixed(0)} ({percentage}%)
 												</span>
 											</div>
@@ -486,7 +485,7 @@ export default function CreateContestPage() {
 						{/* Create Button */}
 						<NeonButton
 							size="lg"
-							className="w-full"
+							className="w-full animate-glow"
 							onClick={handleCreateContest}
 							disabled={!formData.title || !formData.type  || isCreating}
 						>

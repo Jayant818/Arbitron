@@ -10,7 +10,7 @@ import { SelectedWalletAccountContext } from "@/context/SelectedWalletAccountCon
 import { useToast } from "@/hooks/use-toast";
 import axios from "axios";
 
-interface Contest {
+export interface Contest {
 	id: string,
     title: string,
     entryFee: number,
@@ -38,7 +38,6 @@ export default function HomePage() {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [statusFilter, setStatusFilter] = useState("all");
 	const [typeFilter, setTypeFilter] = useState("all");
-	const [difficultyFilter, setDifficultyFilter] = useState("all");
 
 	// Transform API contests to UI format
 	const transformedContests = useMemo(() => {
@@ -116,11 +115,10 @@ export default function HomePage() {
 				contest.title.toLowerCase().includes(searchTerm.toLowerCase()) || contest.id.includes(searchTerm)
 			const matchesStatus = statusFilter === "all" || contest.status === statusFilter
 			const matchesType = typeFilter === "all" || contest.type === typeFilter
-			const matchesDifficulty = difficultyFilter === "all" || contest.difficulty === difficultyFilter
 
-			return matchesSearch && matchesStatus && matchesType && matchesDifficulty
+			return matchesSearch && matchesStatus && matchesType 
 		})
-	}, [transformedContests, searchTerm, statusFilter, typeFilter, difficultyFilter])
+	}, [transformedContests, searchTerm, statusFilter, typeFilter])
 
 	const totalPrizePool = transformedContests.reduce((sum, contest) => sum + contest.prizePool, 0)
 	const totalPlayers = transformedContests.reduce((sum, contest) => sum + contest.currentPlayers, 0)
@@ -151,8 +149,8 @@ export default function HomePage() {
 	return (
 		<div className="min-h-screen bg-background">
 
-			{/* Hero Section */}
-			<section className="container mx-auto px-4 py-16 text-center">
+			{/* Hero Section with slide-up animation */}
+			<section className="container mx-auto px-4 py-16 text-center animate-slide-up">
 				<h1 className="text-4xl md:text-6xl lg:text-8xl font-display font-bold mb-6 neon-text-teal tracking-wider">
 					ARBITRON
 				</h1>
@@ -161,32 +159,32 @@ export default function HomePage() {
 					neon grid. Where skill meets fortune.
 				</p>
 				<div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-					<NeonButton size="xl" className="cursor-pointer">
+					<NeonButton size="xl" className="cursor-pointer animate-glow">
 						Enter the Arena
 					</NeonButton>
-					<NeonButton variant="outline" size="xl" className="cursor-pointer">
+					<NeonButton variant="outline" size="xl" className="cursor-pointer animate-glow">
 						Watch Live Contests
 					</NeonButton>
 				</div>
 
-				{/* Stats */}
+				{/* Stats with pulse animation */}
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
-					<div className="text-center">
-						<div className="flex items-center justify-center gap-2 text-electric-teal mb-2">
+					<div className="text-center animate-pulse-slow">
+						<div className="flex items-center justify-center gap-2 text-azure-teal mb-2">
 							<Trophy className="w-5 h-5" />
 							<span className="text-2xl font-display font-bold">${totalPrizePool.toLocaleString()}</span>
 						</div>
 						<p className="text-sm text-muted-foreground font-mono">Total Prize Pool</p>
 					</div>
-					<div className="text-center">
-						<div className="flex items-center justify-center gap-2 text-vibrant-purple mb-2">
+					<div className="text-center animate-pulse-slow">
+						<div className="flex items-center justify-center gap-2 text-deep-purple mb-2">
 							<Users className="w-5 h-5" />
 							<span className="text-2xl font-display font-bold">{totalPlayers}</span>
 						</div>
 						<p className="text-sm text-muted-foreground font-mono">Active Traders</p>
 					</div>
-					<div className="text-center">
-						<div className="flex items-center justify-center gap-2 text-hot-pink mb-2">
+					<div className="text-center animate-pulse-slow">
+						<div className="flex items-center justify-center gap-2 text-maximum-red mb-2">
 							<TrendingUp className="w-5 h-5" />
 							<span className="text-2xl font-display font-bold">{activeContests}</span>
 						</div>
@@ -195,11 +193,11 @@ export default function HomePage() {
 				</div>
 			</section>
 
-			{/* Contest Browser */}
-			<section className="container mx-auto px-4 py-16">
+			{/* Contest Browser with fade-in */}
+			<section className="container mx-auto px-4 py-16 animate-fade-in">
 				<div className="flex items-center justify-between mb-8">
 					<h2 className="text-3xl font-display font-bold neon-text-purple">Contest Arena</h2>
-					<NeonButton variant="secondary" size="sm" onClick={handleCreateContest}>
+					<NeonButton variant="secondary" size="sm" onClick={handleCreateContest} className="animate-glow">
 						Create Contest
 					</NeonButton>
 				</div>
@@ -211,12 +209,10 @@ export default function HomePage() {
 					onStatusFilterChange={setStatusFilter}
 					typeFilter={typeFilter}
 					onTypeFilterChange={setTypeFilter}
-					difficultyFilter={difficultyFilter}
-					onDifficultyFilterChange={setDifficultyFilter}
 				/>
 
 				{filteredContests.length === 0 ? (
-					<div className="text-center py-16">
+					<div className="text-center py-16 animate-fade-in">
 						<p className="text-muted-foreground font-mono text-lg mb-4">No contests match your filters</p>
 						<NeonButton
 							variant="ghost"
@@ -224,7 +220,6 @@ export default function HomePage() {
 								setSearchTerm("")
 								setStatusFilter("all")
 								setTypeFilter("all")
-								setDifficultyFilter("all")
 							}}
 						>
 							Clear Filters

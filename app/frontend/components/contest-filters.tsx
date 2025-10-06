@@ -12,8 +12,6 @@ interface ContestFiltersProps {
   onStatusFilterChange: (value: string) => void
   typeFilter: string
   onTypeFilterChange: (value: string) => void
-  difficultyFilter: string
-  onDifficultyFilterChange: (value: string) => void
 }
 
 export function ContestFilters({
@@ -23,19 +21,17 @@ export function ContestFilters({
   onStatusFilterChange,
   typeFilter,
   onTypeFilterChange,
-  difficultyFilter,
-  onDifficultyFilterChange,
 }: ContestFiltersProps) {
   return (
     <div className="space-y-4 mb-8">
       {/* Search */}
-      <div className="relative">
+      <div className="relative animate-scale-hover">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
         <Input
           placeholder="Search contests..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10 bg-background/50 border-border/50 focus:border-electric-teal font-mono"
+          className="pl-10 bg-background/50 border-border/50 focus:border-azure-teal font-mono "
         />
       </div>
 
@@ -47,7 +43,7 @@ export function ContestFilters({
         </div>
 
         <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-          <SelectTrigger className="w-32 bg-background/50 border-border/50 font-mono text-sm">
+          <SelectTrigger className="w-32 bg-background/50 border-border/50 font-mono text-sm animate-scale-hover">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -59,7 +55,7 @@ export function ContestFilters({
         </Select>
 
         <Select value={typeFilter} onValueChange={onTypeFilterChange}>
-          <SelectTrigger className="w-32 bg-background/50 border-border/50 font-mono text-sm">
+          <SelectTrigger className="w-32 bg-background/50 border-border/50 font-mono text-sm animate-scale-hover">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
@@ -70,18 +66,6 @@ export function ContestFilters({
           </SelectContent>
         </Select>
 
-        <Select value={difficultyFilter} onValueChange={onDifficultyFilterChange}>
-          <SelectTrigger className="w-32 bg-background/50 border-border/50 font-mono text-sm">
-            <SelectValue placeholder="Difficulty" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Levels</SelectItem>
-            <SelectItem value="beginner">Beginner</SelectItem>
-            <SelectItem value="intermediate">Intermediate</SelectItem>
-            <SelectItem value="expert">Expert</SelectItem>
-          </SelectContent>
-        </Select>
-
         <NeonButton
           variant="ghost"
           size="sm"
@@ -89,8 +73,8 @@ export function ContestFilters({
             onSearchChange("")
             onStatusFilterChange("all")
             onTypeFilterChange("all")
-            onDifficultyFilterChange("all")
           }}
+          className="animate-scale-hover"
         >
           Clear All
         </NeonButton>

@@ -1,20 +1,17 @@
 "use client"
 
-import { useState, useContext } from "react"
+import { useState, useContext, useEffect, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { GlassCard } from "@/components/ui/glass-card"
 import { NeonButton } from "@/components/ui/neon-button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Trophy,
   Users,
   Clock,
   Zap,
-  Target,
-  ArrowLeft,
   CheckCircle,
   AlertTriangle,
   Wallet,
@@ -23,69 +20,151 @@ import {
 } from "lucide-react"
 import { SelectedWalletAccountContext } from "@/context/SelectedWalletAccountContext"
 import { ConnectWalletMenu } from "@/components/ConnectWalletMenu"
+import axios from "axios"
+import type { Contest } from "@/app/page"
+import { RpcContext } from "@/context/RpcContext"
+import { address, appendTransactionMessageInstructions,  createTransactionMessage, getAddressEncoder, getBase58Decoder, getProgramDerivedAddress, Instruction, KeyPairSigner, pipe, sendAndConfirmTransactionFactory, setTransactionMessageFeePayerSigner, setTransactionMessageLifetimeUsingBlockhash, signAndSendTransactionMessageWithSigners, signTransactionMessageWithSigners } from "@solana/kit"
+import { TOKEN_PROGRAM_ADDRESS, findAssociatedTokenPda } from "@solana-program/token"
+import {
+  getInitializeInstructionAsync,
+  getJoinContestInstructionAsync,
+  InitializeAsyncInput,
+  JoinContestAsyncInput,
+} from "../../../../../dist/js-client/index"
+import { useWalletAccountTransactionSendingSigner } from "@solana/react"
+import { ChainContext } from "@/context/ChainContext"
 
-// Mock contest data
-const mockContest = {
-  id: "001",
-  title: "Lightning Round Alpha",
-  type: "lightning",
-  description:
-    "Fast-paced 5-minute trading contest with high volatility tokens. Perfect for quick profits and adrenaline rush!",
-  entryFee: 100,
-  prizePool: 2500,
-  currentPlayers: 18,
-  maxPlayers: 25,
-  timeUntilStart: "2:34",
-  difficulty: "intermediate",
-  duration: "5 minutes",
-  allowedTokens: ["SOL", "RAY", "ORCA", "MNGO"],
-  rules: [
-    "Starting balance: 10,000 USDC",
-    "Maximum 3 positions at once",
-    "No leverage allowed",
-    "Slippage tolerance: 2%",
-  ],
-  prizeDistribution: [
-    { place: 1, percentage: 60, amount: 1500 },
-    { place: 2, percentage: 25, amount: 625 },
-    { place: 3, percentage: 15, amount: 375 },
-  ],
-  recentWinners: [
-    { username: "CryptoNinja", winnings: 1250, avatar: "" },
-    { username: "DiamondHands", winnings: 750, avatar: "" },
-    { username: "MoonTrader", winnings: 500, avatar: "" },
-  ],
+
+async function fetchContestDetailsById(id: string) {
+  try {
+    const res = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/contest/${id}`)
+    return res.data
+  } catch (error) {
+    console.error("Error fetching contest details:", error)
+    throw error
+  }
 }
 
+const TOKEN_MINT = process.env.NEXT_PUBLIC_SUPPORTED_MINT; 
+const PLATFORM_FEE_WALLET = process.env.NEXT_PUBLIC_PLATFORM_FEE_WALLET;
+const ARBITRON_PROGRAM_ADDRESS = process.env.NEXT_PUBLIC_PROGRAM_ID;
+
 export default function JoinContestPage() {
-  const params = useParams()
-  const router = useRouter()
-  const contestId = params.id as string
-  const [selectedWalletAccount] = useContext(SelectedWalletAccountContext)
+  const params = useParams();
+  const router = useRouter();
+  const contestId = params.id as string;
+  const [selectedWalletAccount] = useContext(SelectedWalletAccountContext);
+  const { rpc } = useContext(RpcContext);
+  const { chain} = useContext(ChainContext);
 
-  const [isJoining, setIsJoining] = useState(false)
-  const [agreedToTerms, setAgreedToTerms] = useState(false)
-  const [walletBalance] = useState(1250) // Mock wallet balance
-  const [showSuccess, setShowSuccess] = useState(false)
+  const [isJoining, setIsJoining] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [contestData, setContestData] = useState<Contest | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const handleJoinContest = async () => {
-    if (!agreedToTerms) return
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const data = await fetchContestDetailsById(contestId);
+        setContestData(data);
+      } catch (error) {
+        console.error("Error fetching contest:", error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    }
 
-    setIsJoining(true)
+    fetchData();
+  }, [contestId]);
 
-    // Simulate joining process
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+  useEffect(() => {
+    if (selectedWalletAccount && TOKEN_MINT) {
+      const account = selectedWalletAccount.account.address;
 
-    setShowSuccess(true)
+      async function fetchBalance() {
+        const [pdaAddress] = await findAssociatedTokenPda({
+          mint: address(TOKEN_MINT!),
+          owner: address(account),
+          tokenProgram: TOKEN_PROGRAM_ADDRESS,
+        });
+        console.log("Derived PDA Address:", pdaAddress);
 
-    // Redirect to contest lobby after success
-    setTimeout(() => {
-      router.push(`/contest/${contestId}`)
-    }, 2000)
-  }
+        const { value } = await rpc.getTokenAccountBalance(pdaAddress).send();
+        console.log("Fetched token balance:", value);
+        setWalletBalance(Number(value.amount)/Math.pow(10, value.decimals));
+      }
 
-  const canAfford = walletBalance >= mockContest.entryFee
-  const hasSpace = mockContest.currentPlayers < mockContest.maxPlayers
+      fetchBalance();
+    }
+  }, [selectedWalletAccount]);
+
+  // Transform API contest data to UI format
+  const mockContest = useMemo(() => {
+    if (!contestData) return null
+
+    const entryFee = contestData.entryFee / Math.pow(10, contestData.decimals)
+    const prizePool = entryFee * contestData.maxPlayers
+
+    // Derive type from duration
+    let type: "lightning" | "endurance" | "precision"
+    if (contestData.duration <= 600) {
+      type = "lightning"
+    } else if (contestData.duration <= 3600) {
+      type = "precision"
+    } else {
+      type = "endurance"
+    }
+
+    // Calculate time until start
+    const now = Math.floor(Date.now() / 1000)
+    const timeUntilStartSeconds = Math.max(0, contestData.waitingTime - now)
+    const timeUntilStartMinutes = Math.floor(timeUntilStartSeconds / 60)
+    const timeUntilStartSecs = timeUntilStartSeconds % 60
+    const timeUntilStart = `${timeUntilStartMinutes}:${timeUntilStartSecs.toString().padStart(2, "0")}`
+
+    // Calculate duration string
+    const durationMinutes = Math.floor(contestData.duration / 60)
+    const duration = durationMinutes < 60 ? `${durationMinutes} minutes` : `${Math.floor(durationMinutes / 60)} hours`
+
+    // Generate description
+    const description =
+      type === "lightning"
+        ? `Fast-paced ${durationMinutes}-minute trading contest with high volatility tokens. Perfect for quick profits and adrenaline rush!`
+        : type === "precision"
+        ? `Moderate-paced ${durationMinutes}-minute contest. Test your precision and timing with every trade!`
+        : `Endurance contest lasting ${duration}. For experienced traders with staying power.`
+
+    // Prize distribution
+    const prizeDistribution = [
+      { place: 1, percentage: 60, amount: Math.floor(prizePool * 0.6) },
+      { place: 2, percentage: 25, amount: Math.floor(prizePool * 0.25) },
+      { place: 3, percentage: 15, amount: Math.floor(prizePool * 0.15) },
+    ]
+
+    // Mock recent winners
+    const recentWinners = [
+      { username: "CryptoNinja", winnings: 1250, avatar: "" },
+      { username: "DiamondHands", winnings: 750, avatar: "" },
+      { username: "MoonTrader", winnings: 500, avatar: "" },
+    ]
+
+    return {
+      id: contestData.id,
+      title: contestData.title,
+      type,
+      description,
+      entryFee,
+      prizePool,
+      currentPlayers: contestData.currentPlayers,
+      maxPlayers: contestData.maxPlayers,
+      timeUntilStart,
+      duration,
+      prizeDistribution,
+      recentWinners,
+    }
+  }, [contestData])
 
   if (!selectedWalletAccount) {
     return (
@@ -99,24 +178,167 @@ export default function JoinContestPage() {
     )
   }
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const signer = useWalletAccountTransactionSendingSigner(selectedWalletAccount?.account,chain);
+
+  const handleJoinContest = async () => {
+    if (!agreedToTerms || !contestData) return
+
+    setIsJoining(true)
+    try {
+      
+      const account = selectedWalletAccount.account.address;
+
+      const [pdaAddress] = await findAssociatedTokenPda({
+        mint: address(TOKEN_MINT!),
+        owner: address(signer.address),
+        tokenProgram: TOKEN_PROGRAM_ADDRESS,
+      });
+
+      const participentInfoSeeds = [
+        new TextEncoder().encode("participent"),
+        getAddressEncoder().encode(address(contestId)),
+        getAddressEncoder().encode(signer.address)
+      ];
+
+      const [participentInfoPda] = await getProgramDerivedAddress({
+        seeds: participentInfoSeeds,
+        programAddress: address(ARBITRON_PROGRAM_ADDRESS!),
+      })
+
+      const participentUsdtAtaSeeds = [
+        new TextEncoder().encode("participent_usdt_ata"),
+        getAddressEncoder().encode(signer.address),
+        getAddressEncoder().encode(address(TOKEN_MINT!)),
+        getAddressEncoder().encode(address(contestId))
+      ];
+
+      const [participentUsdtAtaPda] = await getProgramDerivedAddress({  
+        seeds: participentUsdtAtaSeeds,
+        programAddress: address(ARBITRON_PROGRAM_ADDRESS!),
+      })
+
+      const configSeeds = [
+        new TextEncoder().encode("config")
+      ];
+
+      const [configPda] = await getProgramDerivedAddress({
+        seeds: configSeeds,
+        programAddress: address(ARBITRON_PROGRAM_ADDRESS!),
+      });
+
+      const playerGlobalProfileSeeds = [
+        Buffer.from("player"),
+        getAddressEncoder().encode(address(account))
+      ];
+
+      const [playerGlobalProfilePda] = await getProgramDerivedAddress({
+        seeds: playerGlobalProfileSeeds,
+        programAddress: address(ARBITRON_PROGRAM_ADDRESS!),
+      });
+
+      const tradingPdaSeeds = [
+        Buffer.from("trading_pda"),
+        getAddressEncoder().encode(address(contestId)),
+        getAddressEncoder().encode(address(account))
+      ];
+
+      const [tradingPda] = await getProgramDerivedAddress({
+        seeds: tradingPdaSeeds,
+        programAddress: address(ARBITRON_PROGRAM_ADDRESS!),
+      });
+
+      const input: JoinContestAsyncInput = {
+        contest: address(contestId),
+        host: address(contestData?.host),
+        tokenMint: address(TOKEN_MINT!),
+        userAta: pdaAddress,
+        participent: signer,
+        platformFeeWallet: address(PLATFORM_FEE_WALLET!),
+        participentInfo: address(participentInfoPda),
+        participentUsdtAta: address(participentUsdtAtaPda),
+        config: address(configPda),
+        playerGlobalProfile: address(playerGlobalProfilePda),
+        tradingPda: address(tradingPda),
+      };
+
+      const ix = await getJoinContestInstructionAsync(input,{
+              programAddress: address(ARBITRON_PROGRAM_ADDRESS!),
+            });
+
+      const { value: blockhash } = await rpc.getLatestBlockhash().send();
+
+      const txMsg = pipe(
+        createTransactionMessage({ version: 0 }),
+        (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+        (tx) => setTransactionMessageFeePayerSigner(signer, tx),
+        (tx) => appendTransactionMessageInstructions([ix], tx)
+      );
+
+      const signatureBytes = await signAndSendTransactionMessageWithSigners(txMsg);
+
+      const sig = getBase58Decoder().decode(signatureBytes);
+
+      console.log("✅ Contest created successfully! Signature:", sig);
+	  
+		  alert("Contest created successfully!");
+      setShowSuccess(true);
+      router.push(`/contest/${contestId}`);
+    } catch (error) {
+      alert("Error joining contest: " + error);
+      console.log("error", error);
+      setIsJoining(false);
+      return;
+    }
+
+  }
+
+  const canAfford = mockContest ? walletBalance >= mockContest.entryFee : false
+  const hasSpace = mockContest ? mockContest.currentPlayers < mockContest.maxPlayers : false
+
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-azure-teal mx-auto mb-4" />
+          <p className="text-muted-foreground font-mono">Loading contest...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!mockContest) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <GlassCard className="text-center">
+          <h1 className="text-2xl font-display font-bold text-maximum-red mb-4">Contest Not Found</h1>
+          <p className="text-muted-foreground mb-6">This contest doesn&apos;t exist or has been removed.</p>
+          <NeonButton onClick={() => router.push("/")}>Return Home</NeonButton>
+        </GlassCard>
+      </div>
+    )
+  }
+
+
+
   if (showSuccess) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <GlassCard className="max-w-md mx-auto text-center">
           <div className="mb-6">
-            <CheckCircle className="w-16 h-16 text-electric-teal mx-auto mb-4" />
-            <h2 className="text-2xl font-display font-bold text-electric-teal mb-2">Successfully Joined!</h2>
+            <CheckCircle className="w-16 h-16 text-azure-teal mx-auto mb-4" />
+            <h2 className="text-2xl font-display font-bold text-azure-teal mb-2">Successfully Joined!</h2>
             <p className="text-muted-foreground font-mono">Welcome to {mockContest.title}</p>
           </div>
 
           <div className="space-y-2 text-sm font-mono mb-6">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Contest starts in:</span>
-              <span className="text-vibrant-purple">{mockContest.timeUntilStart}</span>
+              <span className="text-deep-purple">{mockContest.timeUntilStart}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Your position:</span>
-              <span className="text-electric-teal">#{mockContest.currentPlayers + 1}</span>
+              <span className="text-azure-teal">#{mockContest.currentPlayers + 1}</span>
             </div>
           </div>
 
@@ -128,19 +350,28 @@ export default function JoinContestPage() {
     )
   }
 
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case "lightning":
+        return <Zap className="w-4 h-4" />
+      case "endurance":
+        return <Clock className="w-4 h-4" />
+      case "precision":
+        return <Trophy className="w-4 h-4" />
+      default:
+        return <Trophy className="w-4 h-4" />
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border/50 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <NeonButton variant="outline" size="sm" onClick={() => router.back()}>
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </NeonButton>
             <h1 className="text-xl font-display font-bold neon-text-teal tracking-wider">JOIN CONTEST</h1>
           </div>
-          <Badge variant="outline" className="text-vibrant-purple border-vibrant-purple font-mono">
+          <Badge variant="outline" className="text-deep-purple border-deep-purple font-mono">
             CONTEST #{contestId}
           </Badge>
         </div>
@@ -154,28 +385,25 @@ export default function JoinContestPage() {
             <GlassCard>
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <div className="flex items-center gap-2 text-sm text-vibrant-purple font-mono mb-2">
-                    <Zap className="w-4 h-4" />
-                    <span>LIGHTNING ROUND</span>
+                  <div className="flex items-center gap-2 text-sm text-deep-purple font-mono mb-2">
+                    {getTypeIcon(mockContest.type)}
+                    <span>{mockContest.type.toUpperCase()} ROUND</span>
                   </div>
                   <h2 className="text-2xl font-display font-bold mb-2">{mockContest.title}</h2>
                   <p className="text-muted-foreground">{mockContest.description}</p>
                 </div>
-                <Badge variant="secondary" className="bg-vibrant-purple/20 text-vibrant-purple">
-                  {mockContest.difficulty.toUpperCase()}
-                </Badge>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="text-center">
-                  <div className="text-2xl font-display font-bold text-electric-teal mb-1">${mockContest.entryFee}</div>
+                  <div className="text-2xl font-display font-bold text-azure-teal mb-1">${mockContest.entryFee}</div>
                   <div className="text-xs text-muted-foreground font-mono">Entry Fee</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-display font-bold text-vibrant-purple mb-1">
+                  <div className="text-2xl font-display font-bold text-deep-purple mb-1">
                     ${mockContest.prizePool.toLocaleString()}
                   </div>
-                  <div className="text-xs text-muted-foreground font-mono">Prize Pool</div>
+                  <div className="text-xs text-muted-foreground font-mono">Expected Prize Pool</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-display font-bold text-foreground mb-1">
@@ -184,45 +412,16 @@ export default function JoinContestPage() {
                   <div className="text-xs text-muted-foreground font-mono">Players</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-display font-bold text-hot-pink mb-1">{mockContest.duration}</div>
+                  <div className="text-2xl font-display font-bold text-maximum-red mb-1">{mockContest.duration}</div>
                   <div className="text-xs text-muted-foreground font-mono">Duration</div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-center gap-4 p-4 rounded-lg bg-electric-teal/10 border border-electric-teal/30">
-                <Clock className="w-5 h-5 text-electric-teal" />
+              <div className="flex items-center justify-center gap-4 p-4 rounded-lg bg-azure-teal/10 border border-azure-teal/30">
+                <Clock className="w-5 h-5 text-azure-teal" />
                 <div className="text-center">
                   <div className="text-sm text-muted-foreground font-mono">Contest starts in</div>
-                  <div className="text-xl font-display font-bold text-electric-teal">{mockContest.timeUntilStart}</div>
-                </div>
-              </div>
-            </GlassCard>
-
-            {/* Contest Rules */}
-            <GlassCard>
-              <h3 className="text-xl font-display font-bold mb-4 flex items-center gap-2">
-                <Target className="w-5 h-5 text-vibrant-purple" />
-                Contest Rules
-              </h3>
-              <div className="space-y-3">
-                {mockContest.rules.map((rule, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <CheckCircle className="w-4 h-4 text-electric-teal mt-0.5 flex-shrink-0" />
-                    <span className="text-sm font-mono">{rule}</span>
-                  </div>
-                ))}
-              </div>
-
-              <Separator className="my-4" />
-
-              <div>
-                <h4 className="font-display font-bold mb-3">Allowed Trading Tokens</h4>
-                <div className="flex flex-wrap gap-2">
-                  {mockContest.allowedTokens.map((token) => (
-                    <Badge key={token} variant="outline" className="text-electric-teal border-electric-teal">
-                      {token}
-                    </Badge>
-                  ))}
+                  <div className="text-xl font-display font-bold text-azure-teal">{mockContest.timeUntilStart}</div>
                 </div>
               </div>
             </GlassCard>
@@ -230,26 +429,26 @@ export default function JoinContestPage() {
             {/* Wallet Check */}
             <GlassCard>
               <h3 className="text-xl font-display font-bold mb-4 flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-hot-pink" />
+                <Wallet className="w-5 h-5 text-maximum-red" />
                 Wallet Status
               </h3>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 rounded-lg bg-background/30">
                   <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${canAfford ? "bg-electric-teal" : "bg-hot-pink"}`} />
+                    <div className={`w-3 h-3 rounded-full ${canAfford ? "bg-azure-teal" : "bg-maximum-red"}`} />
                     <span className="font-mono">USDC Balance</span>
                   </div>
-                  <span className={`font-display font-bold ${canAfford ? "text-electric-teal" : "text-hot-pink"}`}>
+                  <span className={`font-display font-bold ${canAfford ? "text-azure-teal" : "text-maximum-red"}`}>
                     ${walletBalance.toLocaleString()}
                   </span>
                 </div>
 
                 {!canAfford && (
-                  <div className="flex items-start gap-3 p-4 rounded-lg bg-hot-pink/10 border border-hot-pink/30">
-                    <AlertTriangle className="w-5 h-5 text-hot-pink mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-maximum-red/10 border border-maximum-red/30">
+                    <AlertTriangle className="w-5 h-5 text-maximum-red mt-0.5 flex-shrink-0" />
                     <div>
-                      <div className="font-mono font-bold text-hot-pink mb-1">Insufficient Balance</div>
+                      <div className="font-mono font-bold text-maximum-red mb-1">Insufficient Balance</div>
                       <div className="text-sm text-muted-foreground">
                         You need ${mockContest.entryFee - walletBalance} more USDC to join this contest.
                       </div>
@@ -258,10 +457,10 @@ export default function JoinContestPage() {
                 )}
 
                 {!hasSpace && (
-                  <div className="flex items-start gap-3 p-4 rounded-lg bg-hot-pink/10 border border-hot-pink/30">
-                    <Users className="w-5 h-5 text-hot-pink mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-maximum-red/10 border border-maximum-red/30">
+                    <Users className="w-5 h-5 text-maximum-red mt-0.5 flex-shrink-0" />
                     <div>
-                      <div className="font-mono font-bold text-hot-pink mb-1">Contest Full</div>
+                      <div className="font-mono font-bold text-maximum-red mb-1">Contest Full</div>
                       <div className="text-sm text-muted-foreground">This contest has reached maximum capacity.</div>
                     </div>
                   </div>
@@ -273,7 +472,7 @@ export default function JoinContestPage() {
             {canAfford && hasSpace && (
               <GlassCard>
                 <h3 className="text-xl font-display font-bold mb-4 flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-electric-teal" />
+                  <Shield className="w-5 h-5 text-azure-teal" />
                   Terms & Conditions
                 </h3>
 
@@ -283,6 +482,7 @@ export default function JoinContestPage() {
                       id="terms"
                       checked={agreedToTerms}
                       onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                      className="border-[1px] border-white"
                     />
                     <div className="grid gap-1.5 leading-none">
                       <label
@@ -325,7 +525,7 @@ export default function JoinContestPage() {
             {/* Prize Distribution */}
             <GlassCard>
               <h3 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-electric-teal" />
+                <Trophy className="w-5 h-5 text-azure-teal" />
                 Prize Distribution
               </h3>
               <div className="space-y-3">
@@ -335,10 +535,10 @@ export default function JoinContestPage() {
                       <div
                         className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                           prize.place === 1
-                            ? "bg-electric-teal/20 text-electric-teal"
+                            ? "bg-azure-teal/20 text-azure-teal"
                             : prize.place === 2
-                              ? "bg-vibrant-purple/20 text-vibrant-purple"
-                              : "bg-hot-pink/20 text-hot-pink"
+                              ? "bg-deep-purple/20 text-deep-purple"
+                              : "bg-maximum-red/20 text-maximum-red"
                         }`}
                       >
                         {prize.place}
@@ -348,7 +548,7 @@ export default function JoinContestPage() {
                       </span>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-display font-bold text-electric-teal">${prize.amount}</div>
+                      <div className="text-sm font-display font-bold text-azure-teal">${prize.amount}</div>
                       <div className="text-xs text-muted-foreground">{prize.percentage}%</div>
                     </div>
                   </div>
@@ -359,7 +559,7 @@ export default function JoinContestPage() {
             {/* Recent Winners */}
             <GlassCard>
               <h3 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
-                <Star className="w-5 h-5 text-vibrant-purple" />
+                <Star className="w-5 h-5 text-deep-purple" />
                 Recent Winners
               </h3>
               <div className="space-y-3">
@@ -367,7 +567,7 @@ export default function JoinContestPage() {
                   <div key={index} className="flex items-center gap-3">
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={winner.avatar || "/placeholder.svg"} />
-                      <AvatarFallback className="bg-electric-teal/20 text-electric-teal text-xs">
+                      <AvatarFallback className="bg-azure-teal/20 text-azure-teal text-xs">
                         {winner.username.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -375,7 +575,7 @@ export default function JoinContestPage() {
                       <div className="text-sm font-mono font-bold">{winner.username}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-display font-bold text-electric-teal">+${winner.winnings}</div>
+                      <div className="text-sm font-display font-bold text-azure-teal">+${winner.winnings}</div>
                     </div>
                   </div>
                 ))}
@@ -388,11 +588,11 @@ export default function JoinContestPage() {
               <div className="space-y-3 text-sm font-mono">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Average ROI:</span>
-                  <span className="text-electric-teal">+12.4%</span>
+                  <span className="text-azure-teal">+12.4%</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Win Rate:</span>
-                  <span className="text-vibrant-purple">68%</span>
+                  <span className="text-deep-purple">68%</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Avg Trades:</span>
@@ -400,7 +600,7 @@ export default function JoinContestPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Best Performer:</span>
-                  <span className="text-hot-pink">+47.8%</span>
+                  <span className="text-maximum-red">+47.8%</span>
                 </div>
               </div>
             </GlassCard>

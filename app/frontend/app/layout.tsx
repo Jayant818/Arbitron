@@ -24,6 +24,13 @@ export const metadata: Metadata = {
   title: "ARBITRON - Solana Trading Arena",
   description:
     "Compete in the ultimate Solana trading arena. Real-time contests, NFT rewards, and neon-powered trading.",
+  icons: {
+    icon: [
+      { url: "/icon.jpg", sizes: "512x512", type: "image/jpeg" },
+    ],
+    shortcut: "/icon.jpg",
+    apple: "/icon.jpg",
+  },
 }
 
 export default function RootLayout({

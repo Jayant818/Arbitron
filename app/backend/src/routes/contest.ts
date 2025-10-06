@@ -4,9 +4,10 @@ import {
   ARBITRON_PROGRAM_ADDRESS,
   CONTEST_DISCRIMINATOR,
   getContestDecoder,
+  fetchContest,
 } from "../../../../dist/js-client/index.js";
 import { rpc } from "../config/solana.js";
-import { Address, Base58EncodedBytes } from "@solana/kit";
+import { address, Address, Base58EncodedBytes } from "@solana/kit";
 import bs58 from "bs58";
 
 export const ContestRouter = Router();
@@ -60,5 +61,32 @@ ContestRouter.get("/all", async (req, res) => {
   } catch (error) {
     console.error("Error Fetching Contests", error);
     res.status(500).send({ message: "Error Fetching Contests" });
+  }
+});
+
+ContestRouter.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const contest = await fetchContest(rpc, address(id));
+    console.log("Fetched Contest by ID:", contest);
+    const contestResult = {
+      id: contest.address,
+      title: contest.data.name,
+      entryFee: Number(contest.data.entryFees),
+      currentPlayers: Number(contest.data.participentsCount),
+      maxPlayers: Number(contest.data.maxParticipents),
+      duration: Number(contest.data.duration),
+      status: contest.data.status,
+      host: contest.data.host,
+      waitingTime: Number(contest.data.startTime),
+      prizePoolAccount: contest.data.prizePoolVaultUsdt,
+      decimals: 6,
+    };
+
+    console.log("Contest by ID:", contestResult);
+    res.send(contestResult);
+  } catch (error) {
+    console.error("Error Fetching Contest by ID", error);
+    res.status(500).send({ message: "Error Fetching Contest by ID" });
   }
 });
