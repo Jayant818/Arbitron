@@ -238,7 +238,7 @@ export default function HomePage() {
 			<footer className="border-t border-border/50 mt-20">
 				<div className="container mx-auto px-4 py-8 text-center">
 					<p className="text-muted-foreground font-mono text-sm">
-						Built on Solana • Powered by the future • Trade at light speed
+						Built on Solana • Trade at light speed
 					</p>
 				</div>
 			</footer>

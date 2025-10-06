@@ -321,9 +321,9 @@ export default function TradingArenaPage() {
                 Contest Info
               </h3>
               <div className="space-y-3 text-sm font-mono">
-                <div className="flex justify-between animate-pulse-slow">
+                <div className="flex justify-between animate-pulse-slow flex-wrap">
                   <span className="text-muted-foreground">Contest ID:</span>
-                  <span className="text-azure-teal">#{contestId}</span>
+                  <span className="text-azure-teal w-full">#{contestId}</span>
                 </div>
                 <div className="flex justify-between animate-pulse-slow">
                   <span className="text-muted-foreground">Type:</span>

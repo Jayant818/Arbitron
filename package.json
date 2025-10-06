@@ -1,6 +1,13 @@
 {
+  "name":"arbitron",
+  "version": "0.1.0",
   "license": "ISC",
   "type": "module",
+  "private":true,
+  "workspaces":[
+    "programs/*",
+    "app/*"
+  ],
   "scripts": {
     "build": "anchor build",
     "test": "anchor test",
