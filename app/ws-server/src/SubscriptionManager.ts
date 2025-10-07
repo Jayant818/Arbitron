@@ -1,4 +1,4 @@
-import {} from "@arbitron/shared-redis";
+import { createSubscriber } from "@arbitron/shared-redis";
 import { PlayerManager } from "./PlayerManager.js";
 
 export class SubscriptionManager {
