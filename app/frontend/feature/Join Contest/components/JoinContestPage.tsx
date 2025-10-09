@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useContext, useEffect, useMemo } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { GlassCard } from "@/components/ui/glass-card"
 import { NeonButton } from "@/components/ui/neon-button"
-import { Badge } from "@/components/ui/badge"
+import {
+  Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -21,15 +22,18 @@ import {
 import axios from "axios"
 import type { Contest } from "@/app/page"
 import { RpcContext } from "@/context/RpcContext"
-import { address, appendTransactionMessageInstructions,  createTransactionMessage, getAddressEncoder, getBase58Decoder, getProgramDerivedAddress, Instruction, KeyPairSigner, pipe, sendAndConfirmTransactionFactory, setTransactionMessageFeePayerSigner, setTransactionMessageLifetimeUsingBlockhash, signAndSendTransactionMessageWithSigners, signTransactionMessageWithSigners } from "@solana/kit"
+import { address, appendTransactionMessageInstructions, createTransactionMessage, getAddressEncoder, getBase58Decoder, getBase64EncodedWireTransaction, getProgramDerivedAddress, pipe, setTransactionMessageFeePayerSigner, setTransactionMessageLifetimeUsingBlockhash, signAndSendTransactionMessageWithSigners, signTransactionMessageWithSigners } from "@solana/kit"
 import { TOKEN_PROGRAM_ADDRESS, findAssociatedTokenPda } from "@solana-program/token"
 import {
+  getConfigDecoder,
   getJoinContestInstructionAsync,
   JoinContestAsyncInput,
 } from "../../../../../dist/js-client/index"
 import { useWalletAccountTransactionSendingSigner } from "@solana/react"
 import { ChainContext } from "@/context/ChainContext"
+import { SelectedWalletAccountState } from "@/context/SelectedWalletAccountContext"
 
+type NonNullableWalletAccount = Exclude<SelectedWalletAccountState, undefined>;
 
 async function fetchContestDetailsById(id: string) {
   try {
@@ -45,10 +49,8 @@ const TOKEN_MINT = process.env.NEXT_PUBLIC_SUPPORTED_MINT;
 const PLATFORM_FEE_WALLET = process.env.NEXT_PUBLIC_PLATFORM_FEE_WALLET;
 const ARBITRON_PROGRAM_ADDRESS = process.env.NEXT_PUBLIC_PROGRAM_ID;
 
-export default function JoinContestPage({selectedWalletAccount}:{selectedWalletAccount:SelectedWalletAccountState}) {
-  const params = useParams();
+export default function JoinContestPage({selectedWalletAccount, contestId}:{selectedWalletAccount:NonNullableWalletAccount, contestId: string}) {
   const router = useRouter();
-  const contestId = params.id as string;
   const { rpc } = useContext(RpcContext);
   const { chain} = useContext(ChainContext);
 
@@ -64,13 +66,15 @@ export default function JoinContestPage({selectedWalletAccount}:{selectedWalletA
       try {
         const data = await fetchContestDetailsById(contestId);
         setContestData(data);
+
+        console.log("Contest ID:", contestId);
+        console.log("Fetched contest data:", data);
       } catch (error) {
         console.error("Error fetching contest:", error);
       } finally {
         setIsLoadingData(false);
       }
     }
-
     fetchData();
   }, [contestId]);
 
@@ -88,12 +92,35 @@ export default function JoinContestPage({selectedWalletAccount}:{selectedWalletA
 
         const { value } = await rpc.getTokenAccountBalance(pdaAddress).send();
         console.log("Fetched token balance:", value);
-        setWalletBalance(Number(value.amount)/Math.pow(10, value.decimals));
+        setWalletBalance(Number(value.amount) / Math.pow(10, value.decimals));
+        
+         const configSeeds = [new TextEncoder().encode("config")];
+            const [configPdaAddress, configBump] = await getProgramDerivedAddress({
+              programAddress: address(ARBITRON_PROGRAM_ADDRESS!),
+              seeds: configSeeds,
+            });
+        const configPda = configPdaAddress;
+
+        const configAccountInfo = await rpc
+        .getAccountInfo(configPda, {
+          encoding: "jsonParsed",
+        })
+          .send();
+        
+        const data = configAccountInfo.value?.data;
+        if (Array.isArray(data) && typeof data[0] === "string") {
+          const configData = getConfigDecoder().decode(Buffer.from(data[0], "base64"));
+          console.log("Config Data:", configData);
+        }
+        
+            // getConfigDecoder().decode(Buffer.from(configAccountInfo.value?.data[0]!, "base64"));
+          
+        // console.log("Config Account Info:", configAccountInfo.value?.data);
       }
 
       fetchBalance();
     }
-  }, [selectedWalletAccount]);
+  }, [selectedWalletAccount,rpc]);
 
   // Transform API contest data to UI format
   const mockContest = useMemo(() => {
@@ -169,29 +196,38 @@ export default function JoinContestPage({selectedWalletAccount}:{selectedWalletA
 
     setIsJoining(true)
     try {
+      console.log("🚀 Starting join contest transaction...");
+      console.log("📍 Contest ID:", contestId);
+      console.log("👤 User Address:", selectedWalletAccount.account.address);
+      console.log("🔑 Signer Address:", signer.address);
+      console.log("🏦 Platform Fee Wallet:", PLATFORM_FEE_WALLET);
       
-      const account = selectedWalletAccount.account.address;
+      // CRITICAL: Use the wallet account address, NOT signer.address
+      // The signer.address is somehow returning the platform fee wallet!
+      const userAddress = address(selectedWalletAccount.account.address);
 
       const [pdaAddress] = await findAssociatedTokenPda({
         mint: address(TOKEN_MINT!),
-        owner: address(signer.address),
+        owner: userAddress,
         tokenProgram: TOKEN_PROGRAM_ADDRESS,
       });
+      console.log("💰 User Token ATA:", pdaAddress);
 
       const participentInfoSeeds = [
         new TextEncoder().encode("participent"),
         getAddressEncoder().encode(address(contestId)),
-        getAddressEncoder().encode(signer.address)
+        getAddressEncoder().encode(userAddress)
       ];
 
       const [participentInfoPda] = await getProgramDerivedAddress({
         seeds: participentInfoSeeds,
         programAddress: address(ARBITRON_PROGRAM_ADDRESS!),
       })
+      console.log("📋 Participant Info PDA:", participentInfoPda);
 
       const participentUsdtAtaSeeds = [
         new TextEncoder().encode("participent_usdt_ata"),
-        getAddressEncoder().encode(signer.address),
+        getAddressEncoder().encode(userAddress),
         getAddressEncoder().encode(address(TOKEN_MINT!)),
         getAddressEncoder().encode(address(contestId))
       ];
@@ -200,6 +236,7 @@ export default function JoinContestPage({selectedWalletAccount}:{selectedWalletA
         seeds: participentUsdtAtaSeeds,
         programAddress: address(ARBITRON_PROGRAM_ADDRESS!),
       })
+      console.log("💵 Participant USDT ATA:", participentUsdtAtaPda);
 
       const configSeeds = [
         new TextEncoder().encode("config")
@@ -209,21 +246,23 @@ export default function JoinContestPage({selectedWalletAccount}:{selectedWalletA
         seeds: configSeeds,
         programAddress: address(ARBITRON_PROGRAM_ADDRESS!),
       });
+      console.log("⚙️ Config PDA:", configPda);
 
       const playerGlobalProfileSeeds = [
-        Buffer.from("player"),
-        getAddressEncoder().encode(address(account))
+        new TextEncoder().encode("player"),
+        getAddressEncoder().encode(userAddress)
       ];
 
       const [playerGlobalProfilePda] = await getProgramDerivedAddress({
         seeds: playerGlobalProfileSeeds,
         programAddress: address(ARBITRON_PROGRAM_ADDRESS!),
       });
+      console.log("🎮 Player Global Profile PDA:", playerGlobalProfilePda);
 
       const tradingPdaSeeds = [
-        Buffer.from("trading_pda"),
+        new TextEncoder().encode("trading_pda"),
         getAddressEncoder().encode(address(contestId)),
-        getAddressEncoder().encode(address(account))
+        getAddressEncoder().encode(userAddress)
       ];
 
       const [tradingPda] = await getProgramDerivedAddress({
@@ -231,13 +270,24 @@ export default function JoinContestPage({selectedWalletAccount}:{selectedWalletA
         programAddress: address(ARBITRON_PROGRAM_ADDRESS!),
       });
 
+      const platformFeeOwner = address(PLATFORM_FEE_WALLET!);  // This is the wallet pubkey from env/config
+
+      const [platformFeeAta] = await findAssociatedTokenPda({
+        mint: address(TOKEN_MINT!),
+        owner: platformFeeOwner,
+        tokenProgram: TOKEN_PROGRAM_ADDRESS,
+      });
+      console.log("💰 Platform Fee ATA:", platformFeeAta);
+
+      console.log("📊 Trading PDA:", tradingPda);
+
       const input: JoinContestAsyncInput = {
         contest: address(contestId),
-        host: address(contestData?.host),
+        host: address(contestData.host),
         tokenMint: address(TOKEN_MINT!),
         userAta: pdaAddress,
         participent: signer,
-        platformFeeWallet: address(PLATFORM_FEE_WALLET!),
+        platformFeeWallet: platformFeeAta, // ✅ Use the TOKEN ACCOUNT, not the wallet address!
         participentInfo: address(participentInfoPda),
         participentUsdtAta: address(participentUsdtAtaPda),
         config: address(configPda),
@@ -245,11 +295,28 @@ export default function JoinContestPage({selectedWalletAccount}:{selectedWalletA
         tradingPda: address(tradingPda),
       };
 
+      console.log("📦 Transaction Input:", {
+        contest: contestId,
+        host: contestData?.host,
+        tokenMint: TOKEN_MINT,
+        userAta: pdaAddress,
+        participentAddress: userAddress,
+        platformFeeWallet: PLATFORM_FEE_WALLET,
+        participentInfo: participentInfoPda,
+        participentUsdtAta: participentUsdtAtaPda,
+        config: configPda,
+        playerGlobalProfile: playerGlobalProfilePda,
+        tradingPda: tradingPda,
+      });
+
       const ix = await getJoinContestInstructionAsync(input,{
               programAddress: address(ARBITRON_PROGRAM_ADDRESS!),
             });
+      
+      console.log("✅ Instruction created successfully");
 
       const { value: blockhash } = await rpc.getLatestBlockhash().send();
+      console.log("🔗 Latest blockhash:", blockhash.blockhash);
 
       const txMsg = pipe(
         createTransactionMessage({ version: 0 }),
@@ -257,19 +324,31 @@ export default function JoinContestPage({selectedWalletAccount}:{selectedWalletA
         (tx) => setTransactionMessageFeePayerSigner(signer, tx),
         (tx) => appendTransactionMessageInstructions([ix], tx)
       );
+      
+      console.log("📝 Transaction message created, signing and sending...");
 
       const signatureBytes = await signAndSendTransactionMessageWithSigners(txMsg);
 
+      console.log("📤 Transaction sent, awaiting confirmation...", signatureBytes);
+
       const sig = getBase58Decoder().decode(signatureBytes);
 
-      console.log("✅ Contest created successfully! Signature:", sig);
+      console.log("✅ Contest joined successfully! Signature:", sig);
 	  
-		  alert("Contest created successfully!");
+	  alert("Contest joined successfully!");
       setShowSuccess(true);
-      router.push(`/contest/${contestId}`);
+      // router.push(`/contest/${contestId}`);
     } catch (error) {
-      alert("Error joining contest: " + error);
-      console.log("error", error);
+      console.error("❌ Error joining contest:", error);
+      
+      // Better error handling
+      let errorMessage = "Unknown error occurred";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        console.error("Error stack:", error.stack);
+      }
+      
+      alert("Error joining contest: " + errorMessage);
       setIsJoining(false);
       return;
     }

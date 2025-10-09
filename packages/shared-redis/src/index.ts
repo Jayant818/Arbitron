@@ -33,11 +33,7 @@ export class RedisManager {
 export const redis = await RedisManager.getStandardClient();
 export const publisher = redis;
 
-export async function createSubscriber(
-  channel: string,
-  callback: (message: string) => void
-) {
+export async function createSubscriber() {
   const subscriber = await RedisManager.getSubscriberClient();
-  await subscriber.subscribe(channel, callback);
   return subscriber;
 }

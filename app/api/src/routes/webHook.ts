@@ -5,10 +5,28 @@ import {
   ArbitronInstruction,
   identifyArbitronInstruction,
   parseCreateContestInstruction,
+  parseJoinContestInstruction,
+  parseStartContestInstruction,
+  parseExecuteSwapInstruction,
+  parseInitializeInstruction,
   ParsedArbitronInstruction,
 } from "../../../../dist/js-client";
+import type { Address } from "@solana/kit";
+import { publisher } from "@arbitron/shared-redis";
 
 export const webHookRouter = Router();
+
+// Helper to convert webhook instruction format to Solana instruction format
+function convertWebhookInstruction(rawIx: any) {
+  return {
+    programAddress: rawIx.programId as Address,
+    accounts: rawIx.accounts.map((pubkey: string) => ({
+      address: pubkey as Address,
+      role: 0, // Default role
+    })),
+    data: bs58.decode(rawIx.data), // Decode base58 to Uint8Array
+  };
+}
 
 function parseInstruction(ix: ParsedArbitronInstruction) {
   switch (ix.instructionType) {
@@ -44,16 +62,17 @@ webHookRouter.post("/", (req, res) => {
     const getProgramId = (index: number) => message.accountKeys[index];
 
     // Convert instruction accounts from indices to actual pubkeys
-    const normalizeInstruction = (ix: any) => ({
+    const normalizeInstruction = (ix: any, index: number) => ({
       accounts: ix.accounts.map((i: number) => message.accountKeys[i]),
       data: ix.data,
       programId: getProgramId(ix.programIdIndex),
-      innerInstructions: ix.innerInstructions || [],
+      innerInstructions: event.meta?.innerInstructions.filter(
+        (ini) => ini.index === index
+      )[0]?.instructions,
     });
 
-    const instructions = message.instructions.map(normalizeInstruction);
-
     // Filter for Arbitron instructions
+    const instructions = message.instructions.map(normalizeInstruction);
     const filteredIx = instructions.filter(
       (ix: any) => ix.programId === ARBITRON_PROGRAM_ADDRESS
     );
@@ -67,26 +86,98 @@ webHookRouter.post("/", (req, res) => {
     const ixBytes = bs58.decode(rawIx.data);
     const ixType = identifyArbitronInstruction(ixBytes);
     console.log("Instruction Type:", ArbitronInstruction[ixType]);
+    console.log("Raw Instruction  :", rawIx);
 
     switch (ixType) {
       case ArbitronInstruction.CreateContest:
-        const parsedData = parseCreateContestInstruction(rawIx);
-        console.log("Parsed CreateContest Data:", parsedData);
+        try {
+          const convertedIx = convertWebhookInstruction(rawIx);
+          const parsedData = parseCreateContestInstruction(convertedIx);
+          console.log("Parsed CreateContest Data:");
+          console.log("Contest Name:", parsedData.data.name);
+          console.log("Duration:", parsedData.data.duration.toString());
+          console.log("Start Time:", parsedData.data.startTime.toString());
+          console.log("Entry Fees:", parsedData.data.entryFees.toString());
+          console.log("Max Participants:", parsedData.data.maxParticipents);
+          console.log("Signer:", parsedData.accounts.signer.address);
+          console.log("Token Mint:", parsedData.accounts.tokenMint.address);
+        } catch (parseError) {
+          console.error("Error parsing CreateContest instruction:", parseError);
+        }
         break;
-      case ArbitronInstruction.ExecuteSwap:
-        console.log("Instruction Type: ExecuteSwap");
-        break;
-      case ArbitronInstruction.Initialize:
-        console.log("Instruction Type: Initialize");
-        break;
+
       case ArbitronInstruction.JoinContest:
-        console.log("Instruction Type: JoinContest");
+        try {
+          const convertedIx = convertWebhookInstruction(rawIx);
+          const parsedData = parseJoinContestInstruction(convertedIx);
+          console.log("Parsed JoinContest Data:");
+          console.log("Participant:", parsedData.accounts.participent.address);
+          console.log("Contest:", parsedData.accounts.contest.address);
+
+          // TODO: Update participant count in database
+          // await addParticipantToContest(parsedData);
+        } catch (parseError) {
+          console.error("Error parsing JoinContest instruction:", parseError);
+        }
         break;
+
       case ArbitronInstruction.StartContest:
-        console.log("Instruction Type: StartContest");
+        try {
+          const convertedIx = convertWebhookInstruction(rawIx);
+          const parsedData = parseStartContestInstruction(convertedIx);
+          console.log("Parsed StartContest Data:");
+          console.log("Host:", parsedData.accounts.host.address);
+          console.log(" Contest:", parsedData.accounts.contest.address);
+          const contestAddress = parsedData.accounts.contest.address;
+
+          publisher.publish(
+            `contest-${contestAddress}`,
+            JSON.stringify({
+              contestId: contestAddress,
+              host: parsedData.accounts.host.address,
+              type: "contest-started",
+              timestamp: Date.now(),
+            })
+          );
+
+          console.log("Published 'contest-started' event to Pubsub");
+        } catch (parseError) {
+          console.error("Error parsing StartContest instruction:", parseError);
+        }
         break;
+
+      case ArbitronInstruction.ExecuteSwap:
+        try {
+          const convertedIx = convertWebhookInstruction(rawIx);
+          const parsedData = parseExecuteSwapInstruction(convertedIx);
+          console.log("Parsed ExecuteSwap Data:");
+          console.log("Program:", parsedData.programAddress);
+          console.log("Accounts:", rawIx.accounts);
+
+          // TODO: Update user score/portfolio in database
+          // await recordSwapInDatabase(parsedData, rawIx.accounts);
+        } catch (parseError) {
+          console.error("Error parsing ExecuteSwap instruction:", parseError);
+        }
+        break;
+
+      case ArbitronInstruction.Initialize:
+        try {
+          const convertedIx = convertWebhookInstruction(rawIx);
+          const parsedData = parseInitializeInstruction(convertedIx);
+          console.log("Parsed Initialize Data:");
+          console.log("Admin:", parsedData.accounts.admin.address);
+          console.log("Config:", parsedData.accounts.config.address);
+
+          // TODO: Save config to database
+          // await saveConfigToDatabase(parsedData);
+        } catch (parseError) {
+          console.error("Error parsing Initialize instruction:", parseError);
+        }
+        break;
+
       default:
-        console.log("Unknown Instruction Type");
+        console.log("Unknown Instruction Type:", ixType);
     }
 
     if (event.meta?.err === null && event.type === "CREATE") {

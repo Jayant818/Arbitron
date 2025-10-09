@@ -3,10 +3,11 @@ import { PlayerManager } from "./PlayerManager.js";
 
 export class SubscriptionManager {
   // Contest -> User[]
-  public subscriptions: Map<String, String[]> = new Map();
+  public subscriptions: Map<string, string[]> = new Map();
   // user -> Contets
-  public reverseSubscription: Map<String, String> = new Map();
+  public reverseSubscription: Map<string, string> = new Map();
   public static instance: SubscriptionManager;
+  public subscriber: Awaited<ReturnType<typeof createSubscriber>> | null = null;
 
   private constructor() {}
 
@@ -19,6 +20,7 @@ export class SubscriptionManager {
 
   private redisCallbackHandler(message: string, channel: string) {
     const parsedMessage = JSON.parse(message);
+    console.log("Received message", parsedMessage, channel);
     this.subscriptions
       .get(channel)
       ?.forEach((s) =>
@@ -26,7 +28,7 @@ export class SubscriptionManager {
       );
   }
 
-  public subscribe(playerId: string, contestId: string) {
+  public async subscribe(playerId: string, contestId: string) {
     if (this.subscriptions.get(contestId)?.includes(playerId)) {
       return;
     }
@@ -39,11 +41,15 @@ export class SubscriptionManager {
     this.reverseSubscription.set(playerId, contestId);
 
     if (this.subscriptions.get(contestId)?.length === 1) {
-      // subscribe
+      this.subscriber = await createSubscriber();
+      this.subscriber.SUBSCRIBE(
+        `contest-${contestId}`,
+        this.redisCallbackHandler.bind(this)
+      );
     }
   }
 
-  public unSubscribe(playerId: string, contestId: string) {
+  public async unSubscribe(playerId: string, contestId: string) {
     const subscription = this.subscriptions.get(contestId);
 
     if (subscription) {
@@ -56,12 +62,14 @@ export class SubscriptionManager {
     }
 
     if (this.subscriptions.get(contestId)?.length == 0) {
-      // unsubscribe
+      if (this.subscriber) {
+        this.subscriber?.UNSUBSCRIBE(`contest-${contestId}`);
+      }
     }
   }
 
   public playerLeft(userId: string) {
-    // we need to find our in which contest he/she is in?
+    // we need to find our in which contest player is in?
     const contest = this.reverseSubscription.get(userId);
     if (contest) {
       const subscription = this.subscriptions.get(contest);

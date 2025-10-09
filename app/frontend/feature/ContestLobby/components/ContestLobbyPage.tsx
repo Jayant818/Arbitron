@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useContext } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { NeonButton } from "@/components/ui/neon-button"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Badge } from "@/components/ui/badge"
@@ -17,7 +17,6 @@ import { useWalletAccountTransactionSendingSigner } from "@solana/react"
 import { 
   address, 
   appendTransactionMessageInstructions, 
-  compileTransaction, 
   createTransactionMessage, 
   getBase58Decoder, 
   pipe, 
@@ -29,6 +28,8 @@ import {
   getStartContestInstruction,
   StartContestInput,
 } from "../../../../../dist/js-client/index"
+import { SignalingManager } from "@/lib/SinglingManager"
+import { SelectedWalletAccountState } from "@/context/SelectedWalletAccountContext"
 
 const mockParticipants = [
   { id: "1", username: "CryptoNinja", avatar: "", rank: 1, winRate: 78, totalWins: 45 },
@@ -48,10 +49,8 @@ export async function fetchContestDetailsById(id: string) {
   }
 }
 
-export default function ContestLobbyPage({selectedWalletAccount}:{selectedWalletAccount:SelectedWalletAccountState}) {
-  const params = useParams()
+export default function ContestLobbyPage({selectedWalletAccount, contestId}:{selectedWalletAccount: NonNullable<SelectedWalletAccountState>, contestId: string}) {
   const router = useRouter()
-  const contestId = params.id as string
   const { rpc } = useContext(RpcContext)
   const { chain } = useContext(ChainContext)
   
@@ -92,6 +91,28 @@ export default function ContestLobbyPage({selectedWalletAccount}:{selectedWallet
     const interval = setInterval(fetchData, 10000)
     return () => clearInterval(interval)
   }, [contestId])
+
+  useEffect(() => {
+    if (!contestId) return;
+
+    SignalingManager.getInstance().registerCallback("contest_updates", (data: unknown) => {
+      console.log("Received contest update:", data);
+    }, `CONTEST-${contestId}`);
+
+    SignalingManager.getInstance().sendMessage({
+      method: "SUBSCRIBE",
+      contestId: contestId
+    })
+
+    return () => {
+      SignalingManager.getInstance().unregisterCallback("contest_updates",`CONTEST-${contestId}`)
+      SignalingManager.getInstance().sendMessage({
+        method: "UNSUBSCRIBE",
+        contestId: contestId
+      })
+    }
+
+  },[contestId])
 
   // Transform API contest data to UI format
   const contest = useMemo(() => {

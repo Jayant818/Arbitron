@@ -7,17 +7,30 @@ import ContestLobbyPage from './ContestLobbyPage'
 import { RpcContext } from '@/context/RpcContext'
 import { fetchMaybeParticipent, fetchMaybeContest } from "../../../../../dist/js-client/index"
 import { getAddressEncoder, address, getProgramDerivedAddress } from '@solana/kit'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 
 const ContestLobbyWrapper = ({ contestId }: { contestId: string }) => {
-    const params = useParams();
-    console.log("ContestLobbyWrapper params:", params);
     const [selectedWalletAccount] = useContext(SelectedWalletAccountContext)
     const { rpc } = useContext(RpcContext)
     const ARBITRON_PROGRAM_ADDRESS = process.env.NEXT_PUBLIC_PROGRAM_ID
     const router = useRouter()
     const [isChecking, setIsChecking] = useState(true)
     const [isAuthorized, setIsAuthorized] = useState(false)
+
+    // Validate contestId format
+    useEffect(() => {
+        if (contestId) {
+            // Check if contestId is a valid base58 string (Solana address format)
+            const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
+            if (!base58Regex.test(contestId) || contestId.length < 32 || contestId.length > 44) {
+                console.error("❌ Invalid contest ID format:", contestId);
+                alert("Invalid contest ID. Please check the URL.");
+                router.push("/");
+                setIsChecking(false);
+                return;
+            }
+        }
+    }, [contestId, router]);
 
     useEffect(() => {
         if (!selectedWalletAccount || !selectedWalletAccount.account.address || !contestId) return
@@ -29,7 +42,7 @@ const ContestLobbyWrapper = ({ contestId }: { contestId: string }) => {
                 // 1. Check if user has participant account for this contest
                 const participantAccountSeeds = [
                     new TextEncoder().encode("participent"),
-                    getAddressEncoder().encode(address(params.id)),
+                    getAddressEncoder().encode(address(contestId)), // ← Use contestId prop, not params
                     getAddressEncoder().encode(address(selectedWalletAccount!.account.address))
                 ]
 
@@ -107,6 +120,7 @@ const ContestLobbyWrapper = ({ contestId }: { contestId: string }) => {
     return (
         <ContestLobbyPage
             selectedWalletAccount={selectedWalletAccount}
+            contestId={contestId}
         />
     )
 }

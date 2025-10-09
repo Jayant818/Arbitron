@@ -1,7 +1,8 @@
 import WebSocket, { WebSocketServer } from "ws";
+import { PlayerManager } from "./PlayerManager.js";
 
 const wss = new WebSocketServer({ port: 8080 });
 
 wss.on("connection", (ws) => {
-  console.log("New client connected");
+  PlayerManager.getInstance().addUser(ws);
 });

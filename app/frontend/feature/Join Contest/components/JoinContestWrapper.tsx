@@ -7,15 +7,29 @@ import JoinContestPage from './JoinContestPage'
 import { RpcContext } from '@/context/RpcContext'
 import {fetchMaybeParticipent} from "../../../../../dist/js-client/index"
 import { getAddressEncoder,address, getProgramDerivedAddress } from '@solana/kit'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 
-const JoinContestWrapper = ({ contestId }:{ contestId: string }) => {
+const JoinContestWrapper = () => {
 
     const [selectedWalletAccount] = useContext(SelectedWalletAccountContext)
     const { rpc } = useContext(RpcContext);
     const ARBITRON_PROGRAM_ADDRESS = process.env.NEXT_PUBLIC_PROGRAM_ID;
     const router = useRouter();
-    
+    const params = useParams()
+    const contestId = params.id as string;
+
+    // Validate contestId format
+    useEffect(() => {
+        if (contestId) {
+            // Check if contestId is a valid base58 string (Solana address format)
+            const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
+            if (!base58Regex.test(contestId) || contestId.length < 32 || contestId.length > 44) {
+                console.error("❌ Invalid contest ID format:", contestId);
+                alert("Invalid contest ID. Please check the URL.");
+            }
+        }
+    }, [contestId, router]);
+
     useEffect(() => {
         if (!selectedWalletAccount || !selectedWalletAccount.account.address || !contestId) return;
         
@@ -71,6 +85,7 @@ const JoinContestWrapper = ({ contestId }:{ contestId: string }) => {
   return (
       <JoinContestPage
         selectedWalletAccount={selectedWalletAccount}
+        contestId={contestId}
       />
   )
 }

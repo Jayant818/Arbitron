@@ -5,7 +5,7 @@ import { SubscriptionManager } from "./SubscriptionManager.js";
 export class PlayerManager {
   // instance should be private, so that no one can change it
   private static instance: PlayerManager;
-  public players: Map<String, Player> = new Map();
+  public players: Map<string, Player> = new Map();
   private constructor() {}
 
   public static getInstance(): PlayerManager {
@@ -22,10 +22,16 @@ export class PlayerManager {
     this.registerOnClose(ws, id);
   }
 
-  private registerOnClose(ws: WebSocket, id: String) {
+  private registerOnClose(ws: WebSocket, id: string) {
     ws.on("close", () => {
       this.players.delete(id);
-      SubscriptionManager.getInstance().unSubscribe(id);
+      // Get all the contest the user is subscibed to and unsubscribe
+      const contestIds =
+        SubscriptionManager.getInstance().reverseSubscription.get(id);
+
+      if (contestIds) {
+        SubscriptionManager.getInstance().unSubscribe(id, contestIds);
+      }
     });
   }
 
