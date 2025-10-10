@@ -1,0 +1,79 @@
+"use client"
+
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Check } from "lucide-react"
+import { useState } from "react"
+
+interface TokenCardProps {
+  symbol: string
+  name: string
+  price: number
+  change24h: number
+  category: "Stable" | "Meme" | "Alt"
+  selected: boolean
+  onToggle: () => void
+}
+
+export function TokenCard({ symbol, name, price, change24h, category, selected, onToggle }: TokenCardProps) {
+  const [isFlipping, setIsFlipping] = useState(false)
+
+  const handleClick = () => {
+    setIsFlipping(true)
+    setTimeout(() => setIsFlipping(false), 600)
+    onToggle()
+  }
+
+  const categoryColors = {
+    Stable: "bg-blue-500/10 text-blue-400 border-blue-500/30",
+    Meme: "bg-purple-500/10 text-purple-400 border-purple-500/30",
+    Alt: "bg-green-500/10 text-green-400 border-green-500/30",
+  }
+
+  return (
+    <Card
+      onClick={handleClick}
+      className={`group relative cursor-pointer overflow-hidden border transition-all duration-300 ${
+        selected
+          ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
+          : "border-border bg-card hover:border-primary/50"
+      } ${isFlipping ? "animate-flip" : ""}`}
+    >
+      {/* Selection indicator */}
+      {selected && (
+        <div className="absolute top-2 right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-primary animate-scale-in">
+          <Check className="h-4 w-4 text-primary-foreground" />
+        </div>
+      )}
+
+      {/* Hover glow effect */}
+      <div
+        className={`absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/20 opacity-0 transition-opacity ${
+          selected ? "opacity-100" : "group-hover:opacity-50"
+        }`}
+      />
+
+      <div className="relative p-4 space-y-3">
+        {/* Token header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="text-lg font-bold text-foreground">{symbol}</div>
+            <div className="text-xs text-muted-foreground">{name}</div>
+          </div>
+          <Badge variant="outline" className={`${categoryColors[category]} border`}>
+            {category}
+          </Badge>
+        </div>
+
+        {/* Price info */}
+        <div className="space-y-1">
+          <div className="text-2xl font-bold text-foreground">${price.toFixed(4)}</div>
+          <div className={`text-sm font-medium ${change24h >= 0 ? "text-success" : "text-destructive"}`}>
+            {change24h >= 0 ? "+" : ""}
+            {change24h.toFixed(2)}%
+          </div>
+        </div>
+      </div>
+    </Card>
+  )
+}
