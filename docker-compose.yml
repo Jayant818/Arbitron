@@ -6,3 +6,12 @@ services:
     container_name: "arbitron-redis"
     ports:
       - "6379:6379"
+  db:
+    image: "postgres:latest"
+    container_name: "arbitron-postgres"
+    environment:
+      POSTGRES_USER: "user"
+      POSTGRES_PASSWORD: "password"
+      POSTGRES_DB: "arbitron_db"
+    ports:
+      - "5432:5432"
