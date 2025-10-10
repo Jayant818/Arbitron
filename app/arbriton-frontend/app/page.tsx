@@ -49,7 +49,7 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-5xl md:text-7xl font-bold leading-tight text-balance text-white">
-              Compete in <span className="gradient-text animate-gradient-shift">Lightning-Fast</span> Trading Contests
+              Compete in <span className="gradient-text animate-gradient-shift">Lightning Fast</span> Trading Contests
             </h1>
 
             <p className="text-xl text-card-foreground leading-relaxed max-w-2xl mx-auto text-balance">

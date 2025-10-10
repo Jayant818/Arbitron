@@ -9,8 +9,17 @@ import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Sparkles, Clock, Users, Coins, Trophy, Zap, Shield } from "lucide-react"
+import { appendTransactionMessageInstructions, createTransactionMessage, getAddressEncoder, getBase58Decoder, getProgramDerivedAddress, pipe, setTransactionMessageFeePayerSigner, setTransactionMessageLifetimeUsingBlockhash, signAndSendTransactionMessageWithSigners } from "@solana/kit"
+import {ARBITRON_PROGRAM_ADDRESS, CreateContestAsyncInput, getCreateContestInstructionAsync} from "../../../../dist/js-client/index"
+import { useRouter } from "next/navigation"
+import { useWalletAccountTransactionSendingSigner } from "@solana/react"
+import { address } from "@solana/kit"
+import { useSolana } from "@/components/solana-provider"
 
-export default function CreateContestPage() {
+const USDC_MINT_ADDRESS = address("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v") // Mainnet USDC
+
+// Component that only renders when wallet is connected
+function ContestForm() {
   const [contestName, setContestName] = useState("")
   const [duration, setDuration] = useState("15")
   const [entryFee, setEntryFee] = useState("100")
@@ -18,8 +27,18 @@ export default function CreateContestPage() {
   const [prizeDistribution, setPrizeDistribution] = useState("winner-takes-all")
   const [allowedTokens, setAllowedTokens] = useState("all")
   const [enablePredictions, setEnablePredictions] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
 
-  const handleCreateContest = () => {
+  const router = useRouter()
+  const { selectedAccount, chain } = useSolana()
+  const signer = useWalletAccountTransactionSendingSigner(selectedAccount!, chain)
+
+  const handleCreateContest = async () => {
+    if (!signer) {
+      alert("Please connect your wallet first")
+      return
+    }
+
     console.log("[v0] Creating contest:", {
       contestName,
       duration,
@@ -29,6 +48,81 @@ export default function CreateContestPage() {
       allowedTokens,
       enablePredictions,
     })
+    try {
+      setIsCreating(true)
+      
+      // Convert duration from minutes to seconds
+      const durationInSeconds = Number(duration) * 60
+  
+      // 1️⃣ Generate Contest PDA (use signer.address)
+      const contestSeeds = [
+        new TextEncoder().encode("contest"),
+        new TextEncoder().encode(contestName),
+        getAddressEncoder().encode(signer.address),
+      ]
+  
+      const [contestPda] = await getProgramDerivedAddress({
+        programAddress: ARBITRON_PROGRAM_ADDRESS,
+        seeds: contestSeeds,
+      })
+        
+  
+      // 2️⃣ Prepare instruction input (use signer)
+      const createContestAsyncInput: CreateContestAsyncInput = {
+        duration: durationInSeconds, // duration in seconds
+        entryFees: BigInt(Number(entryFee) * 10 ** 6), // e.g. 100 USDC (6 decimals)
+        maxParticipents: Number(maxParticipants[0]),
+        name: contestName,
+        startTime: BigInt(Math.floor(Date.now() / 1000) + 60), // start in 1 min
+        signer: signer,
+        tokenMint: USDC_MINT_ADDRESS,
+        contest: contestPda,
+      }
+  
+      // 3️⃣ Get instruction
+      const createContestIx = await getCreateContestInstructionAsync(
+        createContestAsyncInput,
+        {
+          programAddress: ARBITRON_PROGRAM_ADDRESS,
+        }
+      )
+  
+      // 4️⃣ Build transaction
+      // Get RPC from signer or use environment variable
+      const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "https://api.devnet.solana.com"
+      const rpcResponse = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "getLatestBlockhash",
+        }),
+      })
+      const { result } = await rpcResponse.json()
+      const blockhash = result.value
+  
+      const txMsg = pipe(
+        createTransactionMessage({ version: 0 }),
+        (tx) => setTransactionMessageFeePayerSigner(signer, tx),
+        (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+        (tx) => appendTransactionMessageInstructions([createContestIx], tx)
+      )
+  
+      // 5️⃣ Sign & Send transaction via wallet (this should prompt the wallet UI)
+      const signatureBytes = await signAndSendTransactionMessageWithSigners(txMsg)
+      const sig = getBase58Decoder().decode(signatureBytes)
+      
+      console.log("✅ Contest created successfully! Signature:", sig)
+  
+      alert("Contest created successfully!")
+      router.push("/contests")
+    } catch (error) {
+      console.error("❌ Error creating contest:", error)
+      alert("Error creating contest. Check console for details.")
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   return (
@@ -228,12 +322,12 @@ export default function CreateContestPage() {
               {/* Create Button */}
               <Button
                 onClick={handleCreateContest}
-                disabled={!contestName || !entryFee}
-                className="group relative h-14 w-full overflow-hidden bg-primary text-lg font-semibold text-primary-foreground hover:bg-primary/90"
+                disabled={!contestName || !entryFee || isCreating || !signer}
+                className="group relative h-14 w-full overflow-hidden bg-primary text-lg font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   <Sparkles className="h-5 w-5" />
-                  Create Contest
+                  {isCreating ? "Creating Contest..." : !signer ? "Connect Wallet First" : "Create Contest"}
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-0 transition-opacity group-hover:opacity-100" />
               </Button>
@@ -247,4 +341,24 @@ export default function CreateContestPage() {
       </div>
     </div>
   )
+}
+
+// Wrapper component that checks wallet connection
+export default function CreateContestPage() {
+  const { selectedAccount, isConnected } = useSolana()
+
+  if (!isConnected || !selectedAccount) {
+    return (
+      <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold text-white">Wallet Not Connected</h2>
+          <p className="text-muted-foreground">
+            Please connect your wallet to create a contest
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return <ContestForm />;
 }
