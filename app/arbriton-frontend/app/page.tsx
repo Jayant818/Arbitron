@@ -3,50 +3,15 @@
 import { Navbar } from "@/components/navbar"
 import { ContestCard } from "@/components/contest-card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { TrendingUp, Zap, Shield, Trophy, Search, Filter, Sparkles } from "lucide-react"
-import { useState } from "react"
+import { TrendingUp, Zap, Shield, Trophy, Sparkles } from "lucide-react"
+import { useGetAllContestsQuery } from "@/hooks/api-hooks/useContestQuery"
+import Link from "next/link"
 
 export default function HomePage() {
-  const [searchQuery, setSearchQuery] = useState("")
 
-  const contests = [
-    {
-      id: "1",
-      title: "Quick Strike",
-      entryFee: 0.1,
-      prizePool: 5,
-      duration: 15,
-      slotsTotal: 50,
-      slotsFilled: 38,
-      startsIn: 3600,
-      status: "upcoming" as const,
-    },
-    {
-      id: "2",
-      title: "Meme Madness",
-      entryFee: 0.25,
-      prizePool: 12.5,
-      duration: 30,
-      slotsTotal: 50,
-      slotsFilled: 42,
-      startsIn: 1800,
-      status: "active" as const,
-    },
-    {
-      id: "3",
-      title: "Altcoin Arena",
-      entryFee: 0.5,
-      prizePool: 25,
-      duration: 60,
-      slotsTotal: 50,
-      slotsFilled: 29,
-      startsIn: 7200,
-      status: "upcoming" as const,
-    },
-  ]
+  const { data: contests, isLoading: isLoadingContests } = useGetAllContestsQuery();
 
-  const filteredContests = contests.filter((contest) => contest.title.toLowerCase().includes(searchQuery.toLowerCase()))
+  console.log("Contests:", contests);
 
   return (
     <div className="min-h-screen bg-background">
@@ -154,44 +119,31 @@ export default function HomePage() {
             <p className="text-lg text-card-foreground">Join a contest and start competing</p>
           </div>
 
-          <div className="mb-8 flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                placeholder="Search contests..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 glass border-border text-white placeholder:text-muted-foreground"
-              />
-            </div>
-            <Button variant="outline" className="glass glass-hover text-white font-semibold bg-transparent">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
-          </div>
-
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredContests.length > 0 ? (
-              filteredContests.map((contest, i) => (
+            {!isLoadingContests && contests && contests.length > 0 ? (
+              contests.slice(0, 6).map((contest, i) => (
                 <div key={contest.id} className="animate-slide-up" style={{ animationDelay: `${i * 100}ms` }}>
                   <ContestCard {...contest} />
                 </div>
               ))
+            ) : isLoadingContests ? (
+              <div className="col-span-full text-center py-12">
+                <p className="text-muted-foreground">Loading contests...</p>
+              </div>
             ) : (
               <div className="col-span-full text-center py-12">
-                <p className="text-muted-foreground">No contests found matching "{searchQuery}"</p>
+                <p className="text-muted-foreground">No contests found</p>
               </div>
             )}
           </div>
 
           <div className="mt-12 text-center">
-            <Button
-              size="lg"
-              variant="outline"
-              className="glass glass-hover transition-smooth text-white font-semibold bg-transparent"
+            <Link
+              href="/contests"
+              className=" transition-smooth text-white font-semibold "
             >
               View All Contests
-            </Button>
+            </Link>
           </div>
         </div>
       </section>

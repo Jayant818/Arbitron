@@ -47,6 +47,7 @@ ContestRouter.get("/all", async (req, res) => {
         waitingTime: Number(decoded.startTime),
         prizePoolAccount: decoded.prizePoolVaultUsdt,
         decimals: 6, // USDT has 6 decimals
+        startTime: Number(decoded.startTime),
       };
     });
 

@@ -1,13 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Wallet, Trophy, User, Home, Plus } from "lucide-react"
-import { WalletConnectModal } from "@/components/wallet-connect-modal"
-import { useState } from "react"
+import { Trophy, User, Home, Plus } from "lucide-react"
+import { WalletConnectButton } from "./wallet-connect-button"
 
 export function Navbar() {
-  const [walletModalOpen, setWalletModalOpen] = useState(false)
 
   return (
     <>
@@ -54,22 +51,11 @@ export function Navbar() {
               </Link>
             </div>
 
-            {/* Connect Wallet Button */}
-            <Button
-              onClick={() => setWalletModalOpen(true)}
-              className="group relative overflow-hidden bg-primary text-primary-foreground hover:bg-primary/90 transition-smooth"
-            >
-              <span className="relative z-10 flex items-center gap-2">
-                <Wallet className="h-4 w-4" />
-                Connect Wallet
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-            </Button>
+           <WalletConnectButton />
           </div>
         </div>
       </nav>
 
-      <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
     </>
   )
 }

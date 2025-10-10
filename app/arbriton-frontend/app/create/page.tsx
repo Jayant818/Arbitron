@@ -13,7 +13,7 @@ import { Sparkles, Clock, Users, Coins, Trophy, Zap, Shield } from "lucide-react
 export default function CreateContestPage() {
   const [contestName, setContestName] = useState("")
   const [duration, setDuration] = useState("15")
-  const [entryFee, setEntryFee] = useState("0.1")
+  const [entryFee, setEntryFee] = useState("100")
   const [maxParticipants, setMaxParticipants] = useState([50])
   const [prizeDistribution, setPrizeDistribution] = useState("winner-takes-all")
   const [allowedTokens, setAllowedTokens] = useState("all")
@@ -124,18 +124,18 @@ export default function CreateContestPage() {
               <div className="space-y-2">
                 <Label htmlFor="entry-fee" className="text-sm font-medium">
                   <Coins className="mr-2 inline h-4 w-4" />
-                  Entry Fee (SOL)
+                  Entry Fee (USDC)
                 </Label>
                 <Input
                   id="entry-fee"
                   type="number"
                   step="0.01"
-                  placeholder="0.1"
+                  placeholder="109"
                   value={entryFee}
                   onChange={(e) => setEntryFee(e.target.value)}
                   className="glass-input h-12 border-white/10 bg-background/50 backdrop-blur-sm"
                 />
-                <p className="text-xs text-muted-foreground">Minimum: 0.01 SOL • Recommended: 0.1 - 1 SOL</p>
+                <p className="text-xs text-muted-foreground">Minimum: 10 USDC • Recommended: 100 - 1000 USDC</p>
               </div>
 
               {/* Max Participants */}
@@ -218,7 +218,7 @@ export default function CreateContestPage() {
                   <span className="font-semibold text-primary">Estimated Prize Pool</span>
                 </div>
                 <div className="text-3xl font-bold gradient-text">
-                  {(Number.parseFloat(entryFee || "0") * maxParticipants[0] * 0.95).toFixed(2)} SOL
+                  {(Number.parseFloat(entryFee || "0") * maxParticipants[0] * 0.95).toFixed(2)} USDC
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   5% platform fee • Based on {maxParticipants[0]} participants

@@ -1,0 +1,28 @@
+import { APIError } from "@/lib/errors";
+import axios from "axios";
+
+export interface IContest {
+  currentPlayers: number;
+  decimals: number;
+  duration: number;
+  entryFee: number;
+  host: string;
+  id: string;
+  maxPlayers: number;
+  prizePoolAccount: string;
+  status: number;
+  title: string;
+  startTime: number;
+}
+
+export const getAllContests = async () => {
+  try {
+    const contests = await axios.get(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/contest/all`
+    );
+    return contests.data;
+  } catch (error) {
+    console.error("Error fetching contests:", error);
+    throw new APIError("Failed to fetch contests", 500, error);
+  }
+};

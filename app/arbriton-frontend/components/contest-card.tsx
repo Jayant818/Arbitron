@@ -5,41 +5,52 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Clock, Users, Trophy } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
+import { IContest } from "@/api-functions/contest.api"
 
-interface ContestCardProps {
-  id: string
-  title: string
-  entryFee: number
-  prizePool: number
-  duration: number
-  slotsTotal: number
-  slotsFilled: number
-  startsIn: number
-  status: "upcoming" | "active" | "ended"
-}
+type ContestCardProps = IContest
 
 export function ContestCard({
   title,
   entryFee,
-  prizePool,
   duration,
-  slotsTotal,
-  slotsFilled,
-  startsIn,
-  status,
+  maxPlayers,
+  currentPlayers,
+  startTime,
+  status: statusCode,
+  decimals,
 }: ContestCardProps) {
-  const [timeLeft, setTimeLeft] = useState(startsIn)
-  const fillPercentage = (slotsFilled / slotsTotal) * 100
+  // Convert status code to string
+  const status = statusCode === 0 ? "upcoming" : statusCode === 1 ? "active" : "ended"
+  
+  // Calculate prize pool (entry fee * current players)
+  const prizePool = (entryFee * currentPlayers) / Math.pow(10, decimals)
+  
+  // Format entry fee for display
+  const displayEntryFee = entryFee / Math.pow(10, decimals)
+  
+  // Calculate time remaining until contest starts (startTime is in seconds)
+  const calculateTimeLeft = useCallback(() => {
+    const now = Math.floor(Date.now() / 1000) // Current time in seconds
+    const timeUntilStart = startTime - now
+    return Math.max(0, timeUntilStart)
+  }, [startTime])
+  
+  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft())
+  const fillPercentage = (currentPlayers / maxPlayers) * 100
+  
+  // Check if contest can start (needs at least 2 players)
+  const canStart = currentPlayers >= 2
+  const isPastStartTime = timeLeft === 0
 
   useEffect(() => {
-    if (status === "upcoming" && timeLeft > 0) {
+    if (status === "upcoming") {
       const timer = setInterval(() => {
-        setTimeLeft((prev) => Math.max(0, prev - 1))
+        setTimeLeft(calculateTimeLeft())
       }, 1000)
       return () => clearInterval(timer)
     }
-  }, [status, timeLeft])
+  }, [status, calculateTimeLeft])
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600)
@@ -82,13 +93,13 @@ export function ContestCard({
             <Trophy className="h-5 w-5 text-primary" />
             <span className="text-sm text-card-foreground">Prize Pool</span>
           </div>
-          <span className="text-lg font-bold text-primary">{prizePool} SOL</span>
+          <span className="text-lg font-bold text-primary">{prizePool.toFixed(2)} USDC</span>
         </div>
 
         {/* Entry Fee */}
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Entry Fee</span>
-          <span className="font-semibold text-white">{entryFee} SOL</span>
+          <span className="font-semibold text-white">{displayEntryFee.toFixed(2)} USDC</span>
         </div>
 
         {/* Slots Progress */}
@@ -99,22 +110,42 @@ export function ContestCard({
               <span className="text-muted-foreground">Players</span>
             </div>
             <span className="font-medium text-white">
-              {slotsFilled}/{slotsTotal}
+              {currentPlayers}/{maxPlayers}
             </span>
           </div>
           <Progress value={fillPercentage} className="h-2" />
         </div>
 
         {status === "upcoming" && (
-          <div className="flex items-center justify-between rounded-lg glass border-primary/30 p-3">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              <span className="text-sm text-card-foreground">Starts in</span>
+          <>
+            <div className="flex items-center justify-between rounded-lg glass border-primary/30 p-3">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                <span className="text-sm text-card-foreground">
+                  {isPastStartTime && !canStart ? "Waiting for players" : "Starts in"}
+                </span>
+              </div>
+              <span className="font-mono text-lg font-bold text-primary animate-countdown-pulse">
+                {isPastStartTime && !canStart ? "—" : formatTime(timeLeft)}
+              </span>
             </div>
-            <span className="font-mono text-lg font-bold text-primary animate-countdown-pulse">
-              {formatTime(timeLeft)}
-            </span>
-          </div>
+            
+            {isPastStartTime && !canStart && (
+              <div className="rounded-lg glass border-destructive/30 p-3">
+                <p className="text-xs text-destructive text-center">
+                  ⚠️ Need at least 2 players to start • Time expired
+                </p>
+              </div>
+            )}
+            
+            {!isPastStartTime && !canStart && timeLeft < 300 && (
+              <div className="rounded-lg glass border-yellow-500/30 p-3">
+                <p className="text-xs text-yellow-500 text-center">
+                  ⏰ Need at least 2 players to start this contest
+                </p>
+              </div>
+            )}
+          </>
         )}
 
         {status === "active" && (

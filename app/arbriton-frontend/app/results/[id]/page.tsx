@@ -30,7 +30,6 @@ export default function ResultsPage() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      <Navbar />
 
       {/* Confetti effect for winners */}
       {showConfetti && (
