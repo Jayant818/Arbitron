@@ -67,10 +67,12 @@ export function TokenCard({ symbol, name, price, change24h, category, selected, 
 
         {/* Price info */}
         <div className="space-y-1">
-          <div className="text-2xl font-bold text-foreground">${price.toFixed(4)}</div>
+          <div className="text-2xl font-bold text-foreground">
+            ${price ? price.toFixed(4) : '0.0000'}
+          </div>
           <div className={`text-sm font-medium ${change24h >= 0 ? "text-success" : "text-destructive"}`}>
             {change24h >= 0 ? "+" : ""}
-            {change24h.toFixed(2)}%
+            {change24h !== undefined && change24h !== null ? change24h.toFixed(2) : '0.00'}%
           </div>
         </div>
       </div>

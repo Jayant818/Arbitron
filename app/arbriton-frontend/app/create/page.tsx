@@ -16,9 +16,8 @@ import { useWalletAccountTransactionSendingSigner } from "@solana/react"
 import { address } from "@solana/kit"
 import { useSolana } from "@/components/solana-provider"
 
-const USDC_MINT_ADDRESS = address("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v") // Mainnet USDC
+const USDC_MINT_ADDRESS = address("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr") // USDC Devnet
 
-// Component that only renders when wallet is connected
 function ContestForm() {
   const [contestName, setContestName] = useState("")
   const [duration, setDuration] = useState("15")
@@ -343,7 +342,6 @@ function ContestForm() {
   )
 }
 
-// Wrapper component that checks wallet connection
 export default function CreateContestPage() {
   const { selectedAccount, isConnected } = useSolana()
 

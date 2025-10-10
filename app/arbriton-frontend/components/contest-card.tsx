@@ -7,10 +7,13 @@ import { Clock, Users, Trophy } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { useEffect, useState, useCallback } from "react"
 import { IContest } from "@/api-functions/contest.api"
+import { useRouter } from "next/router"
+import Link from "next/link"
 
 type ContestCardProps = IContest
 
 export function ContestCard({
+  id,
   title,
   entryFee,
   duration,
@@ -157,15 +160,16 @@ export function ContestCard({
       </CardContent>
 
       <CardFooter className="relative">
-        <Button
-          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-smooth font-semibold relative overflow-hidden group/btn"
+        <Link
+          className="w-full bg-primary  text-center border-1 rounded-2xl text-primary-foreground hover:bg-primary/90 transition-smooth font-semibold relative overflow-hidden group/btn"
+          href={`/join/${id}`}
           disabled={status === "ended"}
         >
           <span className="relative z-10">
             {status === "active" ? "Watch Live" : status === "upcoming" ? "Join Contest" : "View Results"}
           </span>
           <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover/btn:opacity-20 transition-opacity animate-aurora" />
-        </Button>
+        </Link>
       </CardFooter>
     </Card>
   )
