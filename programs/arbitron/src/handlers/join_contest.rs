@@ -3,13 +3,13 @@ use anchor_spl::token_interface::{Mint, TokenAccount,TokenInterface};
 
 use anchor_lang::account;
 
-use crate::{ error::ErrorCode, transfer_token, Config, Contest, ContestState, Participent, Player};
+use crate::{ error::ErrorCode, transfer_token, Contest, ContestState, Participent, Player};
+
+use crate::Token;
 
 // Task
 // 1) Join the Contest : PDA will be created for user to store his details in the contest
-// 2) Create the user PDA for the token_mint(USDC), it will not exist before hand
 // 3) Transfer the entry fees from user_ata to the contest_user_ata
-// 4) The owner of this is the User_pda
 #[derive(Accounts)]
 pub struct JoinContest<'info>{
     #[account(mut)]
@@ -19,6 +19,29 @@ pub struct JoinContest<'info>{
 
     // will be USDT mint address : This is the token we are using for entry fees
     pub token_mint : InterfaceAccount<'info,Mint>,
+
+    #[account(
+        mut,
+        seeds = [
+            b"contest",
+            contest.name.as_bytes(),
+            host.key().as_ref()
+        ],
+        has_one = host @ErrorCode::UnauthorizedHost,
+        bump = contest.bump,
+    )]
+    pub contest : Account<'info,Contest>,
+
+    #[account(
+        mut,
+        seeds = [
+            b"prize_pool_usdt",
+            contest.key().as_ref()
+        ],
+        bump,
+        constraint = prize_pool_vault.mint == token_mint.key() @ErrorCode::InvalidTokenAccountMint
+    )]
+    pub prize_pool_vault: InterfaceAccount<'info,TokenAccount>,
 
     #[account(
         init_if_needed,
@@ -40,18 +63,6 @@ pub struct JoinContest<'info>{
     pub user_ata : InterfaceAccount<'info,TokenAccount>,
 
     #[account(
-        mut,
-        seeds = [
-            b"contest",
-            contest.name.as_bytes(),
-            host.key().as_ref()
-        ],
-        has_one = host @ErrorCode::UnauthorizedHost,
-        bump = contest.bump,
-    )]
-    pub contest : Account<'info,Contest>,
-
-    #[account(
         init,
         payer = participent,
         space = Participent::DISCRIMINATOR.len() + Participent::INIT_SPACE,
@@ -69,7 +80,7 @@ pub struct JoinContest<'info>{
     pub system_program: Program<'info, System>,
 }
 
-pub fn join_contest(context: Context<JoinContest>) -> Result<()> {
+pub fn join_contest(context: Context<JoinContest>, selected_tokens : Vec<Token>) -> Result<()> {
 
     let contest = &mut context.accounts.contest;
     let player_global_profile = &mut context.accounts.player_global_profile;
@@ -80,8 +91,6 @@ pub fn join_contest(context: Context<JoinContest>) -> Result<()> {
     require!(contest.participents_count < contest.max_participents, ErrorCode::ContestFull);
     require!(context.accounts.user_ata.amount >= contest.entry_fees, ErrorCode::InvalidEntryFees);
 
-    //  we need to somehow check if the user has already joined the contest or not, when we try to initialize the PDA it will fail if already exists
-
     let participent_info: &mut Account<'_, Participent> = &mut context.accounts.participent_info;
 
     participent_info.user = context.accounts.participent.key();
@@ -90,6 +99,7 @@ pub fn join_contest(context: Context<JoinContest>) -> Result<()> {
     participent_info.bump = context.bumps.participent_info;
     participent_info.rank = 0;
     participent_info.score = 0;
+    participent_info.tokens_selected = selected_tokens;
     contest.participents_count = contest.participents_count.checked_add(1).unwrap();
 
     player_global_profile.user = context.accounts.participent.key();
@@ -98,18 +108,19 @@ pub fn join_contest(context: Context<JoinContest>) -> Result<()> {
 
     // Transfer the token from user_ata to our pda
     let user_usdt_ata = &context.accounts.user_ata;
+    let prize_pool_usdt_ata = &context.accounts.prize_pool_vault;
     let token_mint = &context.accounts.token_mint;
     let authority = &context.accounts.participent;
     let token_program = &context.accounts.token_program;
 
 
     transfer_token(
-        &user_usdt_ata, 
-        contest.prize_pool_vault_usdt, 
+        user_usdt_ata, 
+        prize_pool_usdt_ata, 
         contest.entry_fees, 
-        &token_mint, 
+        token_mint, 
         &authority.to_account_info(), 
-        &token_program, 
+        token_program, 
         None
     )?;
 

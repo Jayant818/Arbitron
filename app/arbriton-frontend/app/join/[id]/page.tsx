@@ -27,6 +27,12 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchJupiterSearch } from "@/api-functions/allTokens.api";
 import { useGetContestByIdQuery } from "@/hooks/api-hooks/useContestQuery";
 import { useParams } from "next/navigation";
+import {ARBITRON_PROGRAM_ADDRESS, JoinContestAsyncInput,getJoinContestInstructionAsync} from "../../../../../dist/js-client/index"
+import {address, signTransactionMessageWithSigners,getAddressEncoder, getProgramDerivedAddress, pipe, createTransactionMessage, setTransactionMessageFeePayer, setTransactionMessageLifetimeUsingBlockhash, setTransactionMessageFeePayerSigner, appendTransactionMessageInstructions, assertIsTransactionMessageWithinSizeLimit, signAndSendTransactionMessageWithSigners, getBase58Decoder} from "@solana/kit"
+import { useWalletAccountMessageSigner, useWalletAccountTransactionSendingSigner, useWalletAccountTransactionSigner, } from "@solana/react";
+import { USDC_MINT_ADDRESS } from "@/app/create/page";
+// import { findAssociatedTokenPda, TOKEN_2022_PROGRAM_ADDRESS } from "@solana-program/token-2022"
+import { findAssociatedTokenPda, TOKEN_PROGRAM_ADDRESS} from "@solana-program/token"
 
 export default function Page() {
   const { isConnected, selectedAccount } = useSolana();
@@ -55,9 +61,13 @@ function JoinContestPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTab, setActiveTab] = useState<string>("all");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [isJoining, setIsJoining] = useState(false);
   const { id } = useParams();
+  const {selectedAccount,selectedWallet,chain,rpc} = useSolana()
   
-  console.log("Contest ID from params:", id);
+
+  // console.log("Selected Wallet and Selected Account", selectedAccount, selectedWallet);
+  // console.log("Contest ID from params:", id);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -379,10 +389,263 @@ function JoinContestPage() {
       );
 
   const budgetUsed = entryFee > 0 ? (totalSelectedValue / entryFee) * 100 : 0;
-  const MINIMUM_THRESHOLD = 50; // 50% of entry fee
+  const MINIMUM_THRESHOLD = 10; // 50% of entry fee
   const canJoin = selectedTokens.size > 0 && budgetUsed >= MINIMUM_THRESHOLD; // Can join when 50% or more of entry fee is reached
 
-  console.log("Contest Details:", contestDetails);
+  // console.log("Contest Details:", contestDetails);
+
+  const signer = useWalletAccountTransactionSendingSigner(selectedAccount!, chain);
+
+  const handleJoinContest = async () => {
+    console.log("🔵 handleJoinContest called!");
+    console.log("🔵 canJoin:", canJoin);
+    console.log("🔵 selectedTokens.size:", selectedTokens.size);
+    console.log("🔵 budgetUsed:", budgetUsed);
+    
+    if (isJoining) {
+      console.log("🔵 Already joining, ignoring click");
+      return;
+    }
+    
+    setIsJoining(true);
+    
+    try {
+
+      console.log("Attempting to join contest with ID:", id);
+
+      // Check user's SOL balance
+      console.log("💰 Checking SOL balance...");
+      try {
+        const balance = await rpc.getBalance(address(selectedAccount!.address)).send();
+        const solBalance = Number(balance.value) / 1e9; // Convert lamports to SOL
+        console.log(`💰 SOL Balance: ${solBalance} SOL`);
+        
+        if (solBalance < 0.01) {
+          setErrorMessage("Insufficient SOL balance for transaction fees. Please add at least 0.01 SOL to your wallet.");
+          return;
+        }
+      } catch (balanceError) {
+        console.warn("Could not check SOL balance:", balanceError);
+      }
+
+      const contestId = id;
+
+      if (!contestDetails?.host) {
+        setErrorMessage("Invalid contest details");
+        return;
+      }
+      const host = address(contestDetails.host);
+      if (!contestId || !host) {
+        setErrorMessage("Invalid contest details");
+        return;
+      }
+
+      // Verify contest account exists on-chain
+      console.log("🔍 Verifying contest account on-chain...");
+      try {
+        const contestAccount = await rpc.getAccountInfo(address(contestId as string), { encoding: 'base64' }).send();
+        if (!contestAccount.value) {
+          setErrorMessage("Contest account not found on-chain. The contest may not exist or has been closed.");
+          return;
+        }
+        console.log("✅ Contest account exists");
+        console.log("Contest account owner:", contestAccount.value.owner);
+        console.log("Contest account data length:", contestAccount.value.data[0].length);
+      } catch (contestError) {
+        console.error("❌ Could not verify contest account:", contestError);
+        setErrorMessage("Could not verify contest account. Please try again.");
+        return;
+      }
+
+      if (!signer) {
+        setErrorMessage("Wallet not connected properly");
+        return;
+      }
+
+      if (selectedTokens.size === 0) {
+        setErrorMessage("No tokens selected");
+        return;
+      }
+
+      console.log("🔍 Finding user's USDC token account...");
+      const [userAta] = await findAssociatedTokenPda(
+        {
+          mint: address(USDC_MINT_ADDRESS),
+          owner: address(selectedAccount!.address),
+          tokenProgram: TOKEN_PROGRAM_ADDRESS,
+        }
+      )
+      console.log("owner", address(selectedAccount!.address));
+      console.log("📍 User ATA:", userAta);
+
+      // Check if the ATA exists
+      console.log("🔍 Checking if ATA exists...");
+      try {
+        const accountInfo = await rpc.getAccountInfo(userAta, { encoding: 'base64' }).send();
+        if (!accountInfo.value) {
+          console.log(accountInfo);
+          console.error("Your USDC token account doesn't exist. Please create it first or fund your wallet with USDC.");
+          return;
+        }
+        console.log("✅ ATA exists");
+      } catch (ataError) {
+        console.warn("Could not verify ATA existence:", ataError);
+        // Continue anyway, let the transaction fail with a more specific error
+      }
+
+      console.log("Control reached here");
+
+      const participentInfoSeed = [
+        new TextEncoder().encode("participent"),
+        getAddressEncoder().encode(address(contestId as string)),
+        getAddressEncoder().encode(address(selectedAccount!.address))
+      ]
+
+      const [participentInfo] = await getProgramDerivedAddress({
+        programAddress: address(ARBITRON_PROGRAM_ADDRESS),
+        seeds: participentInfoSeed
+      })
+
+      const playerGlobalProfileSeed = [
+        new TextEncoder().encode("player"),
+        getAddressEncoder().encode(address(selectedAccount!.address))
+      ]
+
+      const [playerGlobalProfile] = await getProgramDerivedAddress({
+        programAddress: address(ARBITRON_PROGRAM_ADDRESS),
+        seeds: playerGlobalProfileSeed
+      })
+
+      const prizePoolVaultSeed = [
+          new TextEncoder().encode("prize_pool_usdt"),
+          getAddressEncoder().encode(address(contestId as string)),
+      ]
+
+      const [prizePoolVault] = await getProgramDerivedAddress({
+        programAddress: address(ARBITRON_PROGRAM_ADDRESS),
+        seeds: prizePoolVaultSeed
+      })
+
+      // Validate and prepare selected tokens with all required fields
+      console.log("📝 Validating selected tokens...");
+      const validatedTokens = Array.from(selectedTokens.values()).map(({ token, quantity }, index) => {
+        console.log(`Token ${index}:`, {
+          id: token.id,
+          symbol: token.symbol,
+          name: token.name,
+          quantity,
+          isPowerToken: token.id === powerTokenId,
+          usdPrice: token.usdPrice
+        });
+        
+        if (!token.id) {
+          throw new Error(`Token at index ${index} (${token.symbol}) has no ID`);
+        }
+        
+        // Calculate amount as USD value in micro units (6 decimals for USDC-like precision)
+        const usdValue = (token.usdPrice || 0) * quantity;
+        const amount = BigInt(Math.floor(usdValue * 1000000)); // 6 decimal places
+        
+        return {
+          mint: address(token.id),
+          isPowerToken: token.id === powerTokenId,
+          amount: amount,
+          name: token.name, // Use full name instead of symbol
+          quantity: quantity
+        };
+      });
+
+      console.log("✅ All tokens validated:", validatedTokens);
+
+      const joinContestInput: JoinContestAsyncInput = {
+        contest: address(contestId as string),
+        host: host,
+        participent: signer,
+        selectedTokens: validatedTokens,
+        tokenMint:USDC_MINT_ADDRESS,
+        userAta:userAta,
+        participentInfo:participentInfo,
+        playerGlobalProfile: playerGlobalProfile,
+        prizePoolVault:prizePoolVault,
+        tokenProgram:TOKEN_PROGRAM_ADDRESS,
+      }
+
+      console.log("Join Contest Input:", joinContestInput);
+
+      const IX = await getJoinContestInstructionAsync(joinContestInput);
+
+      console.log("Join Contest Instruction:", IX);
+      console.log("Instruction accounts:", JSON.stringify(IX.accounts, null, 2));
+      console.log("Instruction data length:", IX.data.length);
+
+      const { value: blockhash } = await rpc.getLatestBlockhash().send();
+
+      console.log("📦 Building transaction...");
+      console.log("Blockhash:", blockhash);
+
+      const tx = pipe(
+        createTransactionMessage({ version: 0 }),
+        (tx) => setTransactionMessageFeePayerSigner(signer, tx),
+        (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+        (tx) => appendTransactionMessageInstructions([IX], tx)
+      )
+
+      console.log("✅ Transaction built, checking size...");
+      assertIsTransactionMessageWithinSizeLimit(tx);
+      console.log("✅ Transaction size OK");
+
+      console.log("🔐 Signing and sending transaction...");
+      console.log("Transaction message:", tx);
+
+      const signatureBytes = await signAndSendTransactionMessageWithSigners(tx);
+
+      console.log("Transaction sent, awaiting confirmation...", signatureBytes);
+
+      const sig = getBase58Decoder().decode(signatureBytes);
+
+      console.log("✅ Contest joined successfully! Signature:", sig);
+	  
+
+    } catch (error: unknown) {
+      console.error("❌ Join Contest Error:", error);
+      
+      // Extract detailed error information
+      let errorMessage = "An error occurred while joining the contest";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        console.error("Error name:", error.name);
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      
+      // Check for specific error types
+      if (typeof error === 'object' && error !== null) {
+        console.error("Error object:", JSON.stringify(error, null, 2));
+        
+        // Check for wallet rejection
+        if ('code' in error) {
+          const code = (error as { code: number }).code;
+          console.error("Error code:", code);
+          
+          if (code === 4001) {
+            errorMessage = "Transaction rejected by user";
+          } else if (code === -32603) {
+            errorMessage = "Internal wallet error. Please try again.";
+          }
+        }
+        
+        // Check for Solana program errors
+        if ('logs' in error) {
+          console.error("Transaction logs:", (error as { logs: string[] }).logs);
+        }
+      }
+      
+      setErrorMessage(errorMessage);
+    } finally {
+      setIsJoining(false);
+    }
+  }
   
 
   return (
@@ -853,21 +1116,38 @@ function JoinContestPage() {
                     </div>
                   </div>
                 </div>
-
+                { JSON.stringify(canJoin )}
                 {/* Join Button */}
+                {JSON.stringify(isJoining)}
                 <Button
-                  disabled={!canJoin}
+                  disabled={!canJoin || isJoining }
+                  onClick={(e) => {
+                    console.log("🟢 Button clicked!");
+                    console.log("🟢 Event:", e);
+                    console.log("🟢 canJoin:", canJoin);
+                    console.log("🟢 isJoining:", isJoining);
+                    handleJoinContest();
+                  }}
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-smooth group relative overflow-hidden"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    <TrendingUp className="h-4 w-4" />
-                    {canJoin
-                      ? "Join Contest"
-                      : selectedTokens.size === 0 
-                      ? "Select Tokens"
-                      : budgetUsed < MINIMUM_THRESHOLD
-                      ? `Need ${MINIMUM_THRESHOLD - Math.round(budgetUsed)}% More (${((entryFee * MINIMUM_THRESHOLD / 100) - totalSelectedValue).toFixed(2)} USDT)`
-                      : `Add $${Math.abs(remainingBudget).toFixed(2)} ${remainingBudget > 0 ? 'More' : 'Less'}`}
+                    {isJoining ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent"></div>
+                        <span>Joining Contest...</span>
+                      </>
+                    ) : (
+                      <>
+                        <TrendingUp className="h-4 w-4" />
+                        {canJoin
+                          ? "Join Contest"
+                          : selectedTokens.size === 0 
+                          ? "Select Tokens"
+                          : budgetUsed < MINIMUM_THRESHOLD
+                          ? `Need ${MINIMUM_THRESHOLD - Math.round(budgetUsed)}% More (${((entryFee * MINIMUM_THRESHOLD / 100) - totalSelectedValue).toFixed(2)} USDT)`
+                          : `Add $${Math.abs(remainingBudget).toFixed(2)} ${remainingBudget > 0 ? 'More' : 'Less'}`}
+                      </>
+                    )}
                   </span>
                 </Button>
               </CardContent>
