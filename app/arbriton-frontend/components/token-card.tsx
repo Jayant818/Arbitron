@@ -13,10 +13,11 @@ interface TokenCardProps {
   category: "Stable" | "Meme" | "Alt"
   selected: boolean
   disabled?: boolean
+  quantity?: number
   onToggle: () => void
 }
 
-export function TokenCard({ symbol, name, price, change24h, category, selected, disabled = false, onToggle }: TokenCardProps) {
+export function TokenCard({ symbol, name, price, change24h, category, selected, disabled = false, quantity, onToggle }: TokenCardProps) {
   const [isFlipping, setIsFlipping] = useState(false)
 
   const handleClick = () => {
@@ -47,6 +48,13 @@ export function TokenCard({ symbol, name, price, change24h, category, selected, 
       {selected && (
         <div className="absolute top-2 right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-primary animate-scale-in">
           <Check className="h-4 w-4 text-primary-foreground" />
+        </div>
+      )}
+
+      {/* Quantity badge */}
+      {quantity && quantity > 1 && (
+        <div className="absolute top-2 left-2 z-10 flex h-6 min-w-6 px-2 items-center justify-center rounded-full bg-accent text-accent-foreground font-bold text-sm animate-scale-in">
+          x{quantity}
         </div>
       )}
 

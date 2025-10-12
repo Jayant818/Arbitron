@@ -48,10 +48,12 @@ export default function Page() {
 }
 
 function JoinContestPage() {
-  const [selectedTokens, setSelectedTokens] = useState<Map<string, Token>>(new Map());
+  // Map of token ID to { token: Token, quantity: number }
+  const [selectedTokens, setSelectedTokens] = useState<Map<string, { token: Token; quantity: number }>>(new Map());
   const [tokenSearch, setTokenSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTab, setActiveTab] = useState<string>("all");
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const { id } = useParams();
   
   console.log("Contest ID from params:", id);
@@ -135,28 +137,64 @@ function JoinContestPage() {
     ? contestDetails.entryFee / Math.pow(10, contestDetails.decimals)
     : 0;
 
-  // Calculate total value of selected tokens
+  // Calculate total value of selected tokens (price * quantity)
   const totalSelectedValue = Array.from(selectedTokens.values()).reduce(
-    (sum, token) => sum + (token.usdPrice || 0),
+    (sum, { token, quantity }) => sum + (token.usdPrice || 0) * quantity,
     0
   );
 
   // Calculate remaining budget
   const remainingBudget = entryFee - totalSelectedValue;
 
+  // Clear error message after 3 seconds
+  useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => setErrorMessage(""), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMessage]);
+
   // Handlers
   const toggleToken = (token: Token) => {
     setSelectedTokens((prev) => {
       const newMap = new Map(prev);
+      const existing = newMap.get(token.id);
       
-      if (newMap.has(token.id)) {
-        // Remove token if already selected
-        newMap.delete(token.id);
-      } else {
-        // Check if adding this token would exceed the budget
+      if (existing) {
+        // Token already selected, increment quantity or remove
+        if (existing.quantity >= 3) {
+          // Already at max, show error
+          setErrorMessage(`You can only select ${token.symbol} up to 3 times`);
+          return prev;
+        }
+        
+        // Check if adding one more would exceed budget
         const tokenPrice = token.usdPrice || 0;
-        if (totalSelectedValue + tokenPrice <= entryFee) {
-          newMap.set(token.id, token);
+        const currentTotalValue = Array.from(prev.values()).reduce(
+          (sum, { token: t, quantity: q }) => sum + (t.usdPrice || 0) * q,
+          0
+        );
+        
+        if (currentTotalValue + tokenPrice <= entryFee) {
+          // Increment quantity
+          newMap.set(token.id, { token, quantity: existing.quantity + 1 });
+        } else {
+          setErrorMessage("Not enough budget to add another of this token");
+          return prev;
+        }
+      } else {
+        // Token not selected yet, add it with quantity 1
+        const tokenPrice = token.usdPrice || 0;
+        const currentTotalValue = Array.from(prev.values()).reduce(
+          (sum, { token: t, quantity: q }) => sum + (t.usdPrice || 0) * q,
+          0
+        );
+        
+        if (currentTotalValue + tokenPrice <= entryFee) {
+          newMap.set(token.id, { token, quantity: 1 });
+        } else {
+          setErrorMessage("Not enough budget to select this token");
+          return prev;
         }
       }
       
@@ -164,10 +202,31 @@ function JoinContestPage() {
     });
   };
 
-  // Check if a token can be selected (not already selected and won't exceed budget)
+  // Remove one instance of a token (or remove completely if quantity is 1)
+  const decrementToken = (tokenId: string) => {
+    setSelectedTokens((prev) => {
+      const newMap = new Map(prev);
+      const existing = newMap.get(tokenId);
+      
+      if (existing) {
+        if (existing.quantity > 1) {
+          // Decrement quantity
+          newMap.set(tokenId, { token: existing.token, quantity: existing.quantity - 1 });
+        } else {
+          // Remove token completely
+          newMap.delete(tokenId);
+        }
+      }
+      
+      return newMap;
+    });
+  };
+
+  // Check if a token can be selected (won't exceed budget)
   const canSelectToken = (token: Token) => {
-    if (selectedTokens.has(token.id)) {
-      return true; // Already selected, can be deselected
+    const existing = selectedTokens.get(token.id);
+    if (existing && existing.quantity >= 3) {
+      return false; // Already at max quantity
     }
     const tokenPrice = token.usdPrice || 0;
     return totalSelectedValue + tokenPrice <= entryFee;
@@ -225,6 +284,16 @@ function JoinContestPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 pt-24 pb-16">
+        {/* Error Message */}
+        {errorMessage && (
+          <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 p-4 animate-slide-down">
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-5 w-5" />
+              <span className="font-medium">{errorMessage}</span>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <Link
@@ -297,6 +366,7 @@ function JoinContestPage() {
                             category={getCategory(token)}
                             selected={selectedTokens.has(token.id)}
                             disabled={!canSelectToken(token)}
+                            quantity={selectedTokens.get(token.id)?.quantity}
                             onToggle={() => toggleToken(token)}
                           />
                         </div>
@@ -369,6 +439,7 @@ function JoinContestPage() {
                             category={getCategory(token)}
                             selected={selectedTokens.has(token.id)}
                             disabled={!canSelectToken(token)}
+                            quantity={selectedTokens.get(token.id)?.quantity}
                             onToggle={() => toggleToken(token)}
                           />
                         </div>
@@ -405,6 +476,7 @@ function JoinContestPage() {
                             category={getCategory(token)}
                             selected={selectedTokens.has(token.id)}
                             disabled={!canSelectToken(token)}
+                            quantity={selectedTokens.get(token.id)?.quantity}
                             onToggle={() => toggleToken(token)}
                           />
                         </div>
@@ -441,6 +513,7 @@ function JoinContestPage() {
                             category={getCategory(token)}
                             selected={selectedTokens.has(token.id)}
                             disabled={!canSelectToken(token)}
+                            quantity={selectedTokens.get(token.id)?.quantity}
                             onToggle={() => toggleToken(token)}
                           />
                         </div>
@@ -488,6 +561,43 @@ function JoinContestPage() {
                   <Progress value={budgetUsed} className="h-3" />
                 </div>
 
+                {/* Selected Tokens List */}
+                {selectedTokens.size > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-sm font-semibold text-foreground">Your Portfolio</div>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {Array.from(selectedTokens.values()).map(({ token, quantity }) => (
+                        <div
+                          key={token.id}
+                          className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 p-3"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <div className="text-sm font-medium text-foreground">
+                                {token.symbol}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                ${(token.usdPrice || 0).toFixed(4)} × {quantity}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm font-bold text-primary">
+                              ${((token.usdPrice || 0) * quantity).toFixed(2)}
+                            </div>
+                            <button
+                              onClick={() => decrementToken(token.id)}
+                              className="h-6 w-6 rounded-full bg-destructive/20 text-destructive hover:bg-destructive/30 flex items-center justify-center transition-colors"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               {/* Entry Fee */}
                 {isContestLoading ? (
                   <div className="rounded-lg border border-border bg-secondary/30 p-4">
@@ -519,7 +629,7 @@ function JoinContestPage() {
                 <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
                   <AlertCircle className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
                   <div className="text-xs text-foreground leading-relaxed">
-                    Select tokens whose total value equals the entry fee. Your portfolio performance
+                    Select tokens whose total value equals the entry fee. You can select the same token up to 3 times. Your portfolio performance
                     will be tracked in real-time during the contest.
                   </div>
                 </div>
