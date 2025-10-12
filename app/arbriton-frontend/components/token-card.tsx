@@ -10,7 +10,7 @@ interface TokenCardProps {
   name: string
   price: number
   change24h: number
-  category: "Stable" | "Meme" | "Alt"
+  category: "Stable" | "Meme" | "Alt" | "Native"
   selected: boolean
   disabled?: boolean
   quantity?: number
@@ -31,6 +31,7 @@ export function TokenCard({ symbol, name, price, change24h, category, selected, 
     Stable: "bg-blue-500/10 text-blue-400 border-blue-500/30",
     Meme: "bg-purple-500/10 text-purple-400 border-purple-500/30",
     Alt: "bg-green-500/10 text-green-400 border-green-500/30",
+    Native: "bg-orange-500/10 text-orange-400 border-orange-500/30",
   }
 
   return (
