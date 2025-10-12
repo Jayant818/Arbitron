@@ -31,6 +31,7 @@ import {ARBITRON_PROGRAM_ADDRESS, JoinContestAsyncInput,getJoinContestInstructio
 import {address, signTransactionMessageWithSigners,getAddressEncoder, getProgramDerivedAddress, pipe, createTransactionMessage, setTransactionMessageFeePayer, setTransactionMessageLifetimeUsingBlockhash, setTransactionMessageFeePayerSigner, appendTransactionMessageInstructions, assertIsTransactionMessageWithinSizeLimit, signAndSendTransactionMessageWithSigners, getBase58Decoder} from "@solana/kit"
 import { useWalletAccountMessageSigner, useWalletAccountTransactionSendingSigner, useWalletAccountTransactionSigner, } from "@solana/react";
 import { USDC_MINT_ADDRESS } from "@/app/create/page";
+import {InitializeInput,getInitializeInstruction } from "../../../../../dist/js-client/index"
 // import { findAssociatedTokenPda, TOKEN_2022_PROGRAM_ADDRESS } from "@solana-program/token-2022"
 import { findAssociatedTokenPda, TOKEN_PROGRAM_ADDRESS} from "@solana-program/token"
 
@@ -393,8 +394,46 @@ function JoinContestPage() {
   const canJoin = selectedTokens.size > 0 && budgetUsed >= MINIMUM_THRESHOLD; // Can join when 50% or more of entry fee is reached
 
   // console.log("Contest Details:", contestDetails);
-
+ 
   const signer = useWalletAccountTransactionSendingSigner(selectedAccount!, chain);
+
+  const handleInit = async() => {
+
+    const configSeed = [
+      new TextEncoder().encode("config")
+    ]
+
+    const [configPda] = await getProgramDerivedAddress({
+      programAddress: ARBITRON_PROGRAM_ADDRESS,
+      seeds:configSeed
+    })
+
+    const Ix: InitializeInput = {
+      admin: signer,
+      config: address(configPda),
+      platformFeeWallet: address("5t8GGCwYNnvB3JwBjU5muUtchntK389CHCAEMiLwrHj9"),
+      platformFeeBps: 200, 
+    }
+
+    const IX = getInitializeInstruction(Ix);
+
+    const {value: blockhash} = await rpc.getLatestBlockhash().send()
+
+    console.log("Config PDA:", configPda);
+    console.log("Initialize Instruction:", IX);
+    const tx = pipe(
+      createTransactionMessage({ version: 0 }),
+      (tx) => setTransactionMessageFeePayerSigner(signer, tx),
+      (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+      (tx) => appendTransactionMessageInstructions([IX], tx)
+    )
+
+    console.log("Transaction Message:", tx);
+    assertIsTransactionMessageWithinSizeLimit(tx);
+
+    const signedTx = await signAndSendTransactionMessageWithSigners(tx)
+    console.log("Signed Transaction:", signedTx);
+  }
 
   const handleJoinContest = async () => {
     console.log("🔵 handleJoinContest called!");
@@ -1127,6 +1166,7 @@ function JoinContestPage() {
                     console.log("🟢 canJoin:", canJoin);
                     console.log("🟢 isJoining:", isJoining);
                     handleJoinContest();
+                    // handleInit();
                   }}
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-smooth group relative overflow-hidden"
                 >

@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-arbitron = "ETjik8Bom7xHKv7HHawVM1igFNwJbKyWBZtnLp8jEkgD"
+arbitron = "C63yc2q8kZKsVfabH5A6ip5DSDAx4ryW4av8e4vXMaw2"
 
 [registry]
 url = "https://api.apr.dev"

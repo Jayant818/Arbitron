@@ -60,7 +60,7 @@ import { getConfigDecoder } from "../dist/js-client/accounts/config";
 const RPC_URL = "http://127.0.0.1:8899";
 const RPC_SUBSCRIPTION_URL = "ws://127.0.0.1:8900";
 const ARBITRON_PROGRAM_ID =
-  "ETjik8Bom7xHKv7HHawVM1igFNwJbKyWBZtnLp8jEkgD" as Address;
+  "C63yc2q8kZKsVfabH5A6ip5DSDAx4ryW4av8e4vXMaw2" as Address;
 const rpc = createSolanaRpc("http://127.0.0.1:8899");
 const rpcSubscription = createSolanaRpcSubscriptions("ws://127.0.0.1:8900");
 
