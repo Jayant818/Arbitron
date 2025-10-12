@@ -24,6 +24,7 @@ app.use("/api/v1/contest", ContestRouter);
 
 app.use("/api/v1/webhook", webHookRouter);
 
+
 app.get("/", (req, res) => res.send({ message: "API is running" }));
 
 app.listen(PORT, () => {

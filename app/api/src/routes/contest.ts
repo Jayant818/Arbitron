@@ -5,6 +5,8 @@ import {
   CONTEST_DISCRIMINATOR,
   getContestDecoder,
   fetchContest,
+  fetchAllMaybePlayer,
+  fetchAllParticipent,
 } from "../../../../dist/js-client/index.js";
 import { rpc } from "../config/solana.js";
 import { address, Address, Base58EncodedBytes } from "@solana/kit";
@@ -89,5 +91,13 @@ ContestRouter.get("/:id", async (req, res) => {
   } catch (error) {
     console.error("Error Fetching Contest by ID", error);
     res.status(500).send({ message: "Error Fetching Contest by ID" });
+  }
+});
+
+ContestRouter.get("/:id/participents/all", async (req, res) => {
+  try {
+  } catch (error: any) {
+    console.error("Error Fetching all Participant", error);
+    res.status(500).send({ message: "Error Fecthing all participant" });
   }
 });
