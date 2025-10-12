@@ -26,3 +26,15 @@ export const getAllContests = async () => {
     throw new APIError("Failed to fetch contests", 500, error);
   }
 };
+
+export async function fetchContestDetailsById(id: string) {
+  try {
+    const res = await axios.get(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/contest/${id}`
+    );
+    return res.data;
+  } catch (error) {
+    console.error("Error fetching contest details:", error);
+    throw error;
+  }
+}

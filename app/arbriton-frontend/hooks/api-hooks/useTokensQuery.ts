@@ -1,6 +1,5 @@
 import {
   fetchAllTokens,
-  fetchTokenPrice,
   fetchTokenPriceByCategory,
   Token,
   TokenCategory,
@@ -11,8 +10,6 @@ import { ApiError } from "next/dist/server/api-utils";
 export const TokensKeys = {
   all: ["tokens"] as const,
   byCategory: (category: string) => ["tokens", "category", category] as const,
-  getTokens: (mintAddresses: string[]) =>
-    ["tokens", "prices", ...mintAddresses] as const,
 };
 
 export const useGetAllTokenQuery = (
@@ -33,18 +30,6 @@ export const useGetTokensByCategoryQuery = (
   return useQuery({
     queryKey: TokensKeys.byCategory(category),
     queryFn: () => fetchTokenPriceByCategory(category),
-    throwOnError: true,
-    ...customConfig,
-  });
-};
-
-export const useGetTokenPrice = (
-  mintAddresses: string[],
-  customConfig?: UseQueryOptions<Token[], ApiError>
-) => {
-  return useQuery({
-    queryKey: TokensKeys.getTokens(mintAddresses),
-    queryFn: () => fetchTokenPrice(mintAddresses),
     throwOnError: true,
     ...customConfig,
   });

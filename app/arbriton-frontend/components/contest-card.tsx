@@ -161,7 +161,7 @@ export function ContestCard({
 
       <CardFooter className="relative">
         <Link
-          className="w-full bg-primary  text-center border-1 rounded-2xl text-primary-foreground hover:bg-primary/90 transition-smooth font-semibold relative overflow-hidden group/btn"
+          className="w-full bg-primary py-2  text-center border-1 rounded-2xl text-primary-foreground hover:bg-primary/90 transition-smooth font-semibold relative overflow-hidden group/btn"
           href={`/join/${id}`}
           disabled={status === "ended"}
         >

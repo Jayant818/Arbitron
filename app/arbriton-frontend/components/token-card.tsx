@@ -12,13 +12,15 @@ interface TokenCardProps {
   change24h: number
   category: "Stable" | "Meme" | "Alt"
   selected: boolean
+  disabled?: boolean
   onToggle: () => void
 }
 
-export function TokenCard({ symbol, name, price, change24h, category, selected, onToggle }: TokenCardProps) {
+export function TokenCard({ symbol, name, price, change24h, category, selected, disabled = false, onToggle }: TokenCardProps) {
   const [isFlipping, setIsFlipping] = useState(false)
 
   const handleClick = () => {
+    if (disabled && !selected) return; // Don't allow selecting if disabled (but allow deselecting)
     setIsFlipping(true)
     setTimeout(() => setIsFlipping(false), 600)
     onToggle()
@@ -33,10 +35,12 @@ export function TokenCard({ symbol, name, price, change24h, category, selected, 
   return (
     <Card
       onClick={handleClick}
-      className={`group relative cursor-pointer overflow-hidden border transition-all duration-300 ${
-        selected
-          ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
-          : "border-border bg-card hover:border-primary/50"
+      className={`group relative overflow-hidden border transition-all duration-300 ${
+        disabled && !selected
+          ? "cursor-not-allowed opacity-50 border-border bg-card"
+          : selected
+          ? "cursor-pointer border-primary bg-primary/10 shadow-lg shadow-primary/20"
+          : "cursor-pointer border-border bg-card hover:border-primary/50"
       } ${isFlipping ? "animate-flip" : ""}`}
     >
       {/* Selection indicator */}

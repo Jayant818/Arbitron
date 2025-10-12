@@ -10,8 +10,8 @@ import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
 import { StandardConnect } from "@wallet-standard/core";
 
 // Create RPC connection
-const RPC_ENDPOINT = "https://api.devnet.solana.com";
-const WS_ENDPOINT = "wss://api.devnet.solana.com";
+const RPC_ENDPOINT = "https://devnet.helius-rpc.com/?api-key=a6b64cf0-fa26-47ba-82a9-b876ec658ac9";
+const WS_ENDPOINT = "wss://devnet.helius-rpc.com/?api-key=a6b64cf0-fa26-47ba-82a9-b876ec658ac9";
 const chain = "solana:devnet";
 const rpc = createSolanaRpc(RPC_ENDPOINT);
 const ws = createSolanaRpcSubscriptions(WS_ENDPOINT);

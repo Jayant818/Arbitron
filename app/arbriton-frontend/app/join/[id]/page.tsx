@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, AlertCircle, TrendingUp, Search } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSolana } from "@/components/solana-provider";
 import {
   useGetAllTokenQuery,
@@ -23,124 +23,10 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-
-const TOKENS = [
-  {
-    id: "So11111111111111111111111111111111111111112",
-    name: "Wrapped SOL",
-    symbol: "SOL",
-    icon: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
-    decimals: 9
-  },
-  {
-    id: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    name: "USD Coin",
-    symbol: "USDC",
-    icon: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png",
-    decimals: 6
-  },
-  {
-    id: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-    name: "USDT",
-    symbol: "USDT",
-    icon: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg",
-    decimals: 6
-  },
-  {
-    id: "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
-    name: "Ether (Portal)",
-    symbol: "ETH",
-    icon: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs/logo.png",
-    decimals: 8
-  },
-  {
-    id: "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
-    name: "Wrapped BTC (Portal)",
-    symbol: "WBTC",
-    icon: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh/logo.png",
-    decimals: 8
-  },
-  {
-    id: "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
-    name: "Coinbase Wrapped BTC",
-    symbol: "cbBTC",
-    icon: "https://ipfs.io/ipfs/QmZ7L8yd5j36oXXydUiYFiFsRHbi3EdgC4RuFwvM7dcqge",
-    decimals: 8
-  },
-  {
-    id: "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN",
-    name: "OFFICIAL TRUMP",
-    symbol: "TRUMP",
-    icon: "https://arweave.net/VQrPjACwnQRmxdKBTqNwPiyo65x7LAT773t8Kd7YBzw",
-    decimals: 6,
-    circSupply: 99993305748.27322,
-    totalSupply: 99993305748.27322,
-    tokenProgram: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-    usdPrice: 0.013705568705862288,
-    liquidity: 234872.96540734822,
-  },
-  {
-    id: "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn",
-    name: "Jito Staked SOL",
-    symbol: "JitoSOL",
-    icon: "https://bafkreifqf5lrxmnxv5i2bi6cgxauwe5hmzwhgchbl7kdyo5nh5sd4jheai.ipfs.nftstorage.link/",
-    decimals: 9,
-    circSupply: 11566453.300882707,
-    totalSupply: 11566453.300882707,
-    tokenProgram: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-    usdPrice: 162.19204360467188,
-    liquidity: 18663918.826178033,
-  },
-  {
-    id: "DgHLr7VR9HW2gLhBMR1XbnZMYdPqgi2CnSPKQ1CPr3xN",
-    name: "COQ Inu",
-    symbol: "COQ",
-    icon: "https://shdw-drive.genesysgo.net/GQm6e7CuGhAL8Fsq27WqirNYqJwcv6kC5HLc1vF9kZAg/Coq_Inu_logo.png",
-    decimals: 5,
-    circSupply: 690000000000000,
-    totalSupply: 690000000000000,
-    tokenProgram: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-    usdPrice: 0.00000004114674915876331,
-    liquidity: 288281.6321623946,
-  },
-  {
-    id: "So11111111111111111111111111111111111111112",
-    name: "Wrapped SOL",
-    symbol: "SOL",
-    icon: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
-    decimals: 9,
-    circSupply: 578456206.45,
-    totalSupply: 578456206.45,
-    tokenProgram: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-    usdPrice: 161.87,
-    liquidity: 25000000,
-  },
-  {
-    id: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    name: "USD Coin",
-    symbol: "USDC",
-    icon: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png",
-    decimals: 6,
-    circSupply: 12653890000,
-    totalSupply: 12653890000,
-    tokenProgram: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-    usdPrice: 1,
-    liquidity: 65000000,
-  },
-  {
-    id: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-    name: "Tether",
-    symbol: "USDT",
-    icon: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg",
-    decimals: 6,
-    circSupply: 9874650000,
-    totalSupply: 9874650000,
-    tokenProgram: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-    usdPrice: 1,
-    liquidity: 43200000,
-  }
-];
-
+import { useQuery } from "@tanstack/react-query";
+import { fetchJupiterSearch } from "@/api-functions/allTokens.api";
+import { useGetContestByIdQuery } from "@/hooks/api-hooks/useContestQuery";
+import { useParams } from "next/navigation";
 
 export default function Page() {
   const { isConnected, selectedAccount } = useSolana();
@@ -162,68 +48,141 @@ export default function Page() {
 }
 
 function JoinContestPage() {
-  const [selectedTokens, setSelectedTokens] = useState<string[]>([]);
+  const [selectedTokens, setSelectedTokens] = useState<Map<string, Token>>(new Map());
   const [tokenSearch, setTokenSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTab, setActiveTab] = useState<string>("all");
+  const { id } = useParams();
+  
+  console.log("Contest ID from params:", id);
 
-  const entryFee = 0.1;
-  const maxTokens = 5;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(tokenSearch);
+    }, 500);
 
-  // Queries - fetch all categories (React Query will cache them)
+    return () => clearTimeout(timer);
+  }, [tokenSearch]);
+
+  // fetching all categories (React Query will cache them)
   const { data: allTokens, isLoading: loadingAll } = useGetAllTokenQuery();
 
-  const {
-    data: organicScoreTokens,
-    isLoading: loadingOrganicScore,
-  } = useGetTokensByCategoryQuery(TokenCategory.TOP_ORGANIC_SCORE);
+  const { data: contestDetails, isLoading: isContestLoading } = useGetContestByIdQuery({
+    id: id as string ,
+    customConfig: {
+      enabled: !!id
+    },  
+  });
+
+  // const {
+  //   data: newListedTokens,
+  //   isLoading: loadingNewListed,
+  // } = useGetTokensByCategoryQuery(TokenCategory.NEW_LISTED);
 
   const {
-    data: toptradedTokens,
+    data: topOrganicTokens,
+    isLoading: loadingTopOrganic,
+  } = useGetTokensByCategoryQuery(TokenCategory.TOP_ORGANIC);
+
+  const {
+    data: topTradedTokens,
     isLoading: loadingTopTraded,
   } = useGetTokensByCategoryQuery(TokenCategory.TOP_TRADED);
 
   const {
-    data: toptrendingTokens,
-    isLoading: loadingTopTrending,
-  } = useGetTokensByCategoryQuery(TokenCategory.TOP_TRENDING);
+    data: trendingTokens,
+    isLoading: loadingTrending,
+  } = useGetTokensByCategoryQuery(TokenCategory.TRENDING);
+
+  const { data: searchTokens, isLoading: loadingSearch } = useQuery({
+    queryKey: ["tokens", "search", debouncedSearch],
+    queryFn: () => fetchJupiterSearch(debouncedSearch),
+    enabled: !!debouncedSearch && debouncedSearch.length > 0, 
+  });
 
   // Select the appropriate tokens based on active tab
-  const tokens: Token[] =
-    activeTab === "all"
-      ? allTokens || []
-      : activeTab === TokenCategory.TOP_ORGANIC_SCORE
-      ? organicScoreTokens || []
-      : activeTab === TokenCategory.TOP_TRADED
-      ? toptradedTokens || []
-      : activeTab === TokenCategory.TOP_TRENDING
-      ? toptrendingTokens || []
-      : [];
+  let tabTokens: Token[] = [];
+  let tabLoading = false;
 
-  const isLoading = 
-    (activeTab === "all" && loadingAll) ||
-    (activeTab === TokenCategory.TOP_ORGANIC_SCORE && loadingOrganicScore) ||
-    (activeTab === TokenCategory.TOP_TRADED && loadingTopTraded) ||
-    (activeTab === TokenCategory.TOP_TRENDING && loadingTopTrending);
+  switch (activeTab) {
+    case "all":
+      tabTokens = allTokens || [];
+      tabLoading = loadingAll;
+      break;
+    // case TokenCategory.NEW_LISTED:
+    //   tabTokens = newListedTokens || [];
+    //   tabLoading = loadingNewListed;
+    //   break;
+    case TokenCategory.TOP_ORGANIC:
+      tabTokens = topOrganicTokens || [];
+      tabLoading = loadingTopOrganic;
+      break;
+    case TokenCategory.TOP_TRADED:
+      tabTokens = topTradedTokens || [];
+      tabLoading = loadingTopTraded;
+      break;
+    case TokenCategory.TRENDING:
+      tabTokens = trendingTokens || [];
+      tabLoading = loadingTrending;
+      break;
+  }
 
-  // Handlers
-  const toggleToken = (tokenId: string) => {
-    setSelectedTokens((prev) =>
-      prev.includes(tokenId)
-        ? prev.filter((id) => id !== tokenId)
-        : prev.length < maxTokens
-        ? [...prev, tokenId]
-        : prev
-    );
-  };
+  const currentTokens = tokenSearch ? (searchTokens || []) : tabTokens;
+  const currentLoading = tokenSearch ? loadingSearch : tabLoading;
 
-  const filteredTokens = tokens.filter(
-    (token) =>
-      token.symbol.toLowerCase().includes(tokenSearch.toLowerCase()) ||
-      token.name.toLowerCase().includes(tokenSearch.toLowerCase())
+  // Get entry fee from contest details
+  const entryFee = contestDetails 
+    ? contestDetails.entryFee / Math.pow(10, contestDetails.decimals)
+    : 0;
+
+  // Calculate total value of selected tokens
+  const totalSelectedValue = Array.from(selectedTokens.values()).reduce(
+    (sum, token) => sum + (token.usdPrice || 0),
+    0
   );
 
-  const budgetUsed = (selectedTokens.length / maxTokens) * 100;
-  const canJoin = selectedTokens.length === maxTokens;
+  // Calculate remaining budget
+  const remainingBudget = entryFee - totalSelectedValue;
+
+  // Handlers
+  const toggleToken = (token: Token) => {
+    setSelectedTokens((prev) => {
+      const newMap = new Map(prev);
+      
+      if (newMap.has(token.id)) {
+        // Remove token if already selected
+        newMap.delete(token.id);
+      } else {
+        // Check if adding this token would exceed the budget
+        const tokenPrice = token.usdPrice || 0;
+        if (totalSelectedValue + tokenPrice <= entryFee) {
+          newMap.set(token.id, token);
+        }
+      }
+      
+      return newMap;
+    });
+  };
+
+  // Check if a token can be selected (not already selected and won't exceed budget)
+  const canSelectToken = (token: Token) => {
+    if (selectedTokens.has(token.id)) {
+      return true; // Already selected, can be deselected
+    }
+    const tokenPrice = token.usdPrice || 0;
+    return totalSelectedValue + tokenPrice <= entryFee;
+  };
+
+  const filteredTokens = tokenSearch
+    ? currentTokens
+    : currentTokens.filter(
+        (token: Token) =>
+          token.symbol.toLowerCase().includes(tokenSearch.toLowerCase()) ||
+          token.name.toLowerCase().includes(tokenSearch.toLowerCase())
+      );
+
+  const budgetUsed = entryFee > 0 ? (totalSelectedValue / entryFee) * 100 : 0;
+  const canJoin = selectedTokens.size > 0 && Math.abs(totalSelectedValue - entryFee) < 0.01; // Allow small floating point differences
 
   // Helper function to categorize tokens
   function getCategory(token: Token): "Stable" | "Meme" | "Alt" {
@@ -246,7 +205,7 @@ function JoinContestPage() {
       symbol.includes("doge") || 
       symbol.includes("shib") || 
       symbol.includes("pepe") ||
-      symbol.includes("bonk") ||
+      symbol.includes("bonk") || 
       symbol.includes("floki") ||
       symbol.includes("elon") ||
       name.includes("inu") ||
@@ -259,6 +218,8 @@ function JoinContestPage() {
     // Everything else is Alt
     return "Alt";
   }
+
+  console.log("Contest Details:", contestDetails);
   
 
   return (
@@ -277,7 +238,7 @@ function JoinContestPage() {
             Draft Your Portfolio
           </h1>
           <p className="text-lg text-muted-foreground">
-            Select {maxTokens} tokens to compete with
+            Select tokens worth exactly the entry fee
           </p>
         </div>
 
@@ -298,28 +259,31 @@ function JoinContestPage() {
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
-                <TabsTrigger value="all">All Tokens</TabsTrigger>
-                <TabsTrigger value={TokenCategory.TOP_ORGANIC_SCORE}>
-                  Organic Score
+                <TabsTrigger value="all">All</TabsTrigger>
+                {/* <TabsTrigger value={TokenCategory.NEW_LISTED}>
+                  New Listed
+                </TabsTrigger> */}
+                <TabsTrigger value={TokenCategory.TOP_ORGANIC}>
+                  Top Organic
                 </TabsTrigger>
                 <TabsTrigger value={TokenCategory.TOP_TRADED}>
                   Top Traded
                 </TabsTrigger>
-                <TabsTrigger value={TokenCategory.TOP_TRENDING}>
+                <TabsTrigger value={TokenCategory.TRENDING}>
                   Trending
                 </TabsTrigger>
               </TabsList>
 
               {/* All Tokens Tab */}
               <TabsContent value="all" className="space-y-4">
-                {isLoading ? (
+                {currentLoading ? (
                   <div className="text-center py-12 text-muted-foreground">
                     Loading tokens...
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                     {filteredTokens.length > 0 ? (
-                      filteredTokens.map((token, i) => (
+                      filteredTokens.map((token: Token, i: number) => (
                         <div
                           key={token.id}
                           className="animate-slide-up"
@@ -331,8 +295,9 @@ function JoinContestPage() {
                             price={token.usdPrice}
                             change24h={token.stats24h?.priceChange ?? 0}
                             category={getCategory(token)}
-                            selected={selectedTokens.includes(token.id)}
-                            onToggle={() => toggleToken(token.id)}
+                            selected={selectedTokens.has(token.id)}
+                            disabled={!canSelectToken(token)}
+                            onToggle={() => toggleToken(token)}
                           />
                         </div>
                       ))
@@ -345,16 +310,16 @@ function JoinContestPage() {
                 )}
               </TabsContent>
 
-              {/* Organic Score Tab */}
-              <TabsContent value={TokenCategory.TOP_ORGANIC_SCORE} className="space-y-4">
-                {isLoading ? (
+              {/* New Listed Tab */}
+              {/* <TabsContent value={TokenCategory.NEW_LISTED} className="space-y-4">
+                {currentLoading ? (
                   <div className="text-center py-12 text-muted-foreground">
                     Loading tokens...
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                     {filteredTokens.length > 0 ? (
-                      filteredTokens.map((token, i) => (
+                      filteredTokens.map((token: Token, i: number) => (
                         <div
                           key={token.id}
                           className="animate-slide-up"
@@ -366,8 +331,45 @@ function JoinContestPage() {
                             price={token.usdPrice}
                             change24h={token.stats24h?.priceChange ?? 0}
                             category={getCategory(token)}
-                            selected={selectedTokens.includes(token.id)}
-                            onToggle={() => toggleToken(token.id)}
+                            selected={selectedTokens.has(token.id)}
+                            disabled={!canSelectToken(token)}
+                            onToggle={() => toggleToken(token)}
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center py-12 text-muted-foreground">
+                        No tokens found matching &quot;{tokenSearch}&quot;
+                      </div>
+                    )}
+                  </div>
+                )}
+              </TabsContent> */}
+
+              {/* Top Organic Tab */}
+              <TabsContent value={TokenCategory.TOP_ORGANIC} className="space-y-4">
+                {currentLoading ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    Loading tokens...
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                    {filteredTokens.length > 0 ? (
+                      filteredTokens.map((token: Token, i: number) => (
+                        <div
+                          key={token.id}
+                          className="animate-slide-up"
+                          style={{ animationDelay: `${i * 50}ms` }}
+                        >
+                          <TokenCard
+                            symbol={token.symbol}
+                            name={token.name}
+                            price={token.usdPrice}
+                            change24h={token.stats24h?.priceChange ?? 0}
+                            category={getCategory(token)}
+                            selected={selectedTokens.has(token.id)}
+                            disabled={!canSelectToken(token)}
+                            onToggle={() => toggleToken(token)}
                           />
                         </div>
                       ))
@@ -382,14 +384,14 @@ function JoinContestPage() {
 
               {/* Top Traded Tab */}
               <TabsContent value={TokenCategory.TOP_TRADED} className="space-y-4">
-                {isLoading ? (
+                {currentLoading ? (
                   <div className="text-center py-12 text-muted-foreground">
                     Loading tokens...
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                     {filteredTokens.length > 0 ? (
-                      filteredTokens.map((token, i) => (
+                      filteredTokens.map((token: Token, i: number) => (
                         <div
                           key={token.id}
                           className="animate-slide-up"
@@ -401,8 +403,9 @@ function JoinContestPage() {
                             price={token.usdPrice}
                             change24h={token.stats24h?.priceChange ?? 0}
                             category={getCategory(token)}
-                            selected={selectedTokens.includes(token.id)}
-                            onToggle={() => toggleToken(token.id)}
+                            selected={selectedTokens.has(token.id)}
+                            disabled={!canSelectToken(token)}
+                            onToggle={() => toggleToken(token)}
                           />
                         </div>
                       ))
@@ -416,15 +419,15 @@ function JoinContestPage() {
               </TabsContent>
 
               {/* Trending Tab */}
-              <TabsContent value={TokenCategory.TOP_TRENDING} className="space-y-4">
-                {isLoading ? (
+              <TabsContent value={TokenCategory.TRENDING} className="space-y-4">
+                {currentLoading ? (
                   <div className="text-center py-12 text-muted-foreground">
                     Loading tokens...
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                     {filteredTokens.length > 0 ? (
-                      filteredTokens.map((token, i) => (
+                      filteredTokens.map((token: Token, i: number) => (
                         <div
                           key={token.id}
                           className="animate-slide-up"
@@ -436,8 +439,9 @@ function JoinContestPage() {
                             price={token.usdPrice}
                             change24h={token.stats24h?.priceChange ?? 0}
                             category={getCategory(token)}
-                            selected={selectedTokens.includes(token.id)}
-                            onToggle={() => toggleToken(token.id)}
+                            selected={selectedTokens.has(token.id)}
+                            disabled={!canSelectToken(token)}
+                            onToggle={() => toggleToken(token)}
                           />
                         </div>
                       ))
@@ -466,29 +470,56 @@ function JoinContestPage() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Tokens Selected</span>
                     <span className="font-bold text-foreground">
-                      {selectedTokens.length}/{maxTokens}
+                      {selectedTokens.size}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Total Value</span>
+                    <span className="font-bold text-foreground">
+                      ${totalSelectedValue.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Remaining Budget</span>
+                    <span className={`font-bold ${remainingBudget < 0 ? 'text-destructive' : 'text-primary'}`}>
+                      ${remainingBudget.toFixed(2)}
                     </span>
                   </div>
                   <Progress value={budgetUsed} className="h-3" />
                 </div>
 
-                {/* Entry Fee */}
-                <div className="rounded-lg border border-border bg-secondary/30 p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Entry Fee
-                    </span>
-                    <span className="text-lg font-bold text-primary">
-                      {entryFee} SOL
-                    </span>
+              {/* Entry Fee */}
+                {isContestLoading ? (
+                  <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                    <div className="flex items-center justify-center py-2">
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                      <span className="ml-2 text-sm text-muted-foreground">Loading...</span>
+                    </div>
                   </div>
-                </div>
+                ) : contestDetails ? (
+                  <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Entry Fee
+                      </span>
+                      <span className="text-lg font-bold text-primary">
+                        {(contestDetails.entryFee / Math.pow(10, contestDetails.decimals)).toFixed(2)} USDT
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                    <div className="text-center text-sm text-destructive">
+                      Failed to load contest details
+                    </div>
+                  </div>
+                )}
 
                 {/* Rules */}
                 <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
                   <AlertCircle className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
                   <div className="text-xs text-foreground leading-relaxed">
-                    Select exactly {maxTokens} tokens. Your portfolio performance
+                    Select tokens whose total value equals the entry fee. Your portfolio performance
                     will be tracked in real-time during the contest.
                   </div>
                 </div>
@@ -502,7 +533,9 @@ function JoinContestPage() {
                     <TrendingUp className="h-4 w-4" />
                     {canJoin
                       ? "Join Contest"
-                      : `Select ${maxTokens - selectedTokens.length} More`}
+                      : selectedTokens.size === 0 
+                      ? "Select Tokens"
+                      : `Add $${Math.abs(remainingBudget).toFixed(2)} ${remainingBudget > 0 ? 'More' : 'Less'}`}
                   </span>
                 </Button>
               </CardContent>
