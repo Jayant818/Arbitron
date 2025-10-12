@@ -21,6 +21,8 @@ export const USDC_MINT_ADDRESS = address("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2
 function ContestForm() {
   const [contestName, setContestName] = useState("")
   const [duration, setDuration] = useState("15")
+  const [startTimeOption, setStartTimeOption] = useState("now") 
+  const [customStartTime, setCustomStartTime] = useState("") // Custom datetime-local input
   const [entryFee, setEntryFee] = useState("100")
   const [maxParticipants, setMaxParticipants] = useState([50])
   const [prizeDistribution, setPrizeDistribution] = useState("winner-takes-all")
@@ -41,6 +43,8 @@ function ContestForm() {
     console.log("[v0] Creating contest:", {
       contestName,
       duration,
+      startTimeOption,
+      customStartTime,
       entryFee,
       maxParticipants: maxParticipants[0],
       prizeDistribution,
@@ -52,6 +56,31 @@ function ContestForm() {
       
       // Convert duration from minutes to seconds
       const durationInSeconds = Number(duration) * 60
+      
+      // Calculate start time based on user selection
+      const now = Math.floor(Date.now() / 1000)
+      let startTimeUnix: number
+      
+      if (startTimeOption === "custom") {
+        if (!customStartTime) {
+          alert("Please select a custom start time")
+          setIsCreating(false)
+          return
+        }
+        // Convert datetime-local to Unix timestamp
+        startTimeUnix = Math.floor(new Date(customStartTime).getTime() / 1000)
+        
+        // Validate that custom time is in the future
+        if (startTimeUnix <= now) {
+          alert("Start time must be in the future")
+          setIsCreating(false)
+          return
+        }
+      } else if (startTimeOption === "now") {
+        startTimeUnix = now + 60 // Start in 1 minute
+      } else {
+        startTimeUnix = now + (Number(startTimeOption) * 60) // Start in X minutes
+      }
   
       // 1️⃣ Generate Contest PDA (use signer.address)
       const contestSeeds = [
@@ -72,7 +101,7 @@ function ContestForm() {
         entryFees: BigInt(Number(entryFee) * 10 ** 6), // e.g. 100 USDC (6 decimals)
         maxParticipents: Number(maxParticipants[0]),
         name: contestName,
-        startTime: BigInt(Math.floor(Date.now() / 1000) + 60), // start in 1 min
+        startTime: BigInt(startTimeUnix),
         signer: signer,
         tokenMint: USDC_MINT_ADDRESS,
         contest: contestPda,
@@ -204,13 +233,55 @@ function ContestForm() {
                   <SelectTrigger className="glass-input h-12 border-white/10 bg-background/50 backdrop-blur-sm">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="glass-card border-white/10">
+                  <SelectContent className="glass-card border-white/10 bg-background backdrop-blur-md">
                     <SelectItem value="5">5 Minutes - Quick Battle</SelectItem>
                     <SelectItem value="15">15 Minutes - Standard</SelectItem>
                     <SelectItem value="30">30 Minutes - Extended</SelectItem>
                     <SelectItem value="60">1 Hour - Marathon</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Start Time */}
+              <div className="space-y-2">
+                <Label htmlFor="start-time" className="text-sm font-medium">
+                  <Clock className="mr-2 inline h-4 w-4" />
+                  Contest Start Time
+                </Label>
+                <Select value={startTimeOption} onValueChange={setStartTimeOption}>
+                  <SelectTrigger className="glass-input h-12 border-white/10 bg-background/50 backdrop-blur-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="glass-card border-white/10 bg-background backdrop-blur-md">
+                    <SelectItem value="now">Start Immediately (1 min)</SelectItem>
+                    <SelectItem value="5">Start in 5 Minutes</SelectItem>
+                    <SelectItem value="15">Start in 15 Minutes</SelectItem>
+                    <SelectItem value="30">Start in 30 Minutes</SelectItem>
+                    <SelectItem value="60">Start in 1 Hour</SelectItem>
+                    <SelectItem value="custom">Custom Date & Time</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {/* Custom datetime input - shown only when "custom" is selected */}
+                {startTimeOption === "custom" && (
+                  <div className="mt-2">
+                    <Input
+                      type="datetime-local"
+                      value={customStartTime}
+                      onChange={(e) => setCustomStartTime(e.target.value)}
+                      min={new Date(Date.now() + 60000).toISOString().slice(0, 16)} // Min 1 minute from now
+                      className="glass-input h-12 border-white/10 bg-background/50 backdrop-blur-sm"
+                    />
+                  </div>
+                )}
+                
+                <p className="text-xs text-muted-foreground">
+                  {startTimeOption === "now" 
+                    ? "Contest will start 1 minute after creation" 
+                    : startTimeOption === "custom"
+                    ? "Select your custom start date and time"
+                    : `Contest will start ${startTimeOption} minutes after creation`}
+                </p>
               </div>
 
               {/* Entry Fee */}
@@ -261,7 +332,7 @@ function ContestForm() {
                   <SelectTrigger className="glass-input h-12 border-white/10 bg-background/50 backdrop-blur-sm">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="glass-card border-white/10">
+                  <SelectContent className="glass-card border-white/10 bg-background backdrop-blur-md">
                     <SelectItem value="winner-takes-all">Winner Takes All (100%)</SelectItem>
                     <SelectItem value="top-3">Top 3 (60% / 25% / 15%)</SelectItem>
                     <SelectItem value="top-5">Top 5 (50% / 25% / 15% / 7% / 3%)</SelectItem>
@@ -280,7 +351,7 @@ function ContestForm() {
                   <SelectTrigger className="glass-input h-12 border-white/10 bg-background/50 backdrop-blur-sm">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="glass-card border-white/10">
+                  <SelectContent className="glass-card border-white/10 bg-background backdrop-blur-md">
                     <SelectItem value="all">All Tokens</SelectItem>
                     <SelectItem value="top-100">Top 100 by Market Cap</SelectItem>
                     <SelectItem value="memecoins">Memecoins Only</SelectItem>

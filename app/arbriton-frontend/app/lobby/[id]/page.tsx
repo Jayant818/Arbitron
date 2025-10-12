@@ -1,12 +1,14 @@
 "use client"
 
-import { Navbar } from "@/components/navbar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Users, Clock, Trophy, TrendingUp, Brain, Target } from "lucide-react"
+import { Users, Clock, Trophy, TrendingUp, Brain, Target, Play } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { useGetContestByIdQuery } from "@/hooks/api-hooks/useContestQuery"
+import { useSolana } from "@/components/solana-provider"
 
 const players = [
   { id: "1", name: "CryptoKing", avatar: "CK", rank: 1, xp: 2450 },
@@ -30,18 +32,87 @@ const quizQuestions = [
   },
 ]
 
-export default function LobbyPage() {
-  const [timeLeft, setTimeLeft] = useState(180) // 3 minutes
+export default function Page() {
+
+  const { isConnected, selectedAccount } = useSolana();
+
+  if (!isConnected || !selectedAccount) {
+    return (
+      <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold text-white">Wallet Not Connected</h2>
+          <p className="text-muted-foreground">
+            Please connect your wallet to Join a contest
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return <LobbyPage/>
+}
+
+ function LobbyPage() {
+  const { id: contestId } = useParams();
+  const router = useRouter();
+  const { selectedAccount } = useSolana();
   const [currentQuiz, setCurrentQuiz] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
   const [score, setScore] = useState(0)
+  const [isStarting, setIsStarting] = useState(false)
 
+  const { data: contestDetails, isLoading: isContestLoading } = useGetContestByIdQuery({
+    id: contestId as string,
+    customConfig: {
+      enabled: !!contestId
+    }
+  })
+
+  // Contest state enum
+  const ContestState = {
+    UPCOMING: 0,
+    ONGOING: 1,
+    COMPLETED: 2,
+  };
+
+  // Calculate time remaining until contest starts
+  const calculateTimeLeft = () => {
+    if (!contestDetails) return 0;
+    const now = Math.floor(Date.now() / 1000);
+    const timeLeft = contestDetails.startTime - now;
+    return Math.max(0, timeLeft);
+  };
+
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  // Update time left when contest details load
   useEffect(() => {
+    if (contestDetails) {
+      setTimeLeft(calculateTimeLeft());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contestDetails]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+    
     const timer = setInterval(() => {
-      setTimeLeft((prev) => Math.max(0, prev - 1))
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
+      setTimeLeft((prev) => {
+        const newTime = Math.max(0, prev - 1);
+        return newTime;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
+  // Redirect to arena if contest is ongoing
+  useEffect(() => {
+    if (contestDetails && contestDetails.status === ContestState.ONGOING) {
+      console.log("Contest is ongoing, redirecting to arena...");
+      router.push(`/arena/${contestId}`);
+    }
+  }, [contestDetails, contestId, router, ContestState.ONGOING]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)
@@ -63,7 +134,35 @@ export default function LobbyPage() {
     }, 1500)
   }
 
-  const progress = ((180 - timeLeft) / 180) * 100
+  const handleStartContest = async () => {
+    setIsStarting(true);
+    try {
+      // TODO: Call start contest instruction
+      console.log("Starting contest...");
+      // After successful start, the contest status will change to ONGOING
+      // and the useEffect will redirect to arena
+    } catch (error) {
+      console.error("Error starting contest:", error);
+      setIsStarting(false);
+    }
+  };
+
+  // Calculate progress based on actual start time
+  const totalDuration = contestDetails ? contestDetails.startTime - (contestDetails.startTime - (contestDetails.duration || 180)) : 180;
+  const elapsed = totalDuration - timeLeft;
+  const progress = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
+
+  // Show start button if time has passed
+  const canStartContest = timeLeft === 0 && contestDetails?.status === ContestState.UPCOMING;
+
+  // Calculate prize pool and entry fee
+  const entryFee = contestDetails 
+    ? (contestDetails.entryFee / Math.pow(10, contestDetails.decimals)).toFixed(2)
+    : "0.00";
+  
+  const prizePool = contestDetails 
+    ? ((contestDetails.entryFee * contestDetails.currentPlayers) / Math.pow(10, contestDetails.decimals)).toFixed(2)
+    : "0.00";
 
   return (
     <div className="min-h-screen bg-background">
@@ -72,10 +171,14 @@ export default function LobbyPage() {
         {/* Header */}
         <div className="mb-8 text-center">
           <Badge className="mb-4 bg-primary text-primary-foreground animate-pulse-ring">
-            Waiting for Contest Start
+            {canStartContest ? "Ready to Start!" : "Waiting for Contest Start"}
           </Badge>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Quick Strike Contest</h1>
-          <p className="text-lg text-muted-foreground">Get ready to compete!</p>
+          <h1 className="text-4xl font-bold text-foreground mb-2">
+            {isContestLoading ? "Loading..." : contestDetails?.title || "Contest Lobby"}
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            {canStartContest ? "Contest is ready - Anyone can start!" : "Get ready to compete!"}
+          </p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -102,41 +205,68 @@ export default function LobbyPage() {
               </svg>
 
               <CardContent className="relative pt-8 pb-8">
-                <div className="flex items-center justify-center gap-8">
-                  <Clock className="h-10 w-10 text-primary animate-pulse" />
-                  <div className="text-center">
-                    <div className="text-sm text-muted-foreground mb-1">Contest starts in</div>
-                    <div className="text-4xl font-bold font-mono text-primary">{formatTime(timeLeft)}</div>
+                {canStartContest ? (
+                  <div className="flex flex-col items-center justify-center gap-6">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary mb-2">Time&apos;s Up!</div>
+                      <p className="text-muted-foreground">Anyone can start the contest now</p>
+                    </div>
+                    <Button
+                      size="lg"
+                      onClick={handleStartContest}
+                      disabled={isStarting}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      {isStarting ? (
+                        <>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2"></div>
+                          <span>Starting Contest...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-5 w-5 mr-2" />
+                          <span>Start Contest</span>
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  <div className="relative h-20 w-20">
-                    <svg className="transform -rotate-90" width="80" height="80">
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="36"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                        className="text-secondary"
-                      />
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="36"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                        strokeDasharray={`${2 * Math.PI * 36}`}
-                        strokeDashoffset={`${2 * Math.PI * 36 * (1 - progress / 100)}`}
-                        className="text-primary transition-all duration-1000"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-primary">
-                      {Math.round(progress)}%
+                ) : (
+                  <div className="flex items-center justify-center gap-8">
+                    <Clock className="h-10 w-10 text-primary animate-pulse" />
+                    <div className="text-center">
+                      <div className="text-sm text-muted-foreground mb-1">Contest starts in</div>
+                      <div className="text-4xl font-bold font-mono text-primary">{formatTime(timeLeft)}</div>
+                    </div>
+                    <div className="relative h-20 w-20">
+                      <svg className="transform -rotate-90" width="80" height="80">
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="36"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                          className="text-secondary"
+                        />
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="36"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                          strokeDasharray={`${2 * Math.PI * 36}`}
+                          strokeDashoffset={`${2 * Math.PI * 36 * (1 - progress / 100)}`}
+                          className="text-primary transition-all duration-1000"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-primary">
+                        {Math.round(progress)}%
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -231,32 +361,38 @@ export default function LobbyPage() {
                   <Users className="h-5 w-5 text-primary" />
                   Players
                   <Badge variant="secondary" className="ml-auto">
-                    {players.length}/50
+                    {isContestLoading ? "..." : `${contestDetails?.currentPlayers || 0}/${contestDetails?.maxPlayers || 0}`}
                   </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {players.map((player, i) => (
-                    <div
-                      key={player.id}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 hover:bg-secondary transition-smooth animate-slide-up"
-                      style={{ animationDelay: `${i * 100}ms` }}
-                    >
-                      <Avatar className="h-10 w-10 border-2 border-primary/30">
-                        <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                          {player.avatar}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-foreground truncate">{player.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Rank #{player.rank} • {player.xp} XP
+                {isContestLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Loading players...
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {players.map((player, i) => (
+                      <div
+                        key={player.id}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 hover:bg-secondary transition-smooth animate-slide-up"
+                        style={{ animationDelay: `${i * 100}ms` }}
+                      >
+                        <Avatar className="h-10 w-10 border-2 border-primary/30">
+                          <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                            {player.avatar}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-foreground truncate">{player.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Rank #{player.rank} • {player.xp} XP
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -269,22 +405,47 @@ export default function LobbyPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-primary mb-2">5.0 SOL</div>
-                  <div className="text-sm text-muted-foreground">Total Prize Pool</div>
-                </div>
-                <div className="space-y-2 pt-4 border-t border-border">
-                  {[
-                    { place: "1st", prize: "2.5 SOL", percent: 50 },
-                    { place: "2nd", prize: "1.5 SOL", percent: 30 },
-                    { place: "3rd", prize: "1.0 SOL", percent: 20 },
-                  ].map((item) => (
-                    <div key={item.place} className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">{item.place} Place</span>
-                      <span className="font-semibold text-foreground">{item.prize}</span>
+                {isContestLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Loading...
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-primary mb-2">{prizePool} USDC</div>
+                      <div className="text-sm text-muted-foreground">Total Prize Pool</div>
                     </div>
-                  ))}
-                </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Entry Fee</span>
+                        <span className="font-semibold text-foreground">{entryFee} USDC</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Duration</span>
+                        <span className="font-semibold text-foreground">{contestDetails?.duration ? `${Math.floor(contestDetails.duration / 60)} minutes` : "N/A"}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Max Players</span>
+                        <span className="font-semibold text-foreground">{contestDetails?.maxPlayers || "N/A"}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2 pt-4 border-t border-border">
+                      <div className="text-xs text-muted-foreground mb-2">Prize Distribution</div>
+                      {[
+                        { place: "1st", percent: 50 },
+                        { place: "2nd", percent: 30 },
+                        { place: "3rd", percent: 20 },
+                      ].map((item) => (
+                        <div key={item.place} className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">{item.place} Place</span>
+                          <span className="font-semibold text-foreground">
+                            {((parseFloat(prizePool) * item.percent) / 100).toFixed(2)} USDC ({item.percent}%)
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>

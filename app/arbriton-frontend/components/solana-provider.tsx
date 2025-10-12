@@ -13,6 +13,9 @@ import { StandardConnect } from "@wallet-standard/core";
 const RPC_ENDPOINT = "https://devnet.helius-rpc.com/?api-key=a6b64cf0-fa26-47ba-82a9-b876ec658ac9";
 const WS_ENDPOINT = "wss://devnet.helius-rpc.com/?api-key=a6b64cf0-fa26-47ba-82a9-b876ec658ac9";
 const chain = "solana:devnet";
+// const RPC_ENDPOINT = "http://127.0.0.1:8899 ";
+// const WS_ENDPOINT = "ws://127.0.0.1:8900/";
+// const chain = "solana:localnet";
 const rpc = createSolanaRpc(RPC_ENDPOINT);
 const ws = createSolanaRpcSubscriptions(WS_ENDPOINT);
 
