@@ -807,6 +807,8 @@ function JoinContestPage() {
 
       console.log("✅ Contest joined successfully! Signature:", sig);
 
+      
+
       router.push(`/lobby/${contestId}`);
     } catch (error: unknown) {
       console.error("❌ Join Contest Error:", error);

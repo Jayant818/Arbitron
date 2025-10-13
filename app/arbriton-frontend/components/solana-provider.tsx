@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useMemo, ReactNode } from "react";
+import { createContext, useContext, useState, useMemo, ReactNode, useEffect } from "react";
 import {
   useWallets,
   type UiWallet,
@@ -8,6 +8,7 @@ import {
 } from "@wallet-standard/react";
 import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
 import { StandardConnect } from "@wallet-standard/core";
+import { useCreateUserMutation } from "@/hooks/api-hooks/useUserQuery";
 
 // Create RPC connection
 const RPC_ENDPOINT = "https://devnet.helius-rpc.com/?api-key=a6b64cf0-fa26-47ba-82a9-b876ec658ac9";
@@ -54,8 +55,8 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
   // Filter for Solana wallets only that support signAndSendTransaction
   const wallets = useMemo(() => {
     return allWallets.filter(
-      (wallet) =>
-        wallet.chains?.some((c) => c.startsWith("solana:")) &&
+      (wallet:any) =>
+        wallet.chains?.some((c:any) => c.startsWith("solana:")) &&
         wallet.features.includes(StandardConnect) &&
         wallet.features.includes("solana:signAndSendTransaction")
     );
@@ -111,4 +112,29 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
       {children}
     </SolanaContext.Provider>
   );
+}
+
+function UserSignInHandler() {
+  const { selectedAccount, isConnected } = useSolana();
+
+  const { mutate: signIn } = useCreateUserMutation({
+    customConfig: {
+      onSuccess: (data) => {
+        console.log("User created successfully:", data);
+      },
+      onError: (error) => {
+        console.error("Error creating user:", error);
+      },
+    },  
+  });
+
+  useEffect(() => {
+    const pubKey = selectedAccount?.address;
+    if (isConnected && pubKey) {
+      console.log("User connected with public key:", pubKey);
+      signIn({ publicKey: pubKey });
+    }
+  }, [isConnected]);
+
+  return null;
 }

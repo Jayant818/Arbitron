@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Users, Clock, Trophy, TrendingUp, Brain, Target, Play } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { useGetContestByIdQuery } from "@/hooks/api-hooks/useContestQuery"
+import { useGetAllParticipantsForContest, useGetContestByIdQuery } from "@/hooks/api-hooks/useContestQuery"
 import { useSolana } from "@/components/solana-provider"
 import { useWalletAccountTransactionSendingSigner } from "@solana/react"
 import {  address, appendTransactionMessageInstructions, createTransactionMessage,getBase58Decoder, pipe, setTransactionMessageFeePayerSigner, setTransactionMessageLifetimeUsingBlockhash, signAndSendTransactionMessageWithSigners } from "@solana/kit"
@@ -47,7 +47,7 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
     const [currentQuiz, setCurrentQuiz] = useState(0)
     const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
     const [score, setScore] = useState(0)
-    const [isStarting, setIsStarting] = useState(false)
+    const [isStarting, setIsStarting] = useState(false);
      
   
     const { data: contestDetails, isLoading: isContestLoading } = useGetContestByIdQuery({
@@ -56,6 +56,15 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
         enabled: !!contestId
       }
     })
+
+    const { data: participantsData, isLoading: isParticipantsLoading } = useGetAllParticipantsForContest({
+        contestId: contestId as string,
+        customConfig: {
+            enabled: !!contestId
+        }
+    })
+
+    console.log("Participants Data", participantsData);
 
     console.log("Contest Details", contestDetails);
   

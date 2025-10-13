@@ -38,3 +38,15 @@ export async function fetchContestDetailsById(id: string) {
     throw error;
   }
 }
+
+export const getAllParticipantsForContest = async (contestId: string) => {
+  try {
+    const res = await axios.get(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/contest/${contestId}/participents/all`
+    );
+    return res.data;
+  } catch (error: any) {
+    console.error("Error fetching participants:", error);
+    throw new APIError("Failed to fetch participants", 500, error);
+  }
+};

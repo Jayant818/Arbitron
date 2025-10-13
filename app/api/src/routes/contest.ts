@@ -11,6 +11,7 @@ import {
 import { rpc } from "../config/solana.js";
 import { address, Address, Base58EncodedBytes } from "@solana/kit";
 import bs58 from "bs58";
+import { getParticipantsByContestId } from "@arbitron/db";
 
 export const ContestRouter = Router();
 
@@ -96,6 +97,10 @@ ContestRouter.get("/:id", async (req, res) => {
 
 ContestRouter.get("/:id/participents/all", async (req, res) => {
   try {
+    const { id } = req.params;
+
+    const participants = await getParticipantsByContestId(id);
+    res.status(200).json({ participants });
   } catch (error: any) {
     console.error("Error Fetching all Participant", error);
     res.status(500).send({ message: "Error Fecthing all participant" });
