@@ -5,8 +5,7 @@ import { QueryClient,QueryClientProvider } from '@tanstack/react-query'
 
 const AppProvider = ({ children }: { children: ReactNode }) => {
 
-    const queryClient = new QueryClient()
-
+    const queryClient = new QueryClient();
 
     return (
         <SolanaProvider>

@@ -1,5 +1,9 @@
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL!;
 
+type MessagePayload = {
+  [key: string]: any;
+};
+
 export class SignalingManager {
   private ws: WebSocket;
   private static instance: SignalingManager;

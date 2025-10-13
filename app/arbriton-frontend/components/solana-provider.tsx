@@ -128,8 +128,11 @@ function UserSignInHandler() {
     },  
   });
 
+  console.log("isConnected:", isConnected);
+
   useEffect(() => {
     const pubKey = selectedAccount?.address;
+    console.log("Selected Account Public Key:", pubKey);
     if (isConnected && pubKey) {
       console.log("User connected with public key:", pubKey);
       signIn({ publicKey: pubKey });
