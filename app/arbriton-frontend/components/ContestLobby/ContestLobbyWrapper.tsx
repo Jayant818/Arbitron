@@ -105,7 +105,7 @@ export const ContestLobbyWrapper = () => {
 
     return () => {
       instance.sendMessage({
-        type: "USUBSCRIBE",
+        type: "UNSUBSCRIBE",
         payload: { contestId },
       });
 

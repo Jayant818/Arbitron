@@ -11,9 +11,29 @@ import {
 import { rpc } from "../config/solana.js";
 import { address, Address, Base58EncodedBytes } from "@solana/kit";
 import bs58 from "bs58";
-import { getParticipantsByContestId } from "@arbitron/db";
+import { createContest, getParticipantsByContestId } from "@arbitron/db";
 
 export const ContestRouter = Router();
+
+ContestRouter.post("/", async (req, res) => {
+  try {
+    const contestData = req.body;
+
+    if (!contestData.id || !contestData.name) {
+      return res.status(400).json({ message: "Missing required contest data" });
+    }
+
+    const newContest = await createContest({
+      ...contestData,
+      entryFee: BigInt(contestData.entryFee),
+    });
+
+    res.status(201).json(newContest);
+  } catch (error) {
+    console.error("Failed to create contest in DB:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 ContestRouter.get("/all", async (req, res) => {
   try {

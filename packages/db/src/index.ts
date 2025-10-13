@@ -3,3 +3,5 @@ export {
   createParticipant,
   getParticipantsByContestId,
 } from "./participant.js";
+
+export * from "./contest.js";

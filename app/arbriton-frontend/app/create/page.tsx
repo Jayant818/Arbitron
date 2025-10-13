@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation"
 import { useWalletAccountTransactionSendingSigner } from "@solana/react"
 import { address } from "@solana/kit"
 import { useSolana } from "@/components/solana-provider"
+import { useCreateContestMutation } from "@/hooks/api-hooks/useContestQuery"
 
 export const USDC_MINT_ADDRESS = address("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr") // USDC Devnet
 
@@ -33,6 +34,17 @@ function ContestForm() {
   const router = useRouter()
   const { selectedAccount, chain } = useSolana()
   const signer = useWalletAccountTransactionSendingSigner(selectedAccount!, chain)
+  
+  const { mutate: createContestInDb } = useCreateContestMutation({
+    customConfig: {
+      onSuccess: (data) => {
+        console.log("Contest saved to DB:", data);
+      },
+      onError: (error) => {
+        console.error("Failed to save contest to DB:", error);
+      },
+    }
+  })
 
   const handleCreateContest = async () => {
     if (!signer) {
@@ -142,6 +154,23 @@ function ContestForm() {
       const sig = getBase58Decoder().decode(signatureBytes)
       
       console.log("✅ Contest created successfully! Signature:", sig)
+
+      console.log("💾 Saving contest to database...");
+
+      const contestDataForDb = {
+          id: contestPda.toString(), // Use the PDA as the ID
+          name: contestName,
+          host: selectedAccount!.address,
+          entryFee: entryFee.toString(), // Convert BigInt to string for JSON
+          maxParticipants: maxParticipants[0],
+          startTime: new Date(startTimeUnix * 1000), // Convert Unix timestamp to Date object
+          duration: Number(duration),
+          decimals: 6, // Or get this dynamically if needed
+      };
+
+      // Adding record in db
+
+      await createContestInDb(contestDataForDb);
   
       alert("Contest created successfully!")
       router.push("/contests")

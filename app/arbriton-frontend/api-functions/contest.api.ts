@@ -15,6 +15,17 @@ export interface IContest {
   startTime: number;
 }
 
+export interface ICreateContest {
+  id: string;
+  name: string;
+  host: string;
+  entryFee: string; // BigInt to string for JSON
+  maxParticipants: number;
+  startTime: Date;
+  duration: number;
+  decimals: number;
+}
+
 export const getAllContests = async () => {
   try {
     const contests = await axios.get(
@@ -35,6 +46,19 @@ export async function fetchContestDetailsById(id: string) {
     return res.data;
   } catch (error) {
     console.error("Error fetching contest details:", error);
+    throw error;
+  }
+}
+
+export async function createNewContest(data: ICreateContest) {
+  try {
+    const res = await axios.post(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/contest/create`,
+      data
+    );
+    return res.data;
+  } catch (error) {
+    console.error("Error creating contest:", error);
     throw error;
   }
 }

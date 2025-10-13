@@ -8,11 +8,11 @@ const AppProvider = ({ children }: { children: ReactNode }) => {
     const queryClient = new QueryClient();
 
     return (
-        <SolanaProvider>
             <QueryClientProvider client={queryClient}>
+        <SolanaProvider>
                 {children}
-            </QueryClientProvider>
         </SolanaProvider>
+            </QueryClientProvider>
   )
 }
 

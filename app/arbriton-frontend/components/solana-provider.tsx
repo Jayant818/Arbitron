@@ -109,6 +109,7 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
 
   return (
     <SolanaContext.Provider value={contextValue}>
+      <UserSignInHandler />
       {children}
     </SolanaContext.Provider>
   );

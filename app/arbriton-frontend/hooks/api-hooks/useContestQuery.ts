@@ -1,11 +1,19 @@
 import {
+  createNewContest,
   fetchContestDetailsById,
   getAllContests,
   getAllParticipantsForContest,
   IContest,
+  ICreateContest,
 } from "@/api-functions/contest.api";
 import { APIError } from "@/lib/errors";
-import { useQuery, UseQueryOptions } from "@tanstack/react-query";
+import {
+  useMutation,
+  UseMutationOptions,
+  useQuery,
+  UseQueryOptions,
+} from "@tanstack/react-query";
+import { ApiError } from "next/dist/server/api-utils";
 
 export const contestKeys = {
   all: ["contests"] as const,
@@ -55,6 +63,19 @@ export const useGetAllParticipantsForContest = ({
       return getAllParticipantsForContest(contestId);
     },
     throwOnError: true,
+    ...customConfig,
+  });
+};
+
+export const useCreateContestMutation = ({
+  customConfig,
+}: {
+  customConfig: UseMutationOptions<any, ApiError, ICreateContest>;
+}) => {
+  return useMutation({
+    mutationFn: async (data: ICreateContest) => {
+      return createNewContest(data);
+    },
     ...customConfig,
   });
 };
