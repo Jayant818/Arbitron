@@ -37,8 +37,21 @@ pub mod arbitron {
         Ok(())
     }
 
+    pub fn create_portfolio(context:Context<CreatePortfolio>,token_selected:Vec<SelectedToken>)->Result<()>{
+        handlers::create_portfolio(context,token_selected)?;
+
+        Ok(())
+    }
+
+    pub fn update_portfolio(context:Context<UpdatePortfolio>,token_selected:Vec<SelectedToken>)->Result<()>{
+        handlers::update_portfolio(context,token_selected)?;
+        Ok(())
+    }
+
     pub fn execute_swap(context:Context<ExecuteSwap>)->Result<()>{
         handlers::execute_swap(context)?;
         Ok(())
     }
+
+
 }

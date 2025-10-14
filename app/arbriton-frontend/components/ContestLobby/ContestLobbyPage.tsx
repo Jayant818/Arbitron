@@ -18,15 +18,6 @@ import {
     type UiWalletAccount
   } from "@wallet-standard/react";
 
-const players = [
-  { id: "1", name: "CryptoKing", avatar: "CK", rank: 1, xp: 2450 },
-  { id: "2", name: "MoonShot", avatar: "MS", rank: 5, xp: 1820 },
-  { id: "3", name: "DiamondHands", avatar: "DH", rank: 3, xp: 2100 },
-  { id: "4", name: "BullRun", avatar: "BR", rank: 8, xp: 1450 },
-  { id: "5", name: "SolanaWhale", avatar: "SW", rank: 2, xp: 2380 },
-  { id: "6", name: "DeFiMaster", avatar: "DM", rank: 12, xp: 980 },
-]
-
 const quizQuestions = [
   {
     question: "Which token has the highest 24h volume?",
@@ -63,8 +54,9 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
             enabled: !!contestId
         }
     })
+  
 
-    console.log("Participants Data", participantsData);
+  console.log("Participants Data", participantsData, participantsData?.length);
 
     console.log("Contest Details", contestDetails);
   
@@ -75,11 +67,12 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
       COMPLETED: 2,
     };
   
+  
     // Calculate time remaining until contest starts
     const calculateTimeLeft = () => {
       if (!contestDetails) return 0;
       const now = Math.floor(Date.now() / 1000);
-      const timeLeft = contestDetails.waitingTime - now;
+      const timeLeft = contestDetails.startTime - now;
       return Math.max(0, timeLeft);
     };
   
@@ -162,9 +155,24 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
       if (!Number.isFinite(seconds) || seconds < 0) {
         return "00:00";
       }
-      const m = Math.floor(seconds / 60)
-      const s = Math.floor(seconds % 60)
-      return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
+      
+      const days = Math.floor(seconds / 86400); // 86400 seconds in a day
+      const hours = Math.floor((seconds % 86400) / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = Math.floor(seconds % 60);
+      
+      // If more than 1 day, show days and hours
+      if (days > 0) {
+        return `${days}d ${hours}h`;
+      }
+      
+      // If more than 1 hour, show hours and minutes
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+      }
+      
+      // Otherwise show minutes and seconds
+      return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     }
   
     const handleAnswerSelect = (index: number) => {
@@ -287,34 +295,6 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
                           {formatTime(timeLeft)}
                         </div>
                       </div>
-                      <div className="relative h-20 w-20">
-                        <svg className="transform -rotate-90" width="80" height="80">
-                          <circle
-                            cx="40"
-                            cy="40"
-                            r="36"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                            fill="none"
-                            className="text-secondary"
-                          />
-                          <circle
-                            cx="40"
-                            cy="40"
-                            r="36"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                            fill="none"
-                            strokeDasharray={`${2 * Math.PI * 36}`}
-                            strokeDashoffset={`${2 * Math.PI * 36 * (1 - progress / 100)}`}
-                            className={`transition-all duration-1000 ${timeLeft === 0 ? 'text-red-500' : 'text-primary'}`}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <div className={`absolute inset-0 flex items-center justify-center text-xs font-bold ${timeLeft === 0 ? 'text-red-500' : 'text-primary'}`}>
-                          {Number.isFinite(progress) ? Math.round(progress) : 0}%
-                        </div>
-                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -416,31 +396,48 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {isContestLoading ? (
+                  {isParticipantsLoading || isContestLoading ? (
                     <div className="text-center py-8 text-muted-foreground">
                       Loading players...
                     </div>
-                  ) : (
+                  ) : participantsData && participantsData.participants.length > 0 ? (
                     <div className="space-y-3">
-                      {players.map((player, i) => (
-                        <div
-                          key={player.id}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 hover:bg-secondary transition-smooth animate-slide-up"
-                          style={{ animationDelay: `${i * 100}ms` }}
-                        >
-                          <Avatar className="h-10 w-10 border-2 border-primary/30">
-                            <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                              {player.avatar}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-foreground truncate">{player.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Rank #{player.rank} • {player.xp} XP
+                      {participantsData.participants.map((participant: any, i: number) => {
+                        // Shorten public key for display (first 4 and last 4 chars)
+                        const publicKey = participant.user.publicKey;
+                        const shortKey = `${publicKey.slice(0, 4)}...${publicKey.slice(-4)}`;
+                        // Create initials from public key
+                        const initials = `${publicKey.slice(0, 2).toUpperCase()}`;
+                        
+                        return (
+                          <div
+                            key={participant.id}
+                            className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 hover:bg-secondary transition-smooth animate-slide-up"
+                            style={{ animationDelay: `${i * 100}ms` }}
+                          >
+                            <Avatar className="h-10 w-10 border-2 border-primary/30">
+                              <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                                {initials}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-foreground truncate">
+                                {participant.user.username || shortKey}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Joined {new Date(participant.joinedAt).toLocaleTimeString([], { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No players have joined yet
                     </div>
                   )}
                 </CardContent>

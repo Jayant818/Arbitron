@@ -1,3 +1,4 @@
+import { createParticipantForContest } from "@/api-functions/participant.api";
 import { findOrCreateUser } from "@/api-functions/user.api";
 import { useMutation, UseMutationOptions } from "@tanstack/react-query";
 
@@ -16,5 +17,27 @@ export const useCreateUserMutation = ({
       return await findOrCreateUser(publicKey);
     },
     ...customConfig,
+  });
+};
+
+export const useCreateParticipantMutation = ({
+  customConfig,
+}: {
+  customConfig?: UseMutationOptions<
+    any,
+    any,
+    { contestId: string; userPublickey: string }
+  >;
+}) => {
+  return useMutation({
+    mutationFn: async ({
+      contestId,
+      userPublickey,
+    }: {
+      contestId: string;
+      userPublickey: string;
+    }) => {
+      return createParticipantForContest(contestId, userPublickey);
+    },
   });
 };

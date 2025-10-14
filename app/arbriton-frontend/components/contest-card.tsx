@@ -56,10 +56,23 @@ export function ContestCard({
   }, [status, calculateTimeLeft])
 
   const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600)
-    const m = Math.floor((seconds % 3600) / 60)
-    const s = seconds % 60
-    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
+    const days = Math.floor(seconds / 86400); // 86400 seconds in a day
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    // If more than 1 day, show days and hours
+    if (days > 0) {
+      return `${days}d ${hours}h`;
+    }
+    
+    // If more than 1 hour, show hours and minutes
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    
+    // Otherwise show MM:SS format for better precision
+    return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
 
   const borderGlowClass =

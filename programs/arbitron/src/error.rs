@@ -61,4 +61,7 @@ pub enum ErrorCode {
 
     #[msg("Invalid max participants")]
     InvalidMaxParticipants,
+
+    #[msg("Power Token not selected")]
+    InvalidLeverageSelection
 }

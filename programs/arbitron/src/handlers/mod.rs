@@ -4,6 +4,8 @@ pub mod shared;
 pub mod start_contest;
 pub mod execute_swap;
 pub mod initialize;
+pub mod create_portfolio;
+pub mod update_portfolio;
 
 pub use create_contest::*;
 pub use join_contest::*;
@@ -11,3 +13,5 @@ pub use shared::*;
 pub use start_contest::*;
 pub use execute_swap::*;
 pub use initialize::*;
+pub use create_portfolio::*;
+pub use update_portfolio::*;

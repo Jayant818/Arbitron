@@ -63,6 +63,7 @@ import {
   findAssociatedTokenPda,
   TOKEN_PROGRAM_ADDRESS,
 } from "@solana-program/token";
+import { useCreateParticipantMutation } from "@/hooks/api-hooks/useUserQuery";
 
 export default function Page() {
   const { isConnected, selectedAccount } = useSolana();
@@ -99,6 +100,15 @@ function JoinContestPage() {
   const { id } = useParams();
   const { selectedAccount, chain, rpc } = useSolana();
   const router = useRouter();
+
+  const { mutate: createParticipant } = useCreateParticipantMutation({
+    customConfig: {
+      onSuccess: (data) => {
+        console.log("Participant created successfully:", data);
+        // router.push(`/lobby/${id}`);
+      },
+    },
+  });
 
   // console.log("Selected Wallet and Selected Account", selectedAccount, selectedWallet);
 
@@ -725,14 +735,6 @@ function JoinContestPage() {
       console.log("📝 Validating selected tokens...");
       const validatedTokens = Array.from(selectedTokens.values()).map(
         ({ token, quantity }, index) => {
-          console.log(`Token ${index}:`, {
-            id: token.id,
-            symbol: token.symbol,
-            name: token.name,
-            quantity,
-            isPowerToken: token.id === powerTokenId,
-            usdPrice: token.usdPrice,
-          });
 
           if (!token.id) {
             throw new Error(
@@ -740,15 +742,9 @@ function JoinContestPage() {
             );
           }
 
-          // Calculate amount as USD value in micro units (6 decimals for USDC-like precision)
-          const usdValue = (token.usdPrice || 0) * quantity;
-          const amount = BigInt(Math.floor(usdValue * 1000000)); // 6 decimal places
-
           return {
             mint: address(token.id),
             isPowerToken: token.id === powerTokenId,
-            amount: amount,
-            name: token.name, // Use full name instead of symbol
             quantity: quantity,
           };
         }
@@ -807,7 +803,10 @@ function JoinContestPage() {
 
       console.log("✅ Contest joined successfully! Signature:", sig);
 
-      
+      createParticipant({
+        contestId: contestId as string,
+        userPublickey: selectedAccount!.address.toString(),
+      });
 
       router.push(`/lobby/${contestId}`);
     } catch (error: unknown) {

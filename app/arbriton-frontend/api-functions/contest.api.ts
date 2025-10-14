@@ -53,7 +53,7 @@ export async function fetchContestDetailsById(id: string) {
 export async function createNewContest(data: ICreateContest) {
   try {
     const res = await axios.post(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/contest/create`,
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/contest/`,
       data
     );
     return res.data;

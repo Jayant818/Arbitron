@@ -17,6 +17,7 @@ export const ContestRouter = Router();
 
 ContestRouter.post("/", async (req, res) => {
   try {
+    console.log("Gotcha");
     const contestData = req.body;
 
     if (!contestData.id || !contestData.name) {
@@ -26,9 +27,17 @@ ContestRouter.post("/", async (req, res) => {
     const newContest = await createContest({
       ...contestData,
       entryFee: BigInt(contestData.entryFee),
+      startTime: new Date(contestData.startTime),
     });
 
-    res.status(201).json(newContest);
+    // Convert BigInt to string for JSON serialization
+    const contestResponse = {
+      ...newContest,
+      entryFees: newContest.entryFees.toString(),
+      prizePool: newContest.prizePool.toString(),
+    };
+
+    res.status(201).json(contestResponse);
   } catch (error) {
     console.error("Failed to create contest in DB:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -67,7 +76,6 @@ ContestRouter.get("/all", async (req, res) => {
         duration: Number(decoded.duration),
         status: decoded.status,
         host: decoded.host,
-        waitingTime: Number(decoded.startTime),
         prizePoolAccount: decoded.prizePoolVaultUsdt,
         decimals: 6, // USDT has 6 decimals
         startTime: Number(decoded.startTime),
@@ -102,7 +110,7 @@ ContestRouter.get("/:id", async (req, res) => {
       duration: Number(contest.data.duration),
       status: contest.data.status,
       host: contest.data.host,
-      waitingTime: Number(contest.data.startTime),
+      startTime: Number(contest.data.startTime),
       prizePoolAccount: contest.data.prizePoolVaultUsdt,
       decimals: 6,
     };

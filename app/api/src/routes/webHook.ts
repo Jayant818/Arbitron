@@ -13,6 +13,11 @@ import {
 } from "../../../../dist/js-client";
 import type { Address } from "@solana/kit";
 import { publisher } from "@arbitron/shared-redis";
+import {
+  createContest,
+  findOrCreateUser,
+  createParticipant,
+} from "@arbitron/db";
 
 export const webHookRouter = Router();
 
@@ -44,7 +49,7 @@ function parseInstruction(ix: ParsedArbitronInstruction) {
   }
 }
 
-webHookRouter.post("/", (req, res) => {
+webHookRouter.post("/", async (req, res) => {
   try {
     console.log("Webhook received:", JSON.stringify(req.body, null, 3));
 
@@ -101,6 +106,20 @@ webHookRouter.post("/", (req, res) => {
           console.log("Max Participants:", parsedData.data.maxParticipents);
           console.log("Signer:", parsedData.accounts.signer.address);
           console.log("Token Mint:", parsedData.accounts.tokenMint.address);
+          console.log("Contest Address:", parsedData.accounts.contest.address);
+
+          // Save contest to database
+          // await createContest({
+          //   id: parsedData.accounts.contest.address, // Use on-chain address as ID
+          //   name: parsedData.data.name,
+          //   host: parsedData.accounts.signer.address,
+          //   entryFee: parsedData.data.entryFees,
+          //   maxParticipants: parsedData.data.maxParticipents,
+          //   startTime: new Date(Number(parsedData.data.startTime) * 1000),
+          //   duration: Number(parsedData.data.duration),
+          //   decimals: 6, // USDT decimals
+          // });
+          // console.log("✅ Contest saved to database");
         } catch (parseError) {
           console.error("Error parsing CreateContest instruction:", parseError);
         }
@@ -114,8 +133,13 @@ webHookRouter.post("/", (req, res) => {
           console.log("Participant:", parsedData.accounts.participent.address);
           console.log("Contest:", parsedData.accounts.contest.address);
 
-          // TODO: Update participant count in database
-          // await addParticipantToContest(parsedData);
+          // Find or create user and create participant record
+          // const user = await findOrCreateUser(parsedData.accounts.participent.address);
+          // await createParticipant(
+          //   parsedData.accounts.contest.address, // contestId (on-chain address)
+          //   user.id // userId (database ID)
+          // );
+          // console.log("✅ Participant saved to database");
         } catch (parseError) {
           console.error("Error parsing JoinContest instruction:", parseError);
         }

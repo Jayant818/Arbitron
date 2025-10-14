@@ -169,8 +169,10 @@ function ContestForm() {
       };
 
       // Adding record in db
+      console.log("Setting record in db", contestDataForDb);
 
       await createContestInDb(contestDataForDb);
+      console.log("Request Completed")
   
       alert("Contest created successfully!")
       router.push("/contests")

@@ -32,7 +32,7 @@ userRouter.post("/join-contest", async (req, res) => {
 
     const user = await findOrCreateUser(userPublickey);
 
-    const participant = await createParticipant(user.id, contestId);
+    const participant = await createParticipant(contestId, user.id); // Fixed: correct parameter order
 
     return res.status(201).json({ participant });
   } catch (error) {
