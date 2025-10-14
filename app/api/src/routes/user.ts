@@ -24,7 +24,7 @@ export { userRouter };
 
 userRouter.post("/join-contest", async (req, res) => {
   try {
-    const { contestId, userPublickey } = req.body;
+    const { contestId, userPublickey, tokens } = req.body;
 
     if (!contestId || !userPublickey) {
       return res.status(400).send("contestId and userPublickey are required");
@@ -32,7 +32,7 @@ userRouter.post("/join-contest", async (req, res) => {
 
     const user = await findOrCreateUser(userPublickey);
 
-    const participant = await createParticipant(contestId, user.id); // Fixed: correct parameter order
+    const participant = await createParticipant(contestId, user.id, tokens);
 
     return res.status(201).json({ participant });
   } catch (error) {

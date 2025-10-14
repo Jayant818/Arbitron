@@ -27,8 +27,8 @@ pub mod arbitron {
         Ok(())
     }
 
-    pub fn join_contest(context:Context<JoinContest>,selected_tokens : Vec<Token> )->Result<()>{
-        handlers::join_contest(context,selected_tokens)?;
+    pub fn join_contest(context:Context<JoinContest> )->Result<()>{
+        handlers::join_contest(context)?;
         Ok(())
     }
 

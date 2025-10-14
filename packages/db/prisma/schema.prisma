@@ -13,42 +13,51 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-model User{
-  id String @id() @default(cuid())
-  publicKey String @unique
-  username String? 
-  email String? @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime  @updatedAt
+model User {
+  id             String        @id() @default(cuid())
+  publicKey      String        @unique
+  username       String?
+  email          String?       @unique
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   participatedIn Participant[]
 }
 
-model Contest{
-  id  String @id @default(cuid())
-  name String
-  host String
-  entryFees BigInt
+model Contest {
+  id              String        @id @default(cuid())
+  name            String
+  host            String
+  entryFees       BigInt
   maxParticipents Int
-  status String @default("upcoming")
-  startTime DateTime
-  duration Int
-  prizePool BigInt @default(0)
-  decimals Int
-  participants Participant[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status          String        @default("upcoming")
+  startTime       DateTime
+  duration        Int
+  prizePool       BigInt        @default(0)
+  decimals        Int
+  participants    Participant[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 }
 
-model Participant{
-  id String @id @default(cuid())
-  contestId String 
-  userId String
-  joinedAt DateTime @default(now())
+model Participant {
+  id        String   @id @default(cuid())
+  contestId String
+  userId    String
+  joinedAt  DateTime @default(now())
 
   contest Contest @relation(fields: [contestId], references: [id])
-  user User @relation(fields: [userId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
 
-  @@unique([contestId,userId])
+  SelectedTokens SelectedTokens[]
 
+  @@unique([contestId, userId])
+}
+
+model SelectedTokens {
+  id            String      @id @default(cuid())
+  participantId String
+  mint          String
+  isPowerToken  String
+  quantity      Int
+  participant   Participant @relation(fields: [participantId], references: [id])
 }

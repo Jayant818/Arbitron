@@ -8,6 +8,7 @@ pub struct CreatePortfolio<'info>{
     #[account(mut)]
     pub user:Signer<'info>,
 
+    /// CHECK:
     pub host:UncheckedAccount<'info>,
 
     #[account(

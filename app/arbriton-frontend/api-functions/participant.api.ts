@@ -1,9 +1,11 @@
 import { APIError } from "@/lib/errors";
 import axios from "axios";
+import { ICreateContest } from "./contest.api";
 
 export const createParticipantForContest = async (
   contestId: string,
-  userPublickey: string
+  userPublickey: string,
+  tokens: ICreateContest[]
 ) => {
   try {
     const res = await axios.post(
@@ -11,6 +13,7 @@ export const createParticipantForContest = async (
       {
         contestId,
         userPublickey,
+        tokens,
       }
     );
     return res.data.participant;

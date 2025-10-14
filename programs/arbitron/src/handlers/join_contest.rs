@@ -90,19 +90,16 @@ pub struct JoinContest<'info>{
     pub system_program: Program<'info, System>,
 }
 
-pub fn join_contest(context: Context<JoinContest>, selected_tokens : Vec<Token>) -> Result<()> {
+pub fn join_contest(context: Context<JoinContest>) -> Result<()> {
 
     let contest = &mut context.accounts.contest;
     let player_global_profile = &mut context.accounts.player_global_profile;
     // verifications
     
-    require!(player_global_profile.active_contest.is_none(), ErrorCode::AlreadyInContest);
+    // require!(player_global_profile.active_contest.is_none(), ErrorCode::AlreadyInContest);
     require!(contest.status == ContestState::Upcoming, ErrorCode::ContestNotUpcoming);
     require!(contest.participents_count < contest.max_participents, ErrorCode::ContestFull);
     require!(context.accounts.user_ata.amount >= contest.entry_fees, ErrorCode::InvalidEntryFees);
-
-    let power_token_count = selected_tokens.iter().filter(|t| t.is_power_token).count();
-    require!(power_token_count==1, ErrorCode::InvalidLeverageSelection);
 
     let participent_info: &mut Account<'_, Participent> = &mut context.accounts.participent_info;
     let portfolio = &mut context.accounts.portfolio;
