@@ -1,11 +1,16 @@
 import { APIError } from "@/lib/errors";
 import axios from "axios";
-import { ICreateContest } from "./contest.api";
+
+export interface ISelectedToken {
+  mint: string;
+  quantity: number;
+  isPowerToken: boolean;
+}
 
 export const createParticipantForContest = async (
   contestId: string,
   userPublickey: string,
-  tokens: ICreateContest[]
+  tokens: ISelectedToken[]
 ) => {
   try {
     const res = await axios.post(

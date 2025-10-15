@@ -583,7 +583,8 @@ function JoinContestPage() {
   const canJoin =
     isContestJoinable &&
     selectedTokens.size > 0 &&
-    budgetUsed >= MINIMUM_THRESHOLD; // Can join when contest is UPCOMING and 50% or more of entry fee is reached
+    budgetUsed >= MINIMUM_THRESHOLD &&
+    powerTokenId !== null; // Can join when contest is UPCOMING, budget threshold met, and power token selected
 
   // console.log("Contest Details:", contestDetails);
 
@@ -736,10 +737,17 @@ function JoinContestPage() {
       console.log("✅ Contest joined successfully! Signature:", signature.toString());
 
       // 5. ==================== POST-TRANSACTION ACTIONS ====================
+      // Convert tokens to API format (Address -> string)
+      const tokensForAPI = minimalTokensForChain.map(token => ({
+        mint: token.mint.toString(),
+        quantity: token.quantity,
+        isPowerToken: token.isPowerToken,
+      }));
+
       await createParticipant({
         contestId: contestId,
         userPublickey: selectedAccount.address.toString(),
-        tokens: minimalTokensForChain,
+        tokens: tokensForAPI,
       });
 
       router.push(`/lobby/${contestId}`);
@@ -1183,6 +1191,22 @@ function JoinContestPage() {
                       </div>
                     )}
 
+                    {/* Warning when budget threshold met but no power token */}
+                    {!powerTokenId && budgetUsed >= MINIMUM_THRESHOLD && (
+                      <div className="flex items-start gap-2 rounded-lg border border-amber-500 bg-amber-500/20 p-3 animate-pulse">
+                        <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <div className="text-sm font-semibold text-amber-400">
+                            Power Token Required!
+                          </div>
+                          <div className="text-xs text-amber-400/90 mt-1">
+                            You must select a Power Token (⚡) before joining the contest.
+                            Click the ⚡ button next to any token below.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {Array.from(selectedTokens.values()).map(
                         ({ token, quantity }) => {
@@ -1394,6 +1418,8 @@ function JoinContestPage() {
                           ? "Join Contest"
                           : selectedTokens.size === 0
                           ? "Select Tokens"
+                          : !powerTokenId
+                          ? "Select Power Token ⚡"
                           : budgetUsed < MINIMUM_THRESHOLD
                           ? `Need ${
                               MINIMUM_THRESHOLD - Math.round(budgetUsed)

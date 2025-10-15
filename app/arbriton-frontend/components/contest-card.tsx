@@ -88,7 +88,7 @@ export function ContestCard({
         <div className="flex items-start justify-between">
           <div>
             <h3 className="text-xl font-bold text-white">{title}</h3>
-            <p className="text-sm text-muted-foreground mt-1">{duration} minute contest</p>
+            <p className="text-sm text-muted-foreground mt-1">{Math.floor(duration/60)} minute contest</p>
           </div>
           <Badge
             variant={status === "active" ? "default" : "secondary"}

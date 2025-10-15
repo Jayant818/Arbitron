@@ -1,5 +1,5 @@
 import { ICreateContest } from "@/api-functions/contest.api";
-import { createParticipantForContest } from "@/api-functions/participant.api";
+import { createParticipantForContest, ISelectedToken } from "@/api-functions/participant.api";
 import { findOrCreateUser } from "@/api-functions/user.api";
 import { useMutation, UseMutationOptions } from "@tanstack/react-query";
 
@@ -27,7 +27,7 @@ export const useCreateParticipantMutation = ({
   customConfig?: UseMutationOptions<
     any,
     any,
-    { contestId: string; userPublickey: string }
+    { contestId: string; userPublickey: string; tokens: ISelectedToken[] }
   >;
 }) => {
   return useMutation({
@@ -38,9 +38,10 @@ export const useCreateParticipantMutation = ({
     }: {
       contestId: string;
       userPublickey: string;
-      tokens: ICreateContest[];
+      tokens: ISelectedToken[];
     }) => {
       return createParticipantForContest(contestId, userPublickey, tokens);
     },
+    ...customConfig,
   });
 };

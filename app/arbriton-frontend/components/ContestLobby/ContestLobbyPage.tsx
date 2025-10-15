@@ -138,9 +138,9 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
         alert("Contest started successfully!")
   
         // Redirect to contest after 1.5 seconds
-        setTimeout(() => {
-          router.push(`/contest/${contestId}`)
-        }, 1500)
+        // setTimeout(() => {
+        //   router.push(`/contest/${contestId}`)
+        // }, 1500)
       } catch (error) {
         console.error("Error starting contest:", error)
         alert("Error starting contest: " + error)
