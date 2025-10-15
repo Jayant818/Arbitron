@@ -90,8 +90,8 @@ export const ContestLobbyWrapper = () => {
     instance.registerCallback(
       "contest-started",
       (data: any) => {
-        if (data.contestId !== contestId) return;
         console.log("Contest started event received via WebSocket:", data);
+        if (data.contestId !== contestId) return;
         router.push(`/contest/${contestId}`);
       },
       `contest-lobby-${contestId}`

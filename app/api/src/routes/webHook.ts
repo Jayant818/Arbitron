@@ -96,6 +96,7 @@ webHookRouter.post("/", async (req, res) => {
     switch (ixType) {
       case ArbitronInstruction.CreateContest:
         try {
+          console.log("instruction detected");
           const convertedIx = convertWebhookInstruction(rawIx);
           const parsedData = parseCreateContestInstruction(convertedIx);
           console.log("Parsed CreateContest Data:");

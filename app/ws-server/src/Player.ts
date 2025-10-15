@@ -25,12 +25,24 @@ export class Player {
   private addListener() {
     this.ws.on("message", (message: string) => {
       const parsedMessage: IncomingMessage = JSON.parse(message);
-      if (parsedMessage.type === "SUBSCRIBE") {
+      if (
+        parsedMessage.type === "SUBSCRIBE" &&
+        parsedMessage.payload?.contestId
+      ) {
+        console.log(
+          `Received SUBSCRIBE for contest: ${parsedMessage.payload.contestId}`
+        );
         SubscriptionManager.getInstance().subscribe(
           this.id,
           parsedMessage.payload.contestId
         );
-      } else if (parsedMessage.type === "UNSUBSCRIBE") {
+      } else if (
+        parsedMessage.type === "UNSUBSCRIBE" &&
+        parsedMessage.payload?.contestId
+      ) {
+        console.log(
+          `Received UNSUBSCRIBE for contest: ${parsedMessage.payload.contestId}`
+        );
         SubscriptionManager.getInstance().unSubscribe(
           this.id,
           parsedMessage.payload.contestId

@@ -19,13 +19,31 @@ export class SubscriptionManager {
   }
 
   private redisCallbackHandler(message: string, channel: string) {
-    const parsedMessage = JSON.parse(message);
-    console.log("Received message", parsedMessage, channel);
-    this.subscriptions
-      .get(channel)
-      ?.forEach((s) =>
-        PlayerManager.getInstance().getPlayer(s)?.emit(parsedMessage)
-      );
+    const eventPayload = JSON.parse(message);
+    console.log(
+      "Received message from Redis:",
+      eventPayload,
+      "on channel:",
+      channel
+    );
+
+    console.log("Received message", eventPayload, channel);
+
+    const messageForFrontend = {
+      type: eventPayload.type, // e.g., "contest-started"
+      payload: eventPayload, // Wrap the entire original message in the 'payload' field
+    };
+
+    // this.subscriptions
+    //   .get(channel)
+    //   ?.forEach((s) =>
+    //     PlayerManager.getInstance().getPlayer(s)?.emit(parsedMessage)
+    //   );
+
+    this.subscriptions.get(channel)?.forEach((playerId) => {
+      console.log(`Emitting to player ${playerId}`);
+      PlayerManager.getInstance().getPlayer(playerId)?.emit(messageForFrontend);
+    });
   }
 
   public async subscribe(playerId: string, contestId: string) {

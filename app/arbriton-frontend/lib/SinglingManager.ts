@@ -28,6 +28,7 @@ export class SignalingManager {
     };
 
     this.ws.onmessage = (event) => {
+      console.log("WebSocket message received:", event.data);
       const message = JSON.parse(event.data);
       const callbacks = this.registeredCallbacks.get(message.type);
       if (callbacks) {
