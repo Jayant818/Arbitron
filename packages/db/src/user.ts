@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "./singletonPrisma.js";
 
 export const findOrCreateUser = async (publicKey: string) => {
   let user = await prisma.user.findUnique({

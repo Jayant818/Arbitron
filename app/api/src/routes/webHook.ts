@@ -17,6 +17,7 @@ import {
   createContest,
   findOrCreateUser,
   createParticipant,
+  updateContestStatus,
 } from "@arbitron/db";
 
 export const webHookRouter = Router();
@@ -154,6 +155,8 @@ webHookRouter.post("/", async (req, res) => {
           console.log("Host:", parsedData.accounts.host.address);
           console.log(" Contest:", parsedData.accounts.contest.address);
           const contestAddress = parsedData.accounts.contest.address;
+
+          await updateContestStatus(contestAddress, "ONGOING");
 
           publisher.publish(
             `contest-${contestAddress}`,

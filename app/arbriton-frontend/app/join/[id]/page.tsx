@@ -82,6 +82,7 @@ export interface ISelectedToken {
   mint: string;
   quantity: number;
   isPowerToken: boolean;
+  entry_price: number;
 }
 
 export default function Page() {
@@ -680,11 +681,15 @@ function JoinContestPage() {
         tokenProgram: TOKEN_PROGRAM_ADDRESS,
       });
 
+
+      console.log("Selected Tokens:", selectedTokens);
+
       const minimalTokensForChain = Array.from(selectedTokens.values()).map(
         ({ token, quantity }) => ({
           mint: address(token.id),
           isPowerToken: token.id === powerTokenId,
           quantity: quantity,
+          entryPrice: token.usdPrice
         })
       );
 
@@ -742,6 +747,7 @@ function JoinContestPage() {
         mint: token.mint.toString(),
         quantity: token.quantity,
         isPowerToken: token.isPowerToken,
+        entryPrice: token.entryPrice
       }));
 
       await createParticipant({

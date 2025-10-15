@@ -5,6 +5,7 @@ export interface ISelectedToken {
   mint: string;
   quantity: number;
   isPowerToken: boolean;
+  entryPrice: number;
 }
 
 export const createParticipantForContest = async (

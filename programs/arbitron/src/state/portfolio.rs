@@ -5,6 +5,7 @@ pub struct SelectedToken {
     pub mint:Pubkey,
     pub is_power_token:bool,
     pub quantity:u8,
+    pub entry_price: u64,
 }
 
 #[account]

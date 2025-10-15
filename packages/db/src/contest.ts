@@ -1,6 +1,5 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "./singletonPrisma.js";
+import { ContestStatus } from "@prisma/client";
 
 export const createContest = async (data: {
   id: string; // on-chain-address
@@ -35,5 +34,12 @@ export const getAllContest = async () => {
 export const getContestById = async (id: string) => {
   return await prisma.contest.findUnique({
     where: { id },
+  });
+};
+
+export const updateContestStatus = async (id: string, status: ContestStatus) => {
+  return await prisma.contest.update({
+    where: { id },
+    data: { status },
   });
 };

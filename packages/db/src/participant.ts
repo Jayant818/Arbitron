@@ -1,11 +1,11 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "./singletonPrisma.js";
 
-const prisma = new PrismaClient();
 
 interface ISelectedToken {
   mint: string;
   quantity: number;
   isPowerToken: boolean;
+  entryPrice: number;
 }
 
 export const createParticipant = async (
@@ -26,6 +26,7 @@ export const createParticipant = async (
       quantity: token.quantity,
       isPowerToken: token.isPowerToken.toString(),
       participantId: participant.id,
+      entryPrice: token.entryPrice,
     }));
 
     await tx.selectedTokens.createMany({
