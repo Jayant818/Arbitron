@@ -2,8 +2,10 @@ import WebSocket from "ws";
 import { SubscriptionManager } from "./SubscriptionManager.js";
 
 type IncomingMessage = {
-  method: "SUBSCRIBE" | "UNSUBSCRIBE";
-  contestId: string;
+  type: "SUBSCRIBE" | "UNSUBSCRIBE";
+  payload: {
+    contestId: string;
+  };
 };
 
 export class Player {
@@ -23,15 +25,15 @@ export class Player {
   private addListener() {
     this.ws.on("message", (message: string) => {
       const parsedMessage: IncomingMessage = JSON.parse(message);
-      if (parsedMessage.method === "SUBSCRIBE") {
+      if (parsedMessage.type === "SUBSCRIBE") {
         SubscriptionManager.getInstance().subscribe(
           this.id,
-          parsedMessage.contestId
+          parsedMessage.payload.contestId
         );
-      } else if (parsedMessage.method === "UNSUBSCRIBE") {
+      } else if (parsedMessage.type === "UNSUBSCRIBE") {
         SubscriptionManager.getInstance().unSubscribe(
           this.id,
-          parsedMessage.contestId
+          parsedMessage.payload.contestId
         );
       }
     });

@@ -17,7 +17,6 @@ export const ContestRouter = Router();
 
 ContestRouter.post("/", async (req, res) => {
   try {
-    console.log("Gotcha");
     const contestData = req.body;
 
     if (!contestData.id || !contestData.name) {
@@ -88,7 +87,6 @@ ContestRouter.get("/all", async (req, res) => {
 
     // const allContests = await fetchAllContest(rpc, allContestAddresses);
 
-    console.log("All Contests:", allContests);
     res.send(allContests);
   } catch (error) {
     console.error("Error Fetching Contests", error);
@@ -100,7 +98,6 @@ ContestRouter.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const contest = await fetchContest(rpc, address(id));
-    console.log("Fetched Contest by ID:", contest);
     const contestResult = {
       id: contest.address,
       title: contest.data.name,
@@ -115,7 +112,6 @@ ContestRouter.get("/:id", async (req, res) => {
       decimals: 6,
     };
 
-    console.log("Contest by ID:", contestResult);
     res.send(contestResult);
   } catch (error) {
     console.error("Error Fetching Contest by ID", error);

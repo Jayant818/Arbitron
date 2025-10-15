@@ -46,6 +46,8 @@ export class SubscriptionManager {
         `contest-${contestId}`,
         this.redisCallbackHandler.bind(this)
       );
+
+      console.log("Subscribed to contest:", contestId);
     }
   }
 

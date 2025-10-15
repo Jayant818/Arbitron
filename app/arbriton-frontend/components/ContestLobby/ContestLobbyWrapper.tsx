@@ -68,7 +68,7 @@ export const ContestLobbyWrapper = () => {
             // Ongoing
             // Contest is active - redirect to arena
             console.log("🎮 Contest is ongoing - redirecting to arena");
-            router.push(`/arena/${contestId}`);
+            router.push(`/contest/${contestId}`);
             return;
           }
         }
@@ -92,7 +92,7 @@ export const ContestLobbyWrapper = () => {
       (data: any) => {
         if (data.contestId !== contestId) return;
         console.log("Contest started event received via WebSocket:", data);
-        router.push(`/arena/${contestId}`);
+        router.push(`/contest/${contestId}`);
       },
       `contest-lobby-${contestId}`
     );
