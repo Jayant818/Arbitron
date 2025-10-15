@@ -32,7 +32,7 @@ export class SignalingManager {
       const message = JSON.parse(event.data);
       const callbacks = this.registeredCallbacks.get(message.type);
       if (callbacks) {
-        callbacks.forEach(({ callback }) => callback(message.data));
+        callbacks.forEach(({ callback }) => callback(message.payload));
       }
     };
 

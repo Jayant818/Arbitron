@@ -36,8 +36,8 @@ export default function ContestsPage() {
         </div>
 
         <div className="mb-8 flex flex-col sm:flex-row gap-4 max-w-2xl">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <div className="relative flex-1 bg-white">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 " />
             <Input
               placeholder="Search contests..."
               value={searchQuery}
