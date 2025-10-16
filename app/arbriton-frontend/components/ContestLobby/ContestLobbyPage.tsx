@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Users, Clock, Trophy, TrendingUp, Brain, Target, Play } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { useGetAllParticipantsForContest, useGetContestByIdQuery } from "@/hooks/api-hooks/useContestQuery"
+import { useGetAllParticipantsForContest, useGetContestByIdQuery, useUpdateContestStatusMutation } from "@/hooks/api-hooks/useContestQuery"
 import { useSolana } from "@/components/solana-provider"
 import { useWalletAccountTransactionSendingSigner } from "@solana/react"
 import {  address, appendTransactionMessageInstructions, createTransactionMessage,getBase58Decoder, pipe, setTransactionMessageFeePayerSigner, setTransactionMessageLifetimeUsingBlockhash, signAndSendTransactionMessageWithSigners } from "@solana/kit"
@@ -44,7 +44,8 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
     const { data: contestDetails, isLoading: isContestLoading } = useGetContestByIdQuery({
       id: contestId as string,
       customConfig: {
-        enabled: !!contestId
+        enabled: !!contestId,
+        refetchInterval:10000,
       }
     })
 
@@ -66,6 +67,19 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
       ONGOING: 1,
       COMPLETED: 2,
     };
+
+    const { mutate: updateStatus } = useUpdateContestStatusMutation({
+        customConfig: {
+            onSuccess: () => {
+                console.log("Contest status updated to ONGOING");
+                alert("Contest started successfully!");
+            },
+            onError: (error) => {
+                console.error("Failed to update contest status", error);
+                alert("Contest started successfully, but failed to update status in DB.");
+            }
+        }
+    });
   
   
     // Calculate time remaining until contest starts
@@ -135,7 +149,8 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
         const signature = getBase58Decoder().decode(signatureBytes);
   
         console.log("✅ Contest started successfully! Signature:", signature)
-        alert("Contest started successfully!")
+        
+        updateStatus({ contestId: contestId as string, status: "ONGOING" });
   
         // Redirect to contest after 1.5 seconds
         // setTimeout(() => {
@@ -377,7 +392,8 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
                           />
                         </div>
                       </div>
-                    ))}
+                    ))
+                  }
                   </div>
                 </CardContent>
               </Card>

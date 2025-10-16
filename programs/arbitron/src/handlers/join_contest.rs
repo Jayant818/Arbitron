@@ -5,7 +5,7 @@ use anchor_lang::account;
 
 use crate::{ error::ErrorCode, transfer_token, Contest, ContestState, Participent, Player};
 
-use crate::{Portfolio, Token};
+use crate::{Portfolio};
 
 // Task
 // 1) Join the Contest : PDA will be created for user to store his details in the contest

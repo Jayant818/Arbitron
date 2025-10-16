@@ -29,6 +29,7 @@ export class PlayerManager {
       
       // Unsubscribe from all price and contest subscriptions
       SubscriptionManager.getInstance().unsubscribeFromPrices(id);
+      SubscriptionManager.getInstance().unsubscribeFromAllAggregates(id);
       // The old contest subscription manager has a flaw, this is a quick fix for now
       // It should be refactored to be more robust
       // SubscriptionManager.getInstance().unSubscribe(id, contestIds);

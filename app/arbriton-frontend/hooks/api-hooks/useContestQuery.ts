@@ -5,6 +5,7 @@ import {
   getAllParticipantsForContest,
   IContest,
   ICreateContest,
+  updateContestStatus,
 } from "@/api-functions/contest.api";
 import { APIError } from "@/lib/errors";
 import {
@@ -79,3 +80,16 @@ export const useCreateContestMutation = ({
     ...customConfig,
   });
 };
+
+export const useUpdateContestStatusMutation = ({
+    customConfig,
+  }: {
+    customConfig?: UseMutationOptions<any, ApiError, { contestId: string; status: string }>;
+  }) => {
+    return useMutation({
+      mutationFn: async (data: { contestId: string; status: string }) => {
+        return updateContestStatus(data.contestId, data.status);
+      },
+      ...customConfig,
+    });
+  };

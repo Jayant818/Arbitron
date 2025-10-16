@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Trophy, TrendingUp, TrendingDown, Minus } from "lucide-react"
-import { useState, useEffect } from "react"
 
 interface Player {
   id: string
@@ -15,39 +14,7 @@ interface Player {
   previousRank: number
 }
 
-const initialPlayers: Player[] = [
-  { id: "1", name: "CryptoKing", avatar: "CK", pnl: 15.2, rank: 1, previousRank: 1 },
-  { id: "2", name: "SolanaWhale", avatar: "SW", pnl: 12.8, rank: 2, previousRank: 3 },
-  { id: "3", name: "DiamondHands", avatar: "DH", pnl: 11.5, rank: 3, previousRank: 2 },
-  { id: "4", name: "MoonShot", avatar: "MS", pnl: 8.3, rank: 4, previousRank: 5 },
-  { id: "5", name: "BullRun", avatar: "BR", pnl: 6.7, rank: 5, previousRank: 4 },
-  { id: "6", name: "DeFiMaster", avatar: "DM", pnl: 4.2, rank: 6, previousRank: 6 },
-]
-
-export function Leaderboard() {
-  const [players, setPlayers] = useState(initialPlayers)
-
-  useEffect(() => {
-    // Simulate real-time updates
-    const interval = setInterval(() => {
-      setPlayers((prev) =>
-        prev
-          .map((player) => ({
-            ...player,
-            pnl: player.pnl + (Math.random() - 0.5) * 2,
-            previousRank: player.rank,
-          }))
-          .sort((a, b) => b.pnl - a.pnl)
-          .map((player, index) => ({
-            ...player,
-            rank: index + 1,
-          })),
-      )
-    }, 3000)
-
-    return () => clearInterval(interval)
-  }, [])
-
+export function Leaderboard({ players }: { players: Player[] }) {
   const getRankChange = (current: number, previous: number) => {
     if (current < previous) return "up"
     if (current > previous) return "down"

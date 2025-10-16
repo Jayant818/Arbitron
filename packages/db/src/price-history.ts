@@ -13,3 +13,22 @@ export const createPriceHistory = async (mint: string, price: number) => {
     console.log("Error Creating Token Price Record", error);
   }
 };
+
+export const getLatestPrices = async (mints: string[]) => {
+    const latestPrices = await prisma.priceHistory.findMany({
+      where: {
+        mint: {
+          in: mints,
+        },
+      },
+      orderBy: {
+        timestamp: "desc",
+      },
+      distinct: ["mint"],
+    });
+  
+    return latestPrices.reduce((acc, price) => {
+      acc[price.mint] = price;
+      return acc;
+    }, {} as Record<string, (typeof latestPrices)[0]>);
+  };

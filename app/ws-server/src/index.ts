@@ -6,6 +6,7 @@ const wss = new WebSocketServer({ port: 8080 });
 
 // Initialize the Redis subscriber for price updates
 SubscriptionManager.getInstance().initPriceSubscriber();
+SubscriptionManager.getInstance().initAggregateSubscriber();
 
 wss.on("connection", (ws) => {
   console.log("New client connected");

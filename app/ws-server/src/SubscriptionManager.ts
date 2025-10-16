@@ -1,6 +1,7 @@
 import { createSubscriber } from "@arbitron/shared-redis";
 import { PlayerManager } from "./PlayerManager.js";
-import { PRICE_UPDATES } from "../../poller/src/index.js";
+export const PRICE_UPDATES = "price_updates";
+export const PRICE_AGGREGATION_CHANNEL = "PRICE_AGGREGATION";
 
 // Handles contest-specific events (e.g., contest started)
 interface ContestSubscriptionPayload {
@@ -22,12 +23,20 @@ export class SubscriptionManager {
   // Contest-specific subscriptions
   private contestSubscriptions: Map<string, string[]> = new Map(); // contestId -> playerId[]
   private reverseContestSubscriptions: Map<string, string> = new Map(); // playerId -> contestId
-  private contestSubscriber: Awaited<ReturnType<typeof createSubscriber>> | null = null;
+  private contestSubscriber: Awaited<
+    ReturnType<typeof createSubscriber>
+  > | null = null;
 
   // Price subscriptions
   private priceSubscriptions: Map<string, string[]> = new Map(); // mintAddress -> playerId[]
   private reversePriceSubscriptions: Map<string, string[]> = new Map(); // playerId -> mintAddress[]
-  private priceSubscriber: Awaited<ReturnType<typeof createSubscriber>> | null = null;
+  private priceSubscriber: Awaited<ReturnType<typeof createSubscriber>> | null =
+    null;
+
+  // Aggregate subscriptions
+  private aggregateSubscriber: Awaited<ReturnType<typeof createSubscriber>> | null = null;
+  private aggregateSubscriptions: Map<string, string[]> = new Map(); // contestId -> playerId[]
+  private reverseAggregateSubscriptions: Map<string, string> = new Map(); // playerId -> contestId
 
   private constructor() {}
 
@@ -60,24 +69,31 @@ export class SubscriptionManager {
       return;
     }
 
+    console.log("Received price update from Redis:", message);
     const payload: PriceUpdatePayload = JSON.parse(message);
 
     // Iterate over each mint address in the update payload
     for (const mint in payload) {
+      console.log("Processing mint:", mint);
       const subscribers = this.priceSubscriptions.get(mint);
+      console.log("Subscribers for mint:", subscribers);
+
       if (subscribers && subscribers.length > 0) {
         const priceData = payload[mint];
         const messageForFrontend = {
           type: "priceUpdate",
           payload: {
             mint: mint,
-            price: priceData.scaledPrice,
+            price: priceData?.scaledPrice,
           },
         };
 
+        console.log("Sending price update to subscribers:", subscribers);
         // Send update to all players subscribed to this mint
         subscribers.forEach((playerId) => {
-          PlayerManager.getInstance().getPlayer(playerId)?.emit(messageForFrontend);
+          PlayerManager.getInstance()
+            .getPlayer(playerId)
+            ?.emit(messageForFrontend);
         });
       }
     }
@@ -91,9 +107,15 @@ export class SubscriptionManager {
       }
     });
 
-    const existingReverseSubs = this.reversePriceSubscriptions.get(playerId) || [];
-    const newMints = mints.filter(mint => !existingReverseSubs.includes(mint));
-    this.reversePriceSubscriptions.set(playerId, [...existingReverseSubs, ...newMints]);
+    const existingReverseSubs =
+      this.reversePriceSubscriptions.get(playerId) || [];
+    const newMints = mints.filter(
+      (mint) => !existingReverseSubs.includes(mint)
+    );
+    this.reversePriceSubscriptions.set(playerId, [
+      ...existingReverseSubs,
+      ...newMints,
+    ]);
     console.log(`Player ${playerId} subscribed to prices for mints:`, mints);
   }
 
@@ -115,6 +137,82 @@ export class SubscriptionManager {
       console.log(`Player ${playerId} unsubscribed from all price updates.`);
     }
   }
+
+  // --- Aggregate Subscription Logic ---
+
+  public async initAggregateSubscriber() {
+    if (this.aggregateSubscriber) return;
+    console.log("Initializing Redis subscriber for price aggregation...");
+    this.aggregateSubscriber = await createSubscriber();
+    try {
+      await this.aggregateSubscriber.SUBSCRIBE(
+        PRICE_AGGREGATION_CHANNEL,
+        this.aggregateCallbackHandler.bind(this)
+      );
+      console.log(`Successfully subscribed to Redis channel: ${PRICE_AGGREGATION_CHANNEL}`);
+    } catch (err) {
+      console.error("Failed to subscribe to Redis price aggregation:", err);
+    }
+  }
+
+  private aggregateCallbackHandler(channel: string, message: string) {
+    if (channel !== PRICE_AGGREGATION_CHANNEL) {
+      return;
+    }
+
+    const payload: Record<string, any[]> = JSON.parse(message);
+
+    for (const contestId in payload) {
+      const subscribers = this.aggregateSubscriptions.get(contestId);
+      if (subscribers && subscribers.length > 0) {
+        const contestData = payload[contestId];
+        const messageForFrontend = {
+          type: "aggregateUpdate",
+          payload: {
+            contestId: contestId,
+            data: contestData,
+          },
+        };
+
+        subscribers.forEach((playerId) => {
+          PlayerManager.getInstance()
+            .getPlayer(playerId)
+            ?.emit(messageForFrontend);
+        });
+      }
+    }
+  }
+
+  public subscribeToAggregate(playerId: string, contestId: string) {
+    const existingSubs = this.aggregateSubscriptions.get(contestId) || [];
+    if (!existingSubs.includes(playerId)) {
+      this.aggregateSubscriptions.set(contestId, [...existingSubs, playerId]);
+    }
+    this.reverseAggregateSubscriptions.set(playerId, contestId);
+    console.log(`Player ${playerId} subscribed to aggregate for contest:`, contestId);
+  }
+
+  public unsubscribeFromAggregate(playerId: string, contestId: string) {
+    const subs = this.aggregateSubscriptions.get(contestId);
+    if (subs) {
+      const updatedSubs = subs.filter((id) => id !== playerId);
+      if (updatedSubs.length > 0) {
+        this.aggregateSubscriptions.set(contestId, updatedSubs);
+      } else {
+        this.aggregateSubscriptions.delete(contestId);
+      }
+    }
+    console.log(`Player ${playerId} unsubscribed from aggregate for contest:`, contestId);
+  }
+
+  public unsubscribeFromAllAggregates(playerId: string) {
+    const contestId = this.reverseAggregateSubscriptions.get(playerId);
+    if (contestId) {
+      this.unsubscribeFromAggregate(playerId, contestId);
+      this.reverseAggregateSubscriptions.delete(playerId);
+    }
+  }
+
 
   // --- Existing Contest Subscription Logic ---
 
@@ -145,9 +243,9 @@ export class SubscriptionManager {
     this.reverseContestSubscriptions.set(playerId, contestId);
 
     if (this.contestSubscriptions.get(contestId)?.length === 1) {
-        if (!this.contestSubscriber) {
-            this.contestSubscriber = await createSubscriber();
-        }
+      if (!this.contestSubscriber) {
+        this.contestSubscriber = await createSubscriber();
+      }
       this.contestSubscriber.SUBSCRIBE(
         `contest-${contestId}`,
         this.contestCallbackHandler.bind(this)

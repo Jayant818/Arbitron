@@ -25,8 +25,17 @@ export const createParticipant = async (
       quantity: token.quantity,
       isPowerToken: token.isPowerToken,
       participantId: participant.id,
-      entryPrice: token.entryPrice,
+      entryPrice: BigInt(token.entryPrice),
     }));
+
+    console.log(
+      "📝 Token data to be saved:",
+      JSON.stringify(
+        tokenData,
+        (key, value) => (typeof value === "bigint" ? value.toString() : value),
+        2
+      )
+    );
 
     await tx.selectedTokens.createMany({
       data: tokenData,
@@ -44,9 +53,32 @@ export const getParticipantsByContestId = async (contestId: string) => {
     },
   });
 
-  console.log("🔍 DB Query Result - Participants count:", participants.length);
+  const participantsWithNumbers = participants.map((participant) => ({
+    ...participant,
+    SelectedTokens:
+      participant.SelectedTokens?.map((token) => ({
+        ...token,
+        entryPrice: token.entryPrice ? Number(token.entryPrice) : null,
+      })) || [],
+  }));
 
-  return participants;
+  console.log("🔍 DB Query Result - Participants count:", participants.length);
+  if (participants.length > 0 && participants[0]) {
+    console.log(
+      "🔍 First participant structure:",
+      JSON.stringify(
+        participants[0],
+        (key, value) => (typeof value === "bigint" ? value.toString() : value),
+        2
+      )
+    );
+    console.log(
+      "🔍 First participant SelectedTokens:",
+      participants[0].SelectedTokens
+    );
+  }
+
+  return participantsWithNumbers;
 };
 
 export const getAllOngoingContestUniqueSelectedTokens = async () => {
@@ -61,3 +93,16 @@ export const getAllOngoingContestUniqueSelectedTokens = async () => {
     },
   });
 };
+
+export async function getAllParticipantsOfOngoingContestsWithSelectedTokens() {
+  return prisma.participant.findMany({
+    where: {
+      contest: {
+        status: "ONGOING",
+      },
+    },
+    include: {
+      SelectedTokens: true,
+    },
+  });
+}

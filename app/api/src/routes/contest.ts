@@ -11,7 +11,8 @@ import {
 import { rpc } from "../config/solana.js";
 import { address, Address, Base58EncodedBytes } from "@solana/kit";
 import bs58 from "bs58";
-import { createContest, getParticipantsByContestId } from "@arbitron/db";
+import { createContest, getParticipantsByContestId, updateContestStatus } from "@arbitron/db";
+import { ContestStatus } from "@prisma/client";
 
 export const ContestRouter = Router();
 
@@ -122,18 +123,43 @@ ContestRouter.get("/:id", async (req, res) => {
 ContestRouter.get("/:id/participents/all", async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("📥 Fetching participants for contest:", id);
 
     const participants = await getParticipantsByContestId(id);
-    console.log("📊 Participants found:", participants?.length);
-    console.log(
-      "🔍 First participant data:",
-      JSON.stringify(participants?.[0], null, 2)
-    );
+
+    // Convert BigInt fields to numbers for JSON serialization
+
+    // console.log(
+    //   "🔍 First participant data:",
+    //   JSON.stringify(participantsWithNumbers?.[0], null, 2)
+    // );
 
     res.status(200).json({ participants });
   } catch (error: any) {
     console.error("Error Fetching all Participant", error);
     res.status(500).send({ message: "Error Fecthing all participant" });
   }
+});
+
+ContestRouter.put("/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+  
+      if (!status || !Object.values(ContestStatus).includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+  
+      const updatedContest = await updateContestStatus(id, status);
+      
+      const response = {
+          ...updatedContest,
+          entryFees: updatedContest.entryFees.toString(),
+          prizePool: updatedContest.prizePool.toString(),
+      }
+  
+      res.status(200).json(response);
+    } catch (error) {
+      console.error("Failed to update contest status:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
 });

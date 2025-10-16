@@ -21,6 +21,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const { selectedAccount } = useSolana();
   const [livePrices, setLivePrices] = useState<Record<string, string>>({}); // mint -> scaledPrice
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
 
   // Fetch contest details
   const { data: contestDetails, isLoading: isContestLoading } = useGetContestByIdQuery({
@@ -59,10 +60,13 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
 
     // Define the handler for price updates
     const handlePriceUpdate = (payload: { mint: string; price: string }) => {
-      setLivePrices(prevPrices => ({
-        ...prevPrices,
-        [payload.mint]: payload.price,
-      }));
+      setLivePrices(prevPrices => {
+        const newPrices = {
+          ...prevPrices,
+          [payload.mint]: payload.price,
+        };
+        return newPrices;
+      });
     };
 
     // Register the callback
@@ -80,10 +84,51 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
     return () => {
       console.log("Unregistering price update callback");
       signalingManager.unregisterCallback("priceUpdate", callbackId);
-      // Note: We don't need to send an unsubscribe message unless the server requires it
-      // for resource management, which our current implementation doesn't.
     };
   }, [selectedTokens, contestId]);
+
+  // WebSocket subscription for aggregate data
+  useEffect(() => {
+    const signalingManager = SignalingManager.getInstance();
+    const callbackId = `contest-arena-aggregate-${contestId}`;
+
+    const handleAggregateUpdate = (payload: { contestId: string; data: any[] }) => {
+      if (payload.contestId === contestId) {
+        setLeaderboardData(payload.data);
+      }
+    };
+
+    signalingManager.registerCallback("aggregateUpdate", handleAggregateUpdate, callbackId);
+
+    signalingManager.sendMessage({
+      type: "SUBSCRIBE_AGGREGATE",
+      payload: { contestId },
+    });
+
+    return () => {
+      signalingManager.unregisterCallback("aggregateUpdate", callbackId);
+    };
+  }, [contestId]);
+
+  const processedLeaderboardData = useMemo(() => {
+    if (!participants || !leaderboardData) return [];
+
+    const participantMap = new Map(participants.map((p: any) => [p.id, p.user]));
+
+    return leaderboardData.map((data, index) => {
+      const user = participantMap.get(data.participantId);
+      return {
+        id: data.participantId,
+        name: user?.username || `${user?.publicKey.slice(0, 4)}...${user?.publicKey.slice(-4)}`,
+        avatar: user?.publicKey.slice(0, 2).toUpperCase() || "??",
+        pnl: parseFloat(data.averagePnl),
+        rank: index + 1,
+        previousRank: index + 1, // No previous rank data from aggregator yet
+      };
+    }).sort((a, b) => b.pnl - a.pnl)
+    .map((player, index) => ({ ...player, rank: index + 1, previousRank: player.rank }));
+
+  }, [participants, leaderboardData]);
 
   // Calculate time left based on contest start time and duration
   useEffect(() => {
@@ -247,7 +292,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-1">
-            <Leaderboard />
+            <Leaderboard players={processedLeaderboardData} />
           </div>
 
           <div className="lg:col-span-2 space-y-6">
@@ -269,7 +314,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
                 ) : selectedTokens.length > 0 ? (
                   <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                     {selectedTokens.map((token: any, i: number) => {
-                      const isPowerToken = token.isPowerToken === "true";
+                      const isPowerToken = token.isPowerToken === true || token.isPowerToken === "true";
                       const entryPrice = token.entryPrice ? formatPrice(token.entryPrice) : "N/A";
                       const livePrice = livePrices[token.mint] ? formatPrice(livePrices[token.mint]) : null;
                       
@@ -383,7 +428,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
                         {participant.SelectedTokens && participant.SelectedTokens.length > 0 && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-3">
                             {participant.SelectedTokens.map((token: any) => {
-                              const isPowerToken = token.isPowerToken === "true";
+                              const isPowerToken = token.isPowerToken === true || token.isPowerToken === "true";
                               return (
                                 <div
                                   key={token.id}

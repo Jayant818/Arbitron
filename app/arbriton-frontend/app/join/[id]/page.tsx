@@ -572,8 +572,8 @@ function JoinContestPage() {
     ? currentTokens
     : currentTokens.filter(
         (token: Token) =>
-          token.symbol.toLowerCase().includes(tokenSearch.toLowerCase()) ||
-          token.name.toLowerCase().includes(tokenSearch.toLowerCase())
+          token?.symbol?.toLowerCase().includes(tokenSearch.toLowerCase()) ||
+          token?.name?.toLowerCase().includes(tokenSearch.toLowerCase())
       );
 
   const budgetUsed = entryFee > 0 ? (totalSelectedValue / entryFee) * 100 : 0;

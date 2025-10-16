@@ -74,3 +74,16 @@ export const getAllParticipantsForContest = async (contestId: string) => {
     throw new APIError("Failed to fetch participants", 500, error);
   }
 };
+
+export const updateContestStatus = async (contestId: string, status: string) => {
+    try {
+      const res = await axios.put(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/contest/${contestId}/status`,
+        { status }
+      );
+      return res.data;
+    } catch (error: any) {
+      console.error("Error updating contest status:", error);
+      throw new APIError("Failed to update contest status", 500, error);
+    }
+  };

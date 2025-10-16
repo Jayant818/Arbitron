@@ -32,11 +32,17 @@ userRouter.post("/join-contest", async (req, res) => {
 
     const user = await findOrCreateUser(userPublickey);
 
+    console.log("User found or created:", user);
+    console.log("Contest ID:", contestId);
+    console.log("Tokens:", tokens);
     const participant = await createParticipant(contestId, user.id, tokens);
 
     return res.status(201).json({ participant });
   } catch (error) {
     console.error("Error in join-contest:", error);
+    if (error.message.includes("Invalid mint address")) {
+      return res.status(400).send(error.message);
+    }
     return res.status(500).send("Internal Server Error");
   }
 });

@@ -3,7 +3,7 @@ import { SubscriptionManager } from "./SubscriptionManager.js";
 
 // Redefine the message structure for clarity and extensibility
 type IncomingMessage = {
-  type: "SUBSCRIBE_CONTEST" | "UNSUBSCRIBE_CONTEST" | "SUBSCRIBE_PRICES";
+  type: "SUBSCRIBE_CONTEST" | "UNSUBSCRIBE_CONTEST" | "SUBSCRIBE_PRICES" | "SUBSCRIBE_AGGREGATE";
   payload: {
     contestId?: string;
     mints?: string[];
@@ -35,6 +35,15 @@ export class Player {
               SubscriptionManager.getInstance().subscribeToPrices(
                 this.id,
                 parsedMessage.payload.mints
+              );
+            }
+            break;
+
+          case "SUBSCRIBE_AGGREGATE":
+            if (parsedMessage.payload?.contestId) {
+              SubscriptionManager.getInstance().subscribeToAggregate(
+                this.id,
+                parsedMessage.payload.contestId
               );
             }
             break;
