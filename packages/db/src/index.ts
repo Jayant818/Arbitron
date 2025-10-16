@@ -1,10 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
-export { findOrCreateUser } from "./user.js";
-export {
-  createParticipant,
-  getParticipantsByContestId,
-} from "./participant.js";
+export * from "./user.js";
+export * from "./participant.js";
 
 export * from "./contest.js";
 

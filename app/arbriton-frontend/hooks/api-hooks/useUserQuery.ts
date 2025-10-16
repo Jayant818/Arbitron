@@ -1,7 +1,7 @@
 import { ICreateContest } from "@/api-functions/contest.api";
-import { createParticipantForContest, ISelectedToken } from "@/api-functions/participant.api";
+import { createParticipantForContest, ISelectedToken, getParticipantsByContestId } from "@/api-functions/participant.api";
 import { findOrCreateUser } from "@/api-functions/user.api";
-import { useMutation, UseMutationOptions } from "@tanstack/react-query";
+import { useMutation, UseMutationOptions, useQuery, UseQueryOptions } from "@tanstack/react-query";
 
 // export const UserKeys = {
 //   user: (id: string) => ["user", id] as const,
@@ -42,6 +42,25 @@ export const useCreateParticipantMutation = ({
     }) => {
       return createParticipantForContest(contestId, userPublickey, tokens);
     },
+    ...customConfig,
+  });
+};
+
+export const ParticipantKeys = {
+  participants: (contestId: string) => ["participants", contestId] as const,
+};
+
+export const useGetParticipantsByContestIdQuery = ({
+  contestId,
+  customConfig,
+}: {
+  contestId: string;
+  customConfig?: Omit<UseQueryOptions<any, any, any, any>, "queryKey" | "queryFn">;
+}) => {
+  return useQuery({
+    queryKey: ParticipantKeys.participants(contestId),
+    queryFn: () => getParticipantsByContestId(contestId),
+    enabled: !!contestId,
     ...customConfig,
   });
 };

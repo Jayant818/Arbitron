@@ -57,16 +57,16 @@ model SelectedTokens {
   id            String      @id @default(cuid())
   participantId String
   mint          String
-  isPowerToken  String
+  isPowerToken  Boolean
   quantity      Int
-  entryPrice    Decimal?
+  entryPrice    BigInt?
   participant   Participant @relation(fields: [participantId], references: [id])
 }
 
 model PriceHistory{
   id String @id @default(cuid())
   mint String 
-  price Int
+  price BigInt
   timestamp DateTime
   createdAt DateTime @default(now())
 }

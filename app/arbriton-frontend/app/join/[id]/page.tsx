@@ -689,9 +689,11 @@ function JoinContestPage() {
           mint: address(token.id),
           isPowerToken: token.id === powerTokenId,
           quantity: quantity,
-          entryPrice: token.usdPrice
+          entryPrice: BigInt(Math.round(token.usdPrice * 1_000_000))
         })
       );
+
+      console.log("Final Token List for Joining:", minimalTokensForChain);
 
       console.log("🚀 Building instructions...");
 
@@ -747,7 +749,7 @@ function JoinContestPage() {
         mint: token.mint.toString(),
         quantity: token.quantity,
         isPowerToken: token.isPowerToken,
-        entryPrice: token.entryPrice
+        entryPrice: Number(token.entryPrice)
       }));
 
       await createParticipant({

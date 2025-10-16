@@ -122,8 +122,15 @@ ContestRouter.get("/:id", async (req, res) => {
 ContestRouter.get("/:id/participents/all", async (req, res) => {
   try {
     const { id } = req.params;
+    console.log("📥 Fetching participants for contest:", id);
 
     const participants = await getParticipantsByContestId(id);
+    console.log("📊 Participants found:", participants?.length);
+    console.log(
+      "🔍 First participant data:",
+      JSON.stringify(participants?.[0], null, 2)
+    );
+
     res.status(200).json({ participants });
   } catch (error: any) {
     console.error("Error Fetching all Participant", error);

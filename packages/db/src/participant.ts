@@ -1,6 +1,5 @@
 import { prisma } from "./singletonPrisma.js";
 
-
 interface ISelectedToken {
   mint: string;
   quantity: number;
@@ -24,7 +23,7 @@ export const createParticipant = async (
     const tokenData = selectedTokens.map((token) => ({
       mint: token.mint,
       quantity: token.quantity,
-      isPowerToken: token.isPowerToken.toString(),
+      isPowerToken: token.isPowerToken,
       participantId: participant.id,
       entryPrice: token.entryPrice,
     }));
@@ -37,8 +36,28 @@ export const createParticipant = async (
   });
 };
 export const getParticipantsByContestId = async (contestId: string) => {
-  return await prisma.participant.findMany({
+  const participants = await prisma.participant.findMany({
     where: { contestId: contestId },
-    include: { user: true },
+    include: {
+      user: true,
+      SelectedTokens: true,
+    },
+  });
+
+  console.log("🔍 DB Query Result - Participants count:", participants.length);
+
+  return participants;
+};
+
+export const getAllOngoingContestUniqueSelectedTokens = async () => {
+  return prisma.selectedTokens.findMany({
+    distinct: ["mint"],
+    where: {
+      participant: {
+        contest: {
+          status: "ONGOING",
+        },
+      },
+    },
   });
 };

@@ -28,3 +28,15 @@ export const createParticipantForContest = async (
     throw new APIError("Failed to create participant for contest", 500, error);
   }
 };
+
+export const getParticipantsByContestId = async (contestId: string) => {
+  try {
+    const res = await axios.get(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/contest/${contestId}/participents/all`
+    );
+    return res.data.participants;
+  } catch (error) {
+    console.error("Error fetching participants:", error);
+    throw new APIError("Failed to fetch participants", 500, error);
+  }
+};

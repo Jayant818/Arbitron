@@ -1,10 +1,12 @@
 import WebSocket from "ws";
 import { SubscriptionManager } from "./SubscriptionManager.js";
 
+// Redefine the message structure for clarity and extensibility
 type IncomingMessage = {
-  type: "SUBSCRIBE" | "UNSUBSCRIBE";
+  type: "SUBSCRIBE_CONTEST" | "UNSUBSCRIBE_CONTEST" | "SUBSCRIBE_PRICES";
   payload: {
-    contestId: string;
+    contestId?: string;
+    mints?: string[];
   };
 };
 
@@ -24,29 +26,39 @@ export class Player {
 
   private addListener() {
     this.ws.on("message", (message: string) => {
-      const parsedMessage: IncomingMessage = JSON.parse(message);
-      if (
-        parsedMessage.type === "SUBSCRIBE" &&
-        parsedMessage.payload?.contestId
-      ) {
-        console.log(
-          `Received SUBSCRIBE for contest: ${parsedMessage.payload.contestId}`
-        );
-        SubscriptionManager.getInstance().subscribe(
-          this.id,
-          parsedMessage.payload.contestId
-        );
-      } else if (
-        parsedMessage.type === "UNSUBSCRIBE" &&
-        parsedMessage.payload?.contestId
-      ) {
-        console.log(
-          `Received UNSUBSCRIBE for contest: ${parsedMessage.payload.contestId}`
-        );
-        SubscriptionManager.getInstance().unSubscribe(
-          this.id,
-          parsedMessage.payload.contestId
-        );
+      try {
+        const parsedMessage: IncomingMessage = JSON.parse(message);
+
+        switch (parsedMessage.type) {
+          case "SUBSCRIBE_PRICES":
+            if (parsedMessage.payload?.mints) {
+              SubscriptionManager.getInstance().subscribeToPrices(
+                this.id,
+                parsedMessage.payload.mints
+              );
+            }
+            break;
+
+          case "SUBSCRIBE_CONTEST":
+            if (parsedMessage.payload?.contestId) {
+              SubscriptionManager.getInstance().subscribeToContest(
+                this.id,
+                parsedMessage.payload.contestId
+              );
+            }
+            break;
+
+          case "UNSUBSCRIBE_CONTEST":
+            if (parsedMessage.payload?.contestId) {
+              SubscriptionManager.getInstance().unsubscribeFromContest(
+                this.id,
+                parsedMessage.payload.contestId
+              );
+            }
+            break;
+        }
+      } catch (error) {
+        console.error("Failed to parse incoming message or subscribe:", error);
       }
     });
   }

@@ -24,14 +24,14 @@ export class PlayerManager {
 
   private registerOnClose(ws: WebSocket, id: string) {
     ws.on("close", () => {
+      console.log(`Player ${id} disconnected.`);
       this.players.delete(id);
-      // Get all the contest the user is subscibed to and unsubscribe
-      const contestIds =
-        SubscriptionManager.getInstance().reverseSubscription.get(id);
-
-      if (contestIds) {
-        SubscriptionManager.getInstance().unSubscribe(id, contestIds);
-      }
+      
+      // Unsubscribe from all price and contest subscriptions
+      SubscriptionManager.getInstance().unsubscribeFromPrices(id);
+      // The old contest subscription manager has a flaw, this is a quick fix for now
+      // It should be refactored to be more robust
+      // SubscriptionManager.getInstance().unSubscribe(id, contestIds);
     });
   }
 

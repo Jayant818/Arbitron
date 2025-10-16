@@ -1,7 +1,6 @@
 import axios from "axios";
 import { publisher } from "@arbitron/shared-redis";
-import { prisma } from "@arbitron/db";
-
+import { prisma, getAllOngoingContestUniqueSelectedTokens } from "@arbitron/db";
 export const PRICE_UPDATES = "price_updates";
 
 export interface IPriceUpdate {
@@ -12,23 +11,15 @@ export interface IPriceUpdate {
 }
 
 async function pollPrice() {
-  const tokens = await prisma.selectedTokens.findMany({
-    distinct: ["mint"],
-    where: {
-      participant: {
-        contest: {
-          status: "ONGOING",
-        },
-      },
-    },
-  });
+  console.log("Fetching Token Prices...");
+  const tokens = await getAllOngoingContestUniqueSelectedTokens();
 
   if (tokens.length === 0) {
     console.log("No active Contest to poll");
+    return; // Return early if no tokens to process
   }
 
   const tokenMints = tokens.map((token) => token.mint);
-
   const data: Record<string, IPriceUpdate> = {};
 
   try {
@@ -41,21 +32,40 @@ async function pollPrice() {
       Object.assign(data, res.data);
     }
 
-    publisher.publish(PRICE_UPDATES, JSON.stringify(data));
+    // Create a new object for scaled prices
+    const scaledData: Record<string, { scaledPrice: string; blockId: number }> =
+      {};
+    const resArray: { mint: string; price: bigint; timestamp: Date }[] = [];
 
-    const resArray: { mint: string; price: number; timestamp: Date }[] = [];
+    for (const mint in data) {
+      const priceUpdate = data[mint];
+      const scaledPrice = BigInt(Math.round(priceUpdate.usdPrice * 1_000_000));
 
-    for (let val in data) {
+      // Prepare for Redis (BigInt to string)
+      scaledData[mint] = {
+        scaledPrice: scaledPrice.toString(),
+        blockId: priceUpdate.blockId,
+      };
+
+      // Prepare for Prisma (use BigInt directly)
       resArray.push({
-        mint: val,
-        price: data[val].usdPrice,
+        mint: mint,
+        price: scaledPrice,
         timestamp: new Date(),
       });
     }
 
+    // Publish scaled data to Redis
+    publisher.publish(PRICE_UPDATES, JSON.stringify(scaledData));
+
+    // Save scaled data to the database
     await prisma.priceHistory.createMany({
       data: resArray,
     });
+
+    console.log(
+      `Successfully polled and stored prices for ${resArray.length} tokens.`
+    );
   } catch (error) {
     console.log("Error Fetching and publishing the Token Price", error);
   }
