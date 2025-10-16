@@ -34,7 +34,9 @@ export class SubscriptionManager {
     null;
 
   // Aggregate subscriptions
-  private aggregateSubscriber: Awaited<ReturnType<typeof createSubscriber>> | null = null;
+  private aggregateSubscriber: Awaited<
+    ReturnType<typeof createSubscriber>
+  > | null = null;
   private aggregateSubscriptions: Map<string, string[]> = new Map(); // contestId -> playerId[]
   private reverseAggregateSubscriptions: Map<string, string> = new Map(); // playerId -> contestId
 
@@ -64,7 +66,8 @@ export class SubscriptionManager {
     }
   }
 
-  private priceUpdateCallbackHandler(channel: string, message: string) {
+  private priceUpdateCallbackHandler(message: string, channel: string) {
+    console.log("Received message on channel:", channel);
     if (channel !== PRICE_UPDATES) {
       return;
     }
@@ -149,13 +152,16 @@ export class SubscriptionManager {
         PRICE_AGGREGATION_CHANNEL,
         this.aggregateCallbackHandler.bind(this)
       );
-      console.log(`Successfully subscribed to Redis channel: ${PRICE_AGGREGATION_CHANNEL}`);
+      console.log(
+        `Successfully subscribed to Redis channel: ${PRICE_AGGREGATION_CHANNEL}`
+      );
     } catch (err) {
       console.error("Failed to subscribe to Redis price aggregation:", err);
     }
   }
 
-  private aggregateCallbackHandler(channel: string, message: string) {
+  private aggregateCallbackHandler(message: string, channel: string) {
+    console.log("Received aggregate update from Redis:", message);
     if (channel !== PRICE_AGGREGATION_CHANNEL) {
       return;
     }
@@ -189,7 +195,10 @@ export class SubscriptionManager {
       this.aggregateSubscriptions.set(contestId, [...existingSubs, playerId]);
     }
     this.reverseAggregateSubscriptions.set(playerId, contestId);
-    console.log(`Player ${playerId} subscribed to aggregate for contest:`, contestId);
+    console.log(
+      `Player ${playerId} subscribed to aggregate for contest:`,
+      contestId
+    );
   }
 
   public unsubscribeFromAggregate(playerId: string, contestId: string) {
@@ -202,7 +211,10 @@ export class SubscriptionManager {
         this.aggregateSubscriptions.delete(contestId);
       }
     }
-    console.log(`Player ${playerId} unsubscribed from aggregate for contest:`, contestId);
+    console.log(
+      `Player ${playerId} unsubscribed from aggregate for contest:`,
+      contestId
+    );
   }
 
   public unsubscribeFromAllAggregates(playerId: string) {
@@ -212,7 +224,6 @@ export class SubscriptionManager {
       this.reverseAggregateSubscriptions.delete(playerId);
     }
   }
-
 
   // --- Existing Contest Subscription Logic ---
 

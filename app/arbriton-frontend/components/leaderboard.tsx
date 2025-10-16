@@ -21,6 +21,25 @@ export function Leaderboard({ players }: { players: Player[] }) {
     return "same"
   }
 
+  if (!players || players.length === 0) {
+    return (
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <Trophy className="h-5 w-5 text-primary" />
+            Live Leaderboard
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="text-center space-y-2">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+            <p className="text-sm text-muted-foreground">Waiting for data...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="border-border bg-card">
       <CardHeader>
@@ -69,7 +88,7 @@ export function Leaderboard({ players }: { players: Player[] }) {
                   }`}
                 >
                   {player.pnl >= 0 ? "+" : ""}
-                  {player.pnl.toFixed(1)}%
+                  {player.pnl.toFixed(2)}%
                 </Badge>
               </div>
             )

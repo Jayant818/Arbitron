@@ -22,6 +22,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
   const { selectedAccount } = useSolana();
   const [livePrices, setLivePrices] = useState<Record<string, string>>({}); // mint -> scaledPrice
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [pnlHistory, setPnlHistory] = useState<any[]>([]);
 
   // Fetch contest details
   const { data: contestDetails, isLoading: isContestLoading } = useGetContestByIdQuery({
@@ -95,6 +96,15 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
     const handleAggregateUpdate = (payload: { contestId: string; data: any[] }) => {
       if (payload.contestId === contestId) {
         setLeaderboardData(payload.data);
+
+        const newHistoryEntry: any = {
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        };
+        payload.data.forEach(p => {
+          newHistoryEntry[p.participantId] = parseFloat(p.averagePnl);
+        });
+
+        setPnlHistory(prevHistory => [...prevHistory, newHistoryEntry]);
       }
     };
 
@@ -109,6 +119,18 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
       signalingManager.unregisterCallback("aggregateUpdate", callbackId);
     };
   }, [contestId]);
+
+  useEffect(() => {
+    if (participants && participants.length > 0 && pnlHistory.length === 0) {
+      const initialHistoryEntry: any = {
+        time: "00:00:00",
+      };
+      participants.forEach((p: any) => {
+        initialHistoryEntry[p.id] = 0;
+      });
+      setPnlHistory([initialHistoryEntry]);
+    }
+  }, [participants, pnlHistory]);
 
   const processedLeaderboardData = useMemo(() => {
     if (!participants || !leaderboardData) return [];
@@ -163,8 +185,8 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
 
   const getContestStatus = () => {
     if (!contestDetails) return "loading";
-    if (contestDetails.status === "ONGOING") return "live";
-    if (contestDetails.status === "COMPLETED") return "completed";
+    if (contestDetails.status === 1) return "live";
+    if (contestDetails.status === 2) return "completed";
     return "upcoming";
   };
 
@@ -181,7 +203,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
     );
   }
 
-  const entryFee = Number(contestDetails.entryFees) / Math.pow(10, contestDetails.decimals);
+  const entryFee = Number(contestDetails.entryFee) / Math.pow(10, contestDetails.decimals);
 
   // Helper to format price from scaled integer
   const formatPrice = (scaledPrice: string | number | bigint) => {
@@ -296,7 +318,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
           </div>
 
           <div className="lg:col-span-2 space-y-6">
-            <PortfolioChart />
+            <PortfolioChart history={pnlHistory} participants={participants} />
 
             <Card className="border-border bg-card">
               <CardHeader>
