@@ -13,10 +13,9 @@ export function Navbar() {
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 transition-smooth hover:opacity-80">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <Trophy className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold gradient-text">SolContest</span>
+              {/* <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+              </div> */}
+              <span className="text-2xl font-bold text-white uppercase leading-tight border-dashed border-2 border-[#7A6F4B] p-2 ">Arbitron</span>
             </Link>
 
             {/* Navigation Links */}

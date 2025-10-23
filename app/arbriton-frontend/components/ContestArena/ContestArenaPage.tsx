@@ -12,6 +12,7 @@ import { useGetContestByIdQuery } from "@/hooks/api-hooks/useContestQuery"
 import { useGetParticipantsByContestIdQuery } from "@/hooks/api-hooks/useUserQuery"
 import { useSolana } from "@/components/solana-provider"
 import { SignalingManager } from "@/lib/SinglingManager"
+import { time } from "console"
 
 interface ContestArenaPageProps {
   contestId: string;
@@ -285,28 +286,20 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
           </div>
 
           {/* Timer */}
-          {timeLeft !== null && timeLeft > 0 && (
+          {timeLeft !== null  && (
             <Card className="border-primary/50 bg-primary/5">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <Clock className="h-6 w-6 text-primary" />
+                  <Clock className={`h-6 w-6 ${timeLeft === 0 ? "text-red-500" : "text-primary"}`} />
                   <div>
-                    <div className="text-xs text-muted-foreground">Time Remaining</div>
-                    <div className="text-2xl font-bold font-mono text-primary">{formatTime(timeLeft)}</div>
+                    <div className="text-md text-muted-foreground">Time Remaining</div>
+                    <div className={`text-2xl font-bold font-mono ${timeLeft === 0 ? "text-red-500" : "text-primary"}`}>{formatTime(timeLeft)}</div>
                   </div>
                 </div>
+                {
+                  timeLeft !== 0 && 
                 <Progress value={progress} className="h-1 mt-2" />
-              </CardContent>
-            </Card>
-          )}
-
-          {timeLeft === 0 && (
-            <Card className="border-muted/50 bg-muted/20">
-              <CardContent className="p-4">
-                <div className="text-center">
-                  <div className="text-lg font-bold text-muted-foreground">Contest Ended</div>
-                  <div className="text-sm text-muted-foreground">Check results below</div>
-                </div>
+                }
               </CardContent>
             </Card>
           )}

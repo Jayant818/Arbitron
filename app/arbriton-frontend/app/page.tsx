@@ -18,32 +18,10 @@ export default function HomePage() {
       <Navbar />
 
       <section className="relative overflow-hidden pt-24 pb-16">
-        {/* Animated morphing background shapes */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <svg className="absolute top-0 left-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style={{ stopColor: "#00FFFF", stopOpacity: 0.2 }} />
-                <stop offset="100%" style={{ stopColor: "#FF00FF", stopOpacity: 0.2 }} />
-              </linearGradient>
-            </defs>
-            <path
-              d="M0,100 Q250,50 500,100 T1000,100 L1000,0 L0,0 Z"
-              fill="url(#grad1)"
-              className="animate-morph-wave"
-            />
-          </svg>
-
-          {/* Floating particles */}
-          <div className="absolute top-20 left-[10%] w-2 h-2 bg-primary rounded-full animate-float-slow" />
-          <div className="absolute top-40 right-[15%] w-3 h-3 bg-accent rounded-full animate-float-medium" />
-          <div className="absolute bottom-40 left-[20%] w-2 h-2 bg-primary rounded-full animate-float-fast" />
-          <div className="absolute top-60 right-[30%] w-4 h-4 bg-accent rounded-full animate-float-slow" />
-        </div>
 
         <div className="container relative mx-auto px-4">
           <div className="mx-auto max-w-4xl text-center space-y-8 animate-slide-up">
-            <div className="inline-flex items-center gap-2 rounded-full glass border-primary/30 px-4 py-2 text-sm font-medium text-primary animate-glow-cyan">
+            <div className="inline-flex items-center gap-2 rounded-full glass border-primary/30 px-4 py-2 text-sm font-medium text-primary ">
               <Sparkles className="h-4 w-4 animate-pulse" />
               No real trading • Pure skill competition
             </div>
@@ -60,7 +38,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button
                 size="lg"
-                className="group relative overflow-hidden bg-primary text-primary-foreground hover:bg-primary/90 transition-smooth px-8 py-6 text-lg font-semibold animate-glow-cyan"
+                className="group relative overflow-hidden bg-primary text-primary-foreground hover:bg-primary/90 transition-smooth px-8 py-6 text-lg font-semibold "
               >
                 <span className="relative z-10 flex items-center gap-2">
                   <Trophy className="h-5 w-5" />

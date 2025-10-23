@@ -75,15 +75,8 @@ export function ContestCard({
     return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
 
-  const borderGlowClass =
-    status === "active"
-      ? "border-glow-cyan animate-glow-cyan"
-      : status === "upcoming"
-        ? "border-glow-purple"
-        : "border-glow-gray"
-
   return (
-    <Card className={`group relative overflow-hidden glass glass-hover ${borderGlowClass}`}>
+    <Card className={`group relative overflow-hidden glass glass-hover `}>
       <CardHeader className="relative">
         <div className="flex items-start justify-between">
           <div>
@@ -104,7 +97,7 @@ export function ContestCard({
       </CardHeader>
 
       <CardContent className="relative space-y-4">
-        <div className="flex items-center justify-between rounded-lg glass p-3">
+        <div className="flex items-center justify-between ">
           <div className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-primary" />
             <span className="text-sm text-card-foreground">Prize Pool</span>
@@ -134,7 +127,7 @@ export function ContestCard({
 
         {status === "upcoming" && (
           <>
-            <div className="flex items-center justify-between rounded-lg glass border-primary/30 p-3">
+            <div className="flex items-center justify-between  border-primary/30 p-3">
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
                 <span className="text-sm text-card-foreground">

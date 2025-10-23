@@ -12,7 +12,7 @@
   --card-foreground: #e0e0e0;
   --popover: rgba(255, 255, 255, 0.08);
   --popover-foreground: #e0e0e0;
-  --primary: #00ffff;
+  --primary: #FAC31B;
   --primary-foreground: #0d0f1b;
   --secondary: rgba(255, 0, 255, 0.15);
   --secondary-foreground: #e0e0e0;
@@ -26,8 +26,8 @@
   --success-foreground: #0d0f1b;
   --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.05);
-  --ring: #00ffff;
-  --chart-1: #00ffff;
+  --ring: #FAC31B;
+  --chart-1: #FAC31B;
   --chart-2: #00ff88;
   --chart-3: #8b5cf6;
   --chart-4: #ff0055;
@@ -35,12 +35,12 @@
   --radius: 1rem;
   --sidebar: #0d0f1b;
   --sidebar-foreground: #e0e0e0;
-  --sidebar-primary: #00ffff;
+  --sidebar-primary: #FAC31B;
   --sidebar-primary-foreground: #0d0f1b;
-  --sidebar-accent: #00ffff;
+  --sidebar-accent: #FAC31B;
   --sidebar-accent-foreground: #0d0f1b;
   --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #00ffff;
+  --sidebar-ring: #FAC31B;
 }
 
 .dark {
@@ -50,7 +50,7 @@
   --card-foreground: #e0e0e0;
   --popover: rgba(255, 255, 255, 0.08);
   --popover-foreground: #e0e0e0;
-  --primary: #00ffff;
+  --primary: #FAC31B;
   --primary-foreground: #0d0f1b;
   --secondary: rgba(255, 0, 255, 0.15);
   --secondary-foreground: #e0e0e0;
@@ -64,8 +64,8 @@
   --success-foreground: #0d0f1b;
   --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.05);
-  --ring: #00ffff;
-  --chart-1: #00ffff;
+  --ring: #FAC31B;
+  --chart-1: #FAC31B;
   --chart-2: #00ff88;
   --chart-3: #8b5cf6;
   --chart-4: #ff0055;
@@ -73,12 +73,12 @@
   --radius: 1rem;
   --sidebar: #0d0f1b;
   --sidebar-foreground: #e0e0e0;
-  --sidebar-primary: #00ffff;
+  --sidebar-primary: #FAC31B;
   --sidebar-primary-foreground: #0d0f1b;
-  --sidebar-accent: #00ffff;
+  --sidebar-accent: #FAC31B;
   --sidebar-accent-foreground: #0d0f1b;
   --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #00ffff;
+  --sidebar-ring: #FAC31B;
 }
 
 @theme inline {
@@ -558,14 +558,14 @@
 
 /* Updated gradient text for cyan/magenta theme */
 .gradient-text {
-  background: linear-gradient(135deg, #00ffff 0%, #ff00ff 100%);
+  background: linear-gradient(135deg, #FAC31B 0%, #ff00ff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-success {
-  background: linear-gradient(135deg, #00ff88 0%, #00ffff 100%);
+  background: linear-gradient(135deg, #00ff88 0%, #FAC31B 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -622,7 +622,7 @@
 
 .countdown-circle-progress {
   fill: none;
-  stroke: #00ffff;
+  stroke: #FAC31B;
   stroke-width: 8;
   stroke-linecap: round;
   transition: stroke-dashoffset 1s linear;
