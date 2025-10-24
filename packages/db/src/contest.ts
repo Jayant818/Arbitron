@@ -37,9 +37,71 @@ export const getContestById = async (id: string) => {
   });
 };
 
-export const updateContestStatus = async (id: string, status: ContestStatus) => {
+export const getContestByIdWithParticipantsAndSelectedTokens = async (
+  id: string
+) => {
+  return await prisma.contest.findUnique({
+    where: { id },
+    include: {
+      participants: {
+        include: {
+          user: true,
+          SelectedTokens: true,
+        },
+      },
+    },
+  });
+};
+
+export const updateContestStatus = async (
+  id: string,
+  status: ContestStatus
+) => {
   return await prisma.contest.update({
     where: { id },
     data: { status },
   });
+};
+
+export const getAllUpcomingContestsWhoseStartTimeIsDue = async (
+  currentTime: Date
+) => {
+  return await prisma.contest.findMany({
+    where: {
+      startTime: {
+        lte: currentTime,
+      },
+      status: ContestStatus.UPCOMING,
+    },
+    include: {
+      _count: {
+        select: {
+          participants: true,
+        },
+      },
+    },
+  });
+};
+
+export const getAllOngoingContestsWhoseEndTimeIsDue = async (
+  currentTime: Date
+) => {
+  const contests = await prisma.contest.findMany({
+    where: {
+      status: ContestStatus.ONGOING,
+    },
+    include: {
+      _count: {
+        select: {
+          participants: true,
+        },
+      },
+    },
+  });
+
+  return contests.filter(
+    (contest) =>
+      contest.startTime.getTime() + contest.duration * 60 * 1000 <=
+      currentTime.getTime()
+  );
 };

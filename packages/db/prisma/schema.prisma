@@ -74,5 +74,6 @@ model PriceHistory{
 enum ContestStatus {
     UPCOMING
     ONGOING
+    PROCESSING
     COMPLETED
 }
