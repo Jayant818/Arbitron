@@ -48,8 +48,10 @@ pub mod arbitron {
         Ok(())
     }
 
-    pub fn execute_swap(context:Context<ExecuteSwap>)->Result<()>{
-        handlers::execute_swap(context)?;
+    pub fn receive_end_contest_proof(context:Context<ReceiveEndContestProof>,data:Vec<u8> )->Result<()>{
+        
+        handlers::receive_end_contest_proof(context,data)?;
+
         Ok(())
     }
 

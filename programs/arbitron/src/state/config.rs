@@ -7,4 +7,5 @@ pub struct Config{
     pub platform_fee_bps:u16, 
     pub admin:Pubkey,
     pub bump:u8,
+    pub platform_fee_wallet_mint: Pubkey,
 }

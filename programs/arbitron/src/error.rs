@@ -63,5 +63,17 @@ pub enum ErrorCode {
     InvalidMaxParticipants,
 
     #[msg("Power Token not selected")]
-    InvalidLeverageSelection
+    InvalidLeverageSelection,
+
+    #[msg("Invalid Proof Verification")]
+    InvalidProofVerification,
+
+    #[msg("Invalid Proof Size")]
+    InvalidProofOutput,
+
+    #[msg("Winner Mismatch")]
+    WinnerMismatch,
+
+    #[msg("No Prize Available")]
+    NoPrizeAvailable,
 }
