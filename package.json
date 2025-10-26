@@ -1,7 +1,7 @@
 {
   "name": "arbitron",
   "version": "0.1.0",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
   "private": true,
   "packageManager": "npm@11.6.0",

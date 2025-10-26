@@ -14,7 +14,7 @@ datasource db {
 }
 
 model User {
-  id             String        @id() @default(cuid())
+  id             String        @id() @default(uuid())
   publicKey      String        @unique
   username       String?
   email          String?       @unique
@@ -24,7 +24,7 @@ model User {
 }
 
 model Contest {
-  id              String        @id @default(cuid())
+  id              String        @id @default(uuid())
   name            String
   host            String
   entryFees       BigInt
@@ -40,7 +40,7 @@ model Contest {
 }
 
 model Participant {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   contestId String
   userId    String
   joinedAt  DateTime @default(now())
@@ -54,17 +54,17 @@ model Participant {
 }
 
 model SelectedTokens {
-  id            String      @id @default(cuid())
+  id            String      @id @default(uuid())
   participantId String
   mint          String
   isPowerToken  Boolean
   quantity      Int
-  entryPrice    BigInt?
+  entryPrice    BigInt
   participant   Participant @relation(fields: [participantId], references: [id])
 }
 
 model PriceHistory{
-  id String @id @default(cuid())
+  id String @id @default(uuid())
   mint String 
   price BigInt
   timestamp DateTime

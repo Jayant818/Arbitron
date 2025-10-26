@@ -1,5 +1,5 @@
 [workspace]
-members = [
+members = ["app/zk-worker-rust",
     "programs/*"
 ]
 resolver = "2"

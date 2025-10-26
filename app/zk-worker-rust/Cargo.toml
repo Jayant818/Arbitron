@@ -1,0 +1,32 @@
+# app/zk-worker-rust/Cargo.toml
+
+[package]
+name = "zk-worker-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.48.0", features = ["full"] }
+redis = { version = "0.32.7", features = ["tokio-comp"] }
+sqlx = { version = "0.8.6", features = [ "runtime-tokio", "postgres", "uuid", "chrono", "json" ] }
+anchor-client = "0.32.1" # Use the same version as your program
+anchor-lang = "0.32.1"   # For serialization if needed, match program version
+solana-sdk = "3.0.0"    # Match program version or Anchor client's requirement
+solana-client = "3.0.0" # Match program version or Anchor client's requirement
+solana-cli-config = "3.0.0" # For loading keypairs easily
+serde = { version = "1.0.228", features = ["derive"] }
+bincode = "2.0.1"
+uuid = { version = "1.18.1", features = ["v4", "serde"] }
+dotenvy = "0.15.7"
+bs58 = "0.5.1" # For decoding secret keys if needed
+hex = "0.4.3" # For image ID conversion
+thiserror = "2.0.17" # For error handling
+chrono = "0.4.42" # For timestamp handling if needed from DB
+
+# --- Bonsol Interface (needed for types and building instructions) ---
+bonsol-interface = { git = "https://github.com/anagrambuild/bonsol", branch = "main" }
+
+# --- Your Arbitron Program Interface (Generate this) ---
+# You'll need to generate a crate from your Arbitron IDL
+# For now, let's placeholder it. You can use anchor-client's clientgen or just define structs manually.
+# arbitron-program-interface = { path = "../path/to/generated/crate" }

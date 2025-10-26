@@ -55,5 +55,10 @@ pub mod arbitron {
         Ok(())
     }
 
+    pub fn set_execution_account(context:Context<SetExecutionAccount>,execution_account:Pubkey)->Result<()>{
+        handlers::set_execution_account(context, execution_account);
+        Ok(())
+    }
+
 
 }
