@@ -6,13 +6,15 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev":"npx ./src/index.ts"
+    "dev": "npx ./src/index.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@arbitron/db":"1.0.0",
-    "@arbitron/shared-redis":"1.0.0"
+    "@arbitron/db": "1.0.0",
+    "@arbitron/shared-redis": "1.0.0",
+    "axios": "^1.12.2",
+    "bs58": "^4.0.1"
   }
 }

@@ -32,4 +32,8 @@ pub struct Contest{
     pub prize_pool_vault_usdt: Pubkey,
 
     pub current_execution_account: Option<Pubkey>,
+
+    pub winner : Option<Pubkey>,
+
+    pub winner_pnl : Option<i128>,
 }

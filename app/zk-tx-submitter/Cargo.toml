@@ -1,12 +1,9 @@
-# app/zk-worker-rust/Cargo.toml
-
 [package]
-name = "zk-worker-rust"
+name = "zk-tx-submitter"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-tokio = { version = "1.48.0", features = ["full"] }
 redis = { version = "0.32.7", features = ["tokio-comp"] }
 sqlx = { version = "0.8.6", features = [ "runtime-tokio", "postgres", "uuid", "chrono", "json" ] }
 anchor-client = "0.32.1" # Use the same version as your program
@@ -25,8 +22,3 @@ chrono = "0.4.42" # For timestamp handling if needed from DB
 
 # --- Bonsol Interface (needed for types and building instructions) ---
 bonsol-interface = { git = "https://github.com/anagrambuild/bonsol", branch = "main" }
-
-# --- Your Arbitron Program Interface (Generate this) ---
-# You'll need to generate a crate from your Arbitron IDL
-# For now, let's placeholder it. You can use anchor-client's clientgen or just define structs manually.
-# arbitron-program-interface = { path = "../path/to/generated/crate" }
