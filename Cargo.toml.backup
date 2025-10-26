@@ -1,5 +1,5 @@
 [workspace]
-members = ["app/zk-tx-submitter",
+members = ["app/zk-tx-submitter","app/zk-worker-rust",
     "programs/*"
 ]
 resolver = "2"

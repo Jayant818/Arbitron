@@ -1,5 +1,14 @@
 import { prisma } from "./singletonPrisma.js";
 
+
+export const updateUser = async (publicKey: string, username: string, email: string) => {
+    const user = await prisma.user.update({
+        where: { publicKey },
+        data: { username, email },
+    });
+    return user;
+};
+
 export const findOrCreateUser = async (publicKey: string) => {
   let user = await prisma.user.findUnique({
     where: { publicKey },
@@ -10,5 +19,14 @@ export const findOrCreateUser = async (publicKey: string) => {
       data: { publicKey },
     });
   }
-  return user;
+  return {
+    ...user,
+    avatar: user.username ? user.username.charAt(0).toUpperCase() : "A",
+    rank: 1,
+    xp: 500,
+    nextLevelXp: 1000,
+    contestsPlayed: 10,
+    winRate: 80,
+    totalEarnings: 100,
+  };
 };

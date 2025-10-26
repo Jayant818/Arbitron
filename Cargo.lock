@@ -9964,28 +9964,7 @@ dependencies = [
  "hex",
  "redis",
  "serde",
- "solana-cli-config",
- "solana-client",
- "solana-sdk 3.0.0",
- "sqlx",
- "thiserror 2.0.17",
- "uuid",
-]
-
-[[package]]
-name = "zk-worker-rust"
-version = "0.1.0"
-dependencies = [
- "anchor-client",
- "anchor-lang 0.32.1",
- "bincode 2.0.1",
- "bonsol-interface 0.6.1 (git+https://github.com/anagrambuild/bonsol?branch=main)",
- "bs58",
- "chrono",
- "dotenvy",
- "hex",
- "redis",
- "serde",
+ "serde_json",
  "solana-cli-config",
  "solana-client",
  "solana-sdk 3.0.0",
