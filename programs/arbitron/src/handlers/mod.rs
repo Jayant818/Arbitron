@@ -7,6 +7,7 @@ pub mod create_portfolio;
 pub mod update_portfolio;
 pub mod receive_end_contest_proof;
 pub mod set_execution_account;
+pub mod claim_prize;
 
 pub use create_contest::*;
 pub use join_contest::*;
@@ -17,3 +18,4 @@ pub use create_portfolio::*;
 pub use update_portfolio::*;
 pub use receive_end_contest_proof::*;
 pub use set_execution_account::*;
+pub use claim_prize::*;

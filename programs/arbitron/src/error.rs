@@ -76,4 +76,25 @@ pub enum ErrorCode {
 
     #[msg("No Prize Available")]
     NoPrizeAvailable,
+
+    #[msg("Prize has already been claimed or vault is empty.")]
+    AlreadyClaimed,
+
+    #[msg("The provided prize vault does not match the contest.")]
+    InvalidPrizeVault,
+
+    #[msg("The provided fee wallet does not match the config.")]
+    InvalidFeeWallet,
+
+    #[msg("The provided token mint is invalid.")]
+    InvalidMint,
+
+    #[msg("The Provided user is not winner")]
+    NotWinner,
+
+    #[msg("The winner is not the owner of the ata passed")]
+    InvalidOwner,
+
+    #[msg("The vault is Empty")]
+    VaultEmpty
 }

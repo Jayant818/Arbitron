@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-arbitron = "C63yc2q8kZKsVfabH5A6ip5DSDAx4ryW4av8e4vXMaw2"
+arbitron = "GVP9mBCdGTTfiBmMWf1h5pqyXxorFeBmUvBbC7aUiTXS"
 
 [registry]
 url = "https://api.apr.dev"
@@ -17,4 +17,3 @@ wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "npx tsx create-codama-client.ts; npx tsx --test --test-reporter=spec tests/*.ts"
-

@@ -36,4 +36,6 @@ pub struct Contest{
     pub winner : Option<Pubkey>,
 
     pub winner_pnl : Option<i128>,
+
+    pub is_prize_claimed : bool,
 }
