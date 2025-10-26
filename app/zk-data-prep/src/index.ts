@@ -1,6 +1,5 @@
 import { redis } from "@arbitron/shared-redis";
 import { getContestByIdWithParticipantsAndSelectedTokens } from "@arbitron/db";
-import { compileFunction } from "vm";
 
 const END_CONTEST_QUEUE = "ended-contests";
 
