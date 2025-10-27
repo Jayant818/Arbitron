@@ -309,7 +309,7 @@ function JoinContestPage() {
 
     // Stablecoins
     if (
-      symbol.includes("usdt") ||
+      symbol.includes("USDC") ||
       symbol.includes("usdc") ||
       symbol.includes("dai") ||
       symbol.includes("busd") ||
@@ -670,7 +670,7 @@ function JoinContestPage() {
       const [prizePoolVault] = await getProgramDerivedAddress({
         programAddress: address(ARBITRON_PROGRAM_ADDRESS),
         seeds: [
-          new TextEncoder().encode("prize_pool_usdt"),
+          new TextEncoder().encode("prize_pool_usdc"),
           getAddressEncoder().encode(address(contestId)),
         ],
       });
@@ -1309,7 +1309,7 @@ function JoinContestPage() {
                           contestDetails.entryFee /
                           Math.pow(10, contestDetails.decimals)
                         ).toFixed(2)}{" "}
-                        USDT
+                        USDC
                       </span>
                     </div>
                   </div>
@@ -1367,7 +1367,7 @@ function JoinContestPage() {
                         <span className="font-semibold text-blue-400">
                           2 Stable
                         </span>{" "}
-                        tokens total (USDT, USDC, DAI, etc.)
+                        tokens total (USDC, USDC, DAI, etc.)
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
@@ -1434,7 +1434,7 @@ function JoinContestPage() {
                             }% More (${(
                               (entryFee * MINIMUM_THRESHOLD) / 100 -
                               totalSelectedValue
-                            ).toFixed(2)} USDT)`
+                            ).toFixed(2)} USDC)`
                           : `Add $${Math.abs(remainingBudget).toFixed(2)} ${
                               remainingBudget > 0 ? "More" : "Less"
                             }`}

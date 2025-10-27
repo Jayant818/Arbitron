@@ -3,7 +3,7 @@ use anchor_spl::{token_interface::{TokenInterface,TokenAccount,Mint}};
 
 use crate::{error::ErrorCode, Contest, ContestState};
 
-// const USDT_TOKEN_MINT_ADDRESS:&str = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
+// const usdc_TOKEN_MINT_ADDRESS:&str = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 
 #[derive(Accounts)]
 #[instruction(name:String)]
@@ -30,14 +30,14 @@ pub struct CreateContest<'info>{
         init,
         payer = signer,
         seeds = [
-            b"prize_pool_usdt",
+            b"prize_pool_usdc",
             contest.key().as_ref()
         ],
         bump,
         token::mint = token_mint,
         token::authority = contest,
     )]
-    pub prize_pool_vault_usdt : InterfaceAccount<'info,TokenAccount>,
+    pub prize_pool_vault_usdc : InterfaceAccount<'info,TokenAccount>,
 
     pub system_program : Program<'info,System>,
 
@@ -67,7 +67,7 @@ pub fn create_contest(context:Context<CreateContest>,name:String, start_time: i6
     contest.participents_count = 0;
     contest.status = ContestState::Upcoming;
     contest.entry_fees = entry_fees;
-    contest.prize_pool_vault_usdt = context.accounts.prize_pool_vault_usdt.key();
+    contest.prize_pool_vault_usdc = context.accounts.prize_pool_vault_usdc.key();
     contest.bump = context.bumps.contest;
 
     Ok(())

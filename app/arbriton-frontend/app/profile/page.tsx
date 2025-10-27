@@ -9,10 +9,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Trophy, Award, Target, Zap, Crown, Edit } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUser, useUpdateUser } from "@/hooks/api-hooks/user.hooks";
-import { useWallet } from "@solana/wallet-adapter-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useSolana } from "@/components/solana-provider";
 
 const nfts = [
     { id: "1", name: "Champion Badge", rarity: "Legendary", icon: Trophy, color: "from-primary to-accent" },
@@ -35,7 +35,7 @@ const recentContests = [
 ];
 
 export default function ProfilePage() {
-    const { publicKey } = useWallet();
+    const { selectedAccount } = useSolana();
     const { data: userStats, isLoading: loading } = useUser();
     const { mutate: updateUser } = useUpdateUser();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -50,10 +50,10 @@ export default function ProfilePage() {
     }, [userStats]);
 
     const handleUpdateUser = async () => {
-        if (publicKey) {
+        if (selectedAccount && selectedAccount.address) {
             try {
                 updateUser({
-                    walletAddress: publicKey.toBase58(),
+                    walletAddress: selectedAccount.address,
                     username: editedUsername,
                     email: editedEmail,
                 });

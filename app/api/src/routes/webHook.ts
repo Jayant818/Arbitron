@@ -7,7 +7,6 @@ import {
   parseCreateContestInstruction,
   parseJoinContestInstruction,
   parseStartContestInstruction,
-  parseExecuteSwapInstruction,
   parseInitializeInstruction,
   ParsedArbitronInstruction,
 } from "../../../../dist/js-client";
@@ -119,7 +118,7 @@ webHookRouter.post("/", async (req, res) => {
           //   maxParticipants: parsedData.data.maxParticipents,
           //   startTime: new Date(Number(parsedData.data.startTime) * 1000),
           //   duration: Number(parsedData.data.duration),
-          //   decimals: 6, // USDT decimals
+          //   decimals: 6, // USDC decimals
           // });
           // console.log("✅ Contest saved to database");
         } catch (parseError) {
@@ -174,20 +173,15 @@ webHookRouter.post("/", async (req, res) => {
         }
         break;
 
-      case ArbitronInstruction.ExecuteSwap:
-        try {
-          const convertedIx = convertWebhookInstruction(rawIx);
-          const parsedData = parseExecuteSwapInstruction(convertedIx);
-          console.log("Parsed ExecuteSwap Data:");
-          console.log("Program:", parsedData.programAddress);
-          console.log("Accounts:", rawIx.accounts);
-
-          // TODO: Update user score/portfolio in database
-          // await recordSwapInDatabase(parsedData, rawIx.accounts);
-        } catch (parseError) {
-          console.error("Error parsing ExecuteSwap instruction:", parseError);
-        }
-        break;
+      // ExecuteSwap instruction has been removed from the program
+      // case ArbitronInstruction.ExecuteSwap:
+      //   try {
+      //     console.log("ExecuteSwap instruction detected (deprecated)");
+      //     // TODO: Handle swap execution if needed
+      //   } catch (parseError) {
+      //     console.error("Error parsing ExecuteSwap instruction:", parseError);
+      //   }
+      //   break;
 
       case ArbitronInstruction.Initialize:
         try {

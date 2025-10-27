@@ -285,7 +285,7 @@ describe("Arbitron Tests ", () => {
   let sudoHostContest: Address;
 
   let participantInfoPda: Address;
-  let participantUsdtAtaPda: Address;
+  let participantUsdcAtaPda: Address;
 
   before(async () => {
     if (!RPC_URL || !RPC_SUBSCRIPTION_URL || !ARBITRON_PROGRAM_ID) {
@@ -469,7 +469,7 @@ describe("Arbitron Tests ", () => {
 
       const createContestAsyncInput: CreateContestAsyncInput = {
         duration: 1000 * 60 * 60 * 2, // 2 hour duration
-        entryFees: 1_00_000_000n, // 100 USDT
+        entryFees: 1_00_000_000n, // 100 USDC
         maxParticipents: 10,
         name: contestName,
         startTime: Math.floor(Date.now() / 1000) + 60, // Start time 1 minute from now
@@ -556,7 +556,7 @@ describe("Arbitron Tests ", () => {
 
     //       const createContestAsyncInput: CreateContestAsyncInput = {
     //         duration: 1000 * 60 * 60 * 2, // 2 hour duration
-    //         entryFees: 1_000_000_000n, // 1000 USDT
+    //         entryFees: 1_000_000_000n, // 1000 USDC
     //         maxParticipents: 100,
     //         name: contestName,
     //         startTime: Math.floor(Date.now() / 1000) + 120, // Start time 2 minutes from now
@@ -874,7 +874,7 @@ describe("Arbitron Tests ", () => {
         });
 
         const prizePoolVaultSeed = [
-          new TextEncoder().encode("prize_pool_usdt"),
+          new TextEncoder().encode("prize_pool_usdc"),
           getAddressEncoder().encode(contest),
         ];
         const [prizePoolVault] = await getProgramDerivedAddress({
@@ -946,13 +946,13 @@ describe("Arbitron Tests ", () => {
           Buffer.from(participantInfoAccount.value.data[0], "base64")
         );
 
-        // 8️⃣ Fetch participant USDT balance
-        const participantUsdtBalance = await rpc
+        // 8️⃣ Fetch participant USDC balance
+        const participantUsdcBalance = await rpc
           .getTokenAccountBalance(prizePoolVault)
           .send();
         assert(
-          participantUsdtBalance.value,
-          "Participant USDT balance not found"
+          participantUsdcBalance.value,
+          "Participant USDC balance not found"
         );
 
         // 9️⃣ Verify participant info
@@ -1000,20 +1000,20 @@ describe("Arbitron Tests ", () => {
     //     // Storing it for other tests to use
     //     participantInfoPda = participantInfoPdaAddress;
 
-    //     const participantUsdtAtaSeeds = [
-    //       new TextEncoder().encode("participent_usdt_ata"),
+    //     const participantUsdcAtaSeeds = [
+    //       new TextEncoder().encode("participent_usdc_ata"),
     //       getAddressEncoder().encode(user1.address),
     //       getAddressEncoder().encode(tokenMint),
     //       getAddressEncoder().encode(contest),
     //     ];
 
-    //     const [participantUsdtAtaPdaAddress] = await getProgramDerivedAddress({
+    //     const [participantUsdcAtaPdaAddress] = await getProgramDerivedAddress({
     //       programAddress: ARBITRON_PROGRAM_ID,
-    //       seeds: participantUsdtAtaSeeds,
+    //       seeds: participantUsdcAtaSeeds,
     //     });
 
     //     // Store for other tests to use
-    //     participantUsdtAtaPda = participantUsdtAtaPdaAddress;
+    //     participantUsdcAtaPda = participantUsdcAtaPdaAddress;
 
     //     let playerGlobalProfileSeeds = [
     //       new TextEncoder().encode("player"),
@@ -1044,21 +1044,21 @@ describe("Arbitron Tests ", () => {
     //       userAta: user1_ata,
     //       platformFeeWallet: fee_wallet_ata, // Use fee wallet ATA
     //       participentInfo: participantInfoPda,
-    //       participentUsdtAta: participantUsdtAtaPda,
+    //       participentUsdcAta: participantUsdcAtaPda,
     //       config: configPda,
     //       playerGlobalProfile: playerGlobalProfilePda,
     //       tradingPda: tradingPda,
     //     };
 
-    //     let user1_usdt_balance_before_join = await rpc
+    //     let user1_usdc_balance_before_join = await rpc
     //       .getTokenAccountBalance(user1_ata)
     //       .send();
 
     //     if (
-    //       !user1_usdt_balance_before_join ||
-    //       !user1_usdt_balance_before_join.value
+    //       !user1_usdc_balance_before_join ||
+    //       !user1_usdc_balance_before_join.value
     //     ) {
-    //       assert.fail("User1 USDT balance is null");
+    //       assert.fail("User1 USDC balance is null");
     //     }
 
     //     await joinContest({
@@ -1066,15 +1066,15 @@ describe("Arbitron Tests ", () => {
     //       payer: user1,
     //     });
 
-    //     let user1_usdt_balance_after_join = await rpc
+    //     let user1_usdc_balance_after_join = await rpc
     //       .getTokenAccountBalance(user1_ata)
     //       .send();
 
     //     if (
-    //       !user1_usdt_balance_after_join ||
-    //       !user1_usdt_balance_after_join.value
+    //       !user1_usdc_balance_after_join ||
+    //       !user1_usdc_balance_after_join.value
     //     ) {
-    //       assert.fail("User1 USDT balance is null");
+    //       assert.fail("User1 USDC balance is null");
     //     }
 
     //     // Fecthing Created PDA DATA
@@ -1092,12 +1092,12 @@ describe("Arbitron Tests ", () => {
     //       Buffer.from(participantInfoAccount.value.data[0], "base64")
     //     );
 
-    //     const participant_usdt_balance = await rpc
-    //       .getTokenAccountBalance(participantUsdtAtaPda)
+    //     const participant_usdc_balance = await rpc
+    //       .getTokenAccountBalance(participantUsdcAtaPda)
     //       .send();
 
-    //     if (!participant_usdt_balance || !participant_usdt_balance.value) {
-    //       assert.fail("Participant USDT balance is null");
+    //     if (!participant_usdc_balance || !participant_usdc_balance.value) {
+    //       assert.fail("Participant USDC balance is null");
     //     }
 
     //     assert.fail(
@@ -1129,16 +1129,16 @@ describe("Arbitron Tests ", () => {
     //       seeds: participantInfoSeeds,
     //     });
 
-    //     const participantUsdtAtaSeeds = [
-    //       new TextEncoder().encode("participent_usdt_ata"),
+    //     const participantUsdcAtaSeeds = [
+    //       new TextEncoder().encode("participent_usdc_ata"),
     //       getAddressEncoder().encode(user1.address),
     //       getAddressEncoder().encode(tokenMint),
     //       getAddressEncoder().encode(sudoHostContest),
     //     ];
 
-    //     const [participantUsdtAtaPdaAddress] = await getProgramDerivedAddress({
+    //     const [participantUsdcAtaPdaAddress] = await getProgramDerivedAddress({
     //       programAddress: ARBITRON_PROGRAM_ID,
-    //       seeds: participantUsdtAtaSeeds,
+    //       seeds: participantUsdcAtaSeeds,
     //     });
 
     //     let playerGlobalProfileSeeds = [
@@ -1170,21 +1170,21 @@ describe("Arbitron Tests ", () => {
     //       userAta: user1_ata,
     //       platformFeeWallet: fee_wallet_ata, // Use fee wallet ATA
     //       participentInfo: participantInfoPdaAddress,
-    //       participentUsdtAta: participantUsdtAtaPdaAddress,
+    //       participentUsdcAta: participantUsdcAtaPdaAddress,
     //       config: configPda,
     //       playerGlobalProfile: playerGlobalProfilePda,
     //       tradingPda: tradingPda,
     //     };
 
-    //     let user1_usdt_balance_before_join = await rpc
+    //     let user1_usdc_balance_before_join = await rpc
     //       .getTokenAccountBalance(user1_ata)
     //       .send();
 
     //     if (
-    //       !user1_usdt_balance_before_join ||
-    //       !user1_usdt_balance_before_join.value
+    //       !user1_usdc_balance_before_join ||
+    //       !user1_usdc_balance_before_join.value
     //     ) {
-    //       assert.fail("User1 USDT balance is null");
+    //       assert.fail("User1 USDC balance is null");
     //     }
 
     //     await joinContest({
@@ -1192,15 +1192,15 @@ describe("Arbitron Tests ", () => {
     //       payer: user1,
     //     });
 
-    //     let user1_usdt_balance_after_join = await rpc
+    //     let user1_usdc_balance_after_join = await rpc
     //       .getTokenAccountBalance(user1_ata)
     //       .send();
 
     //     if (
-    //       !user1_usdt_balance_after_join ||
-    //       !user1_usdt_balance_after_join.value
+    //       !user1_usdc_balance_after_join ||
+    //       !user1_usdc_balance_after_join.value
     //     ) {
-    //       assert.fail("User1 USDT balance is null");
+    //       assert.fail("User1 USDC balance is null");
     //     }
 
     //     // Fecthing Created PDA DATA
@@ -1218,12 +1218,12 @@ describe("Arbitron Tests ", () => {
     //       Buffer.from(participantInfoAccount.value.data[0], "base64")
     //     );
 
-    //     const participant_usdt_balance = await rpc
-    //       .getTokenAccountBalance(participantUsdtAtaPdaAddress)
+    //     const participant_usdc_balance = await rpc
+    //       .getTokenAccountBalance(participantUsdcAtaPdaAddress)
     //       .send();
 
-    //     if (!participant_usdt_balance || !participant_usdt_balance.value) {
-    //       assert.fail("Participant USDT balance is null");
+    //     if (!participant_usdc_balance || !participant_usdc_balance.value) {
+    //       assert.fail("Participant USDC balance is null");
     //     }
 
     //     assert.fail(
@@ -1284,16 +1284,16 @@ describe("Arbitron Tests ", () => {
     //       seeds: participantInfoSeeds,
     //     });
 
-    //     const participantUsdtAtaSeeds = [
-    //       new TextEncoder().encode("participent_usdt_ata"),
+    //     const participantUsdcAtaSeeds = [
+    //       new TextEncoder().encode("participent_usdc_ata"),
     //       getAddressEncoder().encode(user1.address),
     //       getAddressEncoder().encode(tokenMint),
     //       getAddressEncoder().encode(sudoHostContest),
     //     ];
 
-    //     const [participantUsdtAtaPdaAddress] = await getProgramDerivedAddress({
+    //     const [participantUsdcAtaPdaAddress] = await getProgramDerivedAddress({
     //       programAddress: ARBITRON_PROGRAM_ID,
-    //       seeds: participantUsdtAtaSeeds,
+    //       seeds: participantUsdcAtaSeeds,
     //     });
 
     //     const playerGlobalProfileSeeds = [
@@ -1326,7 +1326,7 @@ describe("Arbitron Tests ", () => {
     //         userAta: thirdPersonAta, // Using third person's ATA instead of user1's ATA
     //         platformFeeWallet: fee_wallet_ata,
     //         participentInfo: participantInfoPdaAddress,
-    //         participentUsdtAta: participantUsdtAtaPdaAddress,
+    //         participentUsdcAta: participantUsdcAtaPdaAddress,
     //         config: configPda,
     //         playerGlobalProfile: playerGlobalProfilePda,
     //         tradingPda: tradingPda,
@@ -1411,16 +1411,16 @@ describe("Arbitron Tests ", () => {
   //       seeds: participant2InfoSeeds,
   //     });
 
-  //     const participant2UsdtAtaSeeds = [
-  //       new TextEncoder().encode("participent_usdt_ata"),
+  //     const participant2UsdcAtaSeeds = [
+  //       new TextEncoder().encode("participent_usdc_ata"),
   //       getAddressEncoder().encode(secondParticipant.address),
   //       getAddressEncoder().encode(tokenMint),
   //       getAddressEncoder().encode(contest),
   //     ];
 
-  //     const [participant2UsdtAtaPda] = await getProgramDerivedAddress({
+  //     const [participant2UsdcAtaPda] = await getProgramDerivedAddress({
   //       programAddress: ARBITRON_PROGRAM_ID,
-  //       seeds: participant2UsdtAtaSeeds,
+  //       seeds: participant2UsdcAtaSeeds,
   //     });
 
   //     const participant2GlobalProfileSeeds = [
@@ -1454,7 +1454,7 @@ describe("Arbitron Tests ", () => {
   //         userAta: secondParticipant_ata,
   //         platformFeeWallet: fee_wallet_ata,
   //         participentInfo: participant2InfoPda,
-  //         participentUsdtAta: participant2UsdtAtaPda,
+  //         participentUsdcAta: participant2UsdcAtaPda,
   //         config: configPda,
   //         playerGlobalProfile: participant2GlobalProfilePda,
   //         tradingPda: participant2TradingPda,
@@ -1482,7 +1482,7 @@ describe("Arbitron Tests ", () => {
 
   //     const createContestAsyncInput: CreateContestAsyncInput = {
   //       duration: 1000 * 60 * 60 * 2, // 2 hour duration
-  //       entryFees: 1_00_000_000n, // 100 USDT (same as main contest)
+  //       entryFees: 1_00_000_000n, // 100 USDC (same as main contest)
   //       maxParticipents: 100,
   //       name: contestName,
   //       startTime: Math.floor(Date.now() / 1000) - 60, // Start time in the past
@@ -1559,16 +1559,16 @@ describe("Arbitron Tests ", () => {
   //         seeds: participantInfoSeeds,
   //       });
 
-  //       const participantUsdtAtaSeeds = [
-  //         new TextEncoder().encode("participent_usdt_ata"),
+  //       const participantUsdcAtaSeeds = [
+  //         new TextEncoder().encode("participent_usdc_ata"),
   //         getAddressEncoder().encode(participant.address),
   //         getAddressEncoder().encode(tokenMint),
   //         getAddressEncoder().encode(immediateContestPda),
   //       ];
 
-  //       const [participantUsdtAtaPda] = await getProgramDerivedAddress({
+  //       const [participantUsdcAtaPda] = await getProgramDerivedAddress({
   //         programAddress: ARBITRON_PROGRAM_ID,
-  //         seeds: participantUsdtAtaSeeds,
+  //         seeds: participantUsdcAtaSeeds,
   //       });
 
   //       const participantGlobalProfileSeeds = [
@@ -1602,7 +1602,7 @@ describe("Arbitron Tests ", () => {
   //           userAta: participantAta,
   //           platformFeeWallet: fee_wallet_ata,
   //           participentInfo: participantInfoPda,
-  //           participentUsdtAta: participantUsdtAtaPda,
+  //           participentUsdcAta: participantUsdcAtaPda,
   //           config: configPda,
   //           playerGlobalProfile: participantGlobalProfilePda,
   //           tradingPda: participantTradingPda,
@@ -1656,7 +1656,7 @@ describe("Arbitron Tests ", () => {
 
   //       const createContestAsyncInput: CreateContestAsyncInput = {
   //         duration: 1000 * 60 * 60 * 2, // 2 hour duration
-  //         entryFees: 1_00_000_000n, // 100 USDT
+  //         entryFees: 1_00_000_000n, // 100 USDC
   //         maxParticipents: 100,
   //         name: contestName,
   //         startTime: Math.floor(Date.now() / 1000) + 3600, // Start time 1 hour in the future
@@ -1732,16 +1732,16 @@ describe("Arbitron Tests ", () => {
   //           seeds: participantInfoSeeds,
   //         });
 
-  //         const participantUsdtAtaSeeds = [
-  //           new TextEncoder().encode("participent_usdt_ata"),
+  //         const participantUsdcAtaSeeds = [
+  //           new TextEncoder().encode("participent_usdc_ata"),
   //           getAddressEncoder().encode(participant.address),
   //           getAddressEncoder().encode(tokenMint),
   //           getAddressEncoder().encode(futureContestPda),
   //         ];
 
-  //         const [participantUsdtAtaPda] = await getProgramDerivedAddress({
+  //         const [participantUsdcAtaPda] = await getProgramDerivedAddress({
   //           programAddress: ARBITRON_PROGRAM_ID,
-  //           seeds: participantUsdtAtaSeeds,
+  //           seeds: participantUsdcAtaSeeds,
   //         });
 
   //         const participantGlobalProfileSeeds = [
@@ -1775,7 +1775,7 @@ describe("Arbitron Tests ", () => {
   //             userAta: participantAta,
   //             platformFeeWallet: fee_wallet_ata,
   //             participentInfo: participantInfoPda,
-  //             participentUsdtAta: participantUsdtAtaPda,
+  //             participentUsdcAta: participantUsdcAtaPda,
   //             config: configPda,
   //             playerGlobalProfile: participantGlobalProfilePda,
   //             tradingPda: participantTradingPda,
@@ -1842,7 +1842,7 @@ describe("Arbitron Tests ", () => {
 
   //       const createContestAsyncInput: CreateContestAsyncInput = {
   //         duration: 1000 * 60 * 60 * 2, // 2 hour duration
-  //         entryFees: 1_00_000_000n, // 100 USDT (same as main contest)
+  //         entryFees: 1_00_000_000n, // 100 USDC (same as main contest)
   //         maxParticipents: 100,
   //         name: contestName,
   //         startTime: Math.floor(Date.now() / 1000) - 60, // Start time 1 minute ago (in the past)
@@ -1922,16 +1922,16 @@ describe("Arbitron Tests ", () => {
   //           seeds: participantInfoSeeds,
   //         });
 
-  //         const participantUsdtAtaSeeds = [
-  //           new TextEncoder().encode("participent_usdt_ata"),
+  //         const participantUsdcAtaSeeds = [
+  //           new TextEncoder().encode("participent_usdc_ata"),
   //           getAddressEncoder().encode(participant.address),
   //           getAddressEncoder().encode(tokenMint),
   //           getAddressEncoder().encode(pastContestPda),
   //         ];
 
-  //         const [participantUsdtAtaPda] = await getProgramDerivedAddress({
+  //         const [participantUsdcAtaPda] = await getProgramDerivedAddress({
   //           programAddress: ARBITRON_PROGRAM_ID,
-  //           seeds: participantUsdtAtaSeeds,
+  //           seeds: participantUsdcAtaSeeds,
   //         });
 
   //         const participantGlobalProfileSeeds = [
@@ -1965,7 +1965,7 @@ describe("Arbitron Tests ", () => {
   //             userAta: participantAta,
   //             platformFeeWallet: fee_wallet_ata,
   //             participentInfo: participantInfoPda,
-  //             participentUsdtAta: participantUsdtAtaPda,
+  //             participentUsdcAta: participantUsdcAtaPda,
   //             config: configPda,
   //             playerGlobalProfile: participantGlobalProfilePda,
   //             tradingPda: participantTradingPda,
@@ -2067,7 +2067,7 @@ describe("Arbitron Tests ", () => {
 
   //       const createContestAsyncInput: CreateContestAsyncInput = {
   //         duration: 1000 * 60 * 60 * 2, // 2 hour duration
-  //         entryFees: 1_00_000_000n, // 100 USDT
+  //         entryFees: 1_00_000_000n, // 100 USDC
   //         maxParticipents: 100,
   //         name: contestName,
   //         startTime: Math.floor(Date.now() / 1000) - 60, // Start time in the past

@@ -6,7 +6,10 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx ./src/index.ts"
+    "dev": "tsx src/index.ts",
+    "dev:rust": "cd ../zk-tx-submitter && cargo run",
+    "dev:both": "concurrently \"npm run dev\" \"npm run dev:rust\"",
+    "build:rust": "cd ../zk-tx-submitter && cargo build --release"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +18,8 @@
     "@arbitron/db": "1.0.0",
     "@arbitron/shared-redis": "1.0.0",
     "axios": "^1.12.2",
-    "bs58": "^4.0.1"
+    "bs58": "^4.0.1",
+    "tsx": "^4.20.6",
+    "concurrently": "^9.0.1"
   }
 }

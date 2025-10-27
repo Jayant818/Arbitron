@@ -55,12 +55,22 @@ export const getContestByIdWithParticipantsAndSelectedTokens = async (
 
 export const updateContestStatus = async (
   id: string,
-  status: ContestStatus
+  status: ContestStatus,
+  expectedCurrentStatus?: ContestStatus
 ) => {
-  return await prisma.contest.update({
-    where: { id },
-    data: { status },
-  });
+  try {
+    return await prisma.contest.update({
+      where: {
+        id,
+        // Only update if the contest is in the expected status (if provided)
+        ...(expectedCurrentStatus && { status: expectedCurrentStatus }),
+      },
+      data: { status },
+    });
+  } catch (error) {
+    // If the contest is not found or not in the expected status, return null
+    return null;
+  }
 };
 
 export const getAllUpcomingContestsWhoseStartTimeIsDue = async (

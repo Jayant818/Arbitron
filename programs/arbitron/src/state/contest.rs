@@ -29,7 +29,7 @@ pub struct Contest{
 
     pub bump: u8,
 
-    pub prize_pool_vault_usdt: Pubkey,
+    pub prize_pool_vault_usdc: Pubkey,
 
     pub current_execution_account: Option<Pubkey>,
 

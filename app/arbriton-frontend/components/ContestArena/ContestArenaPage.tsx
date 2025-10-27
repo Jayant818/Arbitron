@@ -235,7 +235,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
                 <span>Entry Fee</span>
               </div>
               <div className="text-2xl font-bold text-foreground">
-                ${entryFee.toFixed(2)} USDT
+                ${entryFee.toFixed(2)} USDC
               </div>
             </CardContent>
           </Card>

@@ -34,18 +34,29 @@ cron.schedule("* * * * *", async () => {
 
   for (const contest of contests) {
     try {
-      // first try to update the status, what if the we push it in the queue but fail to update the status, then at another cron job we will again push them
-      const data = await updateContestStatus(
+      // Use a transaction to atomically update status and check if it was already updated
+      // This prevents race conditions where multiple cron jobs try to process the same contest
+      // Only update if the contest is still in ONGOING status
+      const updatedContest = await updateContestStatus(
         contest.id,
-        ContestStatus.PROCESSING
+        ContestStatus.PROCESSING,
+        ContestStatus.ONGOING // Only update if currently ONGOING
       );
+
+      // Check if the update actually happened (the function should return the updated contest or null if already processed)
+      if (!updatedContest) {
+        console.log(
+          `[Ender]: Contest ${contest.id} was already processed by another worker.`
+        );
+        continue;
+      }
 
       console.log(
         "[Ender]: Updated contest status to PROCESSING for contest",
         contest.id
       );
 
-      await redis.lpush(END_CONTEST_QUEUE, contest.id.toString());
+      await redis.lPush(END_CONTEST_QUEUE, contest.id.toString());
       console.log(`[Ender]: Queued contest ${contest.id} for ending.`);
     } catch (error) {
       console.error(`[Ender]: Failed to end contest ${contest.id}:`, error);

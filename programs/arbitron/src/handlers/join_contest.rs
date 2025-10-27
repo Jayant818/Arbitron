@@ -17,7 +17,7 @@ pub struct JoinContest<'info>{
 
     pub host: SystemAccount<'info>,
 
-    // will be USDT mint address : This is the token we are using for entry fees
+    // will be USDC mint address : This is the token we are using for entry fees
     pub token_mint : InterfaceAccount<'info,Mint>,
 
     #[account(
@@ -35,7 +35,7 @@ pub struct JoinContest<'info>{
     #[account(
         mut,
         seeds = [
-            b"prize_pool_usdt",
+            b"prize_pool_usdc",
             contest.key().as_ref()
         ],
         bump,
@@ -118,16 +118,16 @@ pub fn join_contest(context: Context<JoinContest>) -> Result<()> {
     player_global_profile.bump = context.bumps.player_global_profile;
 
     // Transfer the token from user_ata to our pda
-    let user_usdt_ata = &context.accounts.user_ata;
-    let prize_pool_usdt_ata = &context.accounts.prize_pool_vault;
+    let user_usdc_ata = &context.accounts.user_ata;
+    let prize_pool_usdc_ata = &context.accounts.prize_pool_vault;
     let token_mint = &context.accounts.token_mint;
     let authority = &context.accounts.participent;
     let token_program = &context.accounts.token_program;
 
 
     transfer_token(
-        user_usdt_ata, 
-        prize_pool_usdt_ata, 
+        user_usdc_ata, 
+        prize_pool_usdc_ata, 
         contest.entry_fees, 
         token_mint, 
         &authority.to_account_info(), 

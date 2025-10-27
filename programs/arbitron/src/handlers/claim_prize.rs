@@ -37,17 +37,17 @@ pub struct ClaimPrize<'info> {
 
     #[account(
         mut, 
-        address = contest.prize_pool_vault_usdt @ ErrorCode::InvalidPrizeVault
+        address = contest.prize_pool_vault_usdc @ ErrorCode::InvalidPrizeVault
     )]
     pub contest_vault: InterfaceAccount<'info, TokenAccount>, // Use InterfaceAccount
 
     #[account(
         mut, 
         // Ensure this is the winner's ATA for the correct mint
-        constraint = winner_usdt_account.mint == config.platform_fee_wallet_mint @ ErrorCode::InvalidMint,
-        constraint = winner_usdt_account.owner == winner.key() @ ErrorCode::InvalidOwner, 
+        constraint = winner_usdc_account.mint == config.platform_fee_wallet_mint @ ErrorCode::InvalidMint,
+        constraint = winner_usdc_account.owner == winner.key() @ ErrorCode::InvalidOwner, 
     )]
-    pub winner_usdt_account: InterfaceAccount<'info, TokenAccount>, // Use InterfaceAccount
+    pub winner_usdc_account: InterfaceAccount<'info, TokenAccount>, // Use InterfaceAccount
 
     #[account(
         mut, 
@@ -99,7 +99,7 @@ pub fn claim_prize(ctx: Context<ClaimPrize>) -> Result<()> {
         let winner_transfer_accounts = TransferChecked {
             from: prize_pool_vault.to_account_info(),
             mint: ctx.accounts.token_mint.to_account_info(),
-            to: ctx.accounts.winner_usdt_account.to_account_info(),
+            to: ctx.accounts.winner_usdc_account.to_account_info(),
             authority: contest.to_account_info(), 
         };
         let cpi_ctx_winner = CpiContext::new_with_signer(
