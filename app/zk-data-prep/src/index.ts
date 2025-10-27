@@ -34,6 +34,8 @@ import {
   getRequestEndContestProofInstructionAsync,
   RequestEndContestProofAsyncInput,
 } from "../../../dist/js-client/instructions/requestEndContestProof";
+// You need this to hash the image ID for the deployment account PDA
+import { keccak_256 } from "@noble/hashes/sha3";
 
 const BONSOL_PROGRAM_ID = address(
   "BoNsHRcyLLNdtnoDf8hiCNZpyehMC4FDMxs6NTxFi3ew"
@@ -118,7 +120,6 @@ async function main() {
     console.log("[Worker]: Received contest ID to process:", contestId.element);
 
     try {
-      // 1. --- Data Fetching (same as before) ---
       const contest = await getContestByIdWithParticipantsAndSelectedTokens(
         contestId.element
       );
@@ -149,7 +150,6 @@ async function main() {
         address(contest.host)
       );
 
-      // 2. --- Payload Creation (same as before) ---
       const jobPayload = {
         contestAddress: contestPDA as string,
         participants: contest.participants.map((p) => ({
@@ -169,7 +169,7 @@ async function main() {
         ),
       };
 
-      // 3. --- NEW: On-Chain Transaction Submission ---
+      // 3. --- On-Chain Transaction Submission ---
 
       console.log("[Worker]: Preparing on-chain instructions...");
 
@@ -180,7 +180,9 @@ async function main() {
       const rpcSubscriptions = createSolanaRpcSubscriptions(WS_RPC_URL);
 
       const payer = await createKeyPairSignerFromPrivateKeyBytes(
-        JSON.parse(fs.readFileSync(PAYER_KEYPAIR_PATH, "utf-8"))
+        Uint8Array.from(
+          JSON.parse(fs.readFileSync(PAYER_KEYPAIR_PATH, "utf-8"))
+        )
       );
 
       const airdropFunction = await airdropFactory({
@@ -188,11 +190,18 @@ async function main() {
         rpcSubscriptions,
       });
 
-      await airdropFunction({
-        commitment: "confirmed",
-        lamports: lamports(1_000_000n),
-        recipientAddress: payer.address,
-      });
+      try {
+        await airdropFunction({
+          commitment: "confirmed",
+          lamports: lamports(1_000_000_000n), // 1 SOL
+          recipientAddress: payer.address,
+        });
+        console.log("[Worker]: Airdrop successful.");
+      } catch (e) {
+        console.log(
+          "[Worker]: Airdrop failed (likely rate-limited or on mainnet)."
+        );
+      }
 
       // Find PDAs
       const [contestInputsPda] = await getProgramDerivedAddress({
@@ -202,6 +211,33 @@ async function main() {
           getAddressEncoder().encode(contestAddress),
         ],
       });
+
+      // --- NEW: Derive the missing Bonsol PDAs ---
+
+      // 1. Derive the Execution Request PDA
+      const [executionRequestAccountPda] = await getProgramDerivedAddress({
+        programAddress: BONSOL_PROGRAM_ID,
+        seeds: [
+          new TextEncoder().encode("execution"),
+          getAddressEncoder().encode(payer.address),
+          new TextEncoder().encode(execution_id),
+        ],
+      });
+
+      // 2. Derive the Deployment Account PDA
+      const [deploymentAccountPda] = await getProgramDerivedAddress({
+        programAddress: BONSOL_PROGRAM_ID,
+        seeds: [
+          new TextEncoder().encode("deployment"),
+          keccak_256(ARBITRON_IMAGE_ID), // Hash the Image ID
+        ],
+      });
+
+      console.log(`[Worker]: Contest Inputs PDA: ${contestInputsPda}`);
+      console.log(
+        `[Worker]: Execution Request PDA: ${executionRequestAccountPda}`
+      );
+      console.log(`[Worker]: Deployment PDA: ${deploymentAccountPda}`);
 
       // Serialize payload for the chain
       const payloadBytes = Buffer.from(JSON.stringify(jobPayload));
@@ -221,6 +257,7 @@ async function main() {
         setContestInputIxInput
       );
 
+      // --- CORRECTED: Pass the derived PDAs here ---
       const requestEndContestProof: RequestEndContestProofAsyncInput = {
         contest: contestAddress,
         contestInputs: address(contestInputsPda),
@@ -228,8 +265,8 @@ async function main() {
         tip: tip,
         bonsolProgram: BONSOL_PROGRAM_ID,
         executionId: execution_id,
-        deploymentAccount: address(ARBITRON_IMAGE_ID),
-        executionRequest: null,
+        deploymentAccount: address(deploymentAccountPda),
+        executionRequest: address(executionRequestAccountPda),
       };
 
       const requestEndContestProofIx =
@@ -250,12 +287,15 @@ async function main() {
 
       assertIsTransactionMessageWithinSizeLimit(tx);
 
-      const signedTx = await signTransactionMessageWithSigners(tx);
+      const signedTx = await signTransactionMessageWithSigners(tx, [payer]); // Pass the signer here
 
       const sendAndConfirmTransaction = await sendAndConfirmTransactionFactory({
         rpc,
         rpcSubscriptions,
       });
+
+      const signature = await getSignatureFromTransaction(signedTx);
+      console.log(`[Worker]: Sending transaction... Signature: ${signature}`);
 
       try {
         await sendAndConfirmTransaction(signedTx, {
@@ -266,21 +306,21 @@ async function main() {
           `[Worker]: Failed to send and confirm transaction:`,
           error
         );
+        // Re-throw or continue to finally block
+        throw error;
       }
-
-      const signature = await getSignatureFromTransaction(signedTx);
-
-      console.log("Transaction Signature:", signature);
 
       console.log(
         `[Worker]: Successfully requested ZK proof for contest ${contestId.element}.`
       );
-      // console.log(`[Worker]: Signature: ${signature}`);
+      console.log(`[Worker]: Transaction Confirmed! Signature: ${signature}`);
     } catch (error) {
       console.error(
         `[Worker]: Failed to process contest ${contestId.element}:`,
         error
       );
+      // Optional: Pushing back to the queue for retry
+      // await redis.lPush(END_CONTEST_QUEUE, contestId.element);
     }
   }
 }
