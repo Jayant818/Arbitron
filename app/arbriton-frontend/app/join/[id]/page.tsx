@@ -63,7 +63,7 @@ import {
   useWalletAccountTransactionSendingSigner,
   useWalletAccountTransactionSigner,
 } from "@solana/react";
-import { USDC_MINT_ADDRESS } from "@/app/create/page";
+import { USDC_MINT_ADDRESS } from "@/lib/constants";
 import {
   InitializeInput,
   getInitializeInstruction,

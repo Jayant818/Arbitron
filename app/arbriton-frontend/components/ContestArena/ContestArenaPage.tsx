@@ -139,7 +139,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
     const participantMap = new Map(participants.map((p: any) => [p.id, p.user]));
 
     return leaderboardData.map((data, index) => {
-      const user = participantMap.get(data.participantId);
+      const user: any = participantMap.get(data.participantId);
       return {
         id: data.participantId,
         name: user?.username || `${user?.publicKey.slice(0, 4)}...${user?.publicKey.slice(-4)}`,

@@ -3,6 +3,9 @@ name = "zk-tx-submitter"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata.zkprogram]
+input_order = ["Public"]  
+
 [dependencies]
 tokio = { version = "1.48.0", features = ["full"]}
 redis = { version = "0.32.7", features = ["tokio-comp"] }

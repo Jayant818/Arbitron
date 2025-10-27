@@ -96,5 +96,12 @@ pub enum ErrorCode {
     InvalidOwner,
 
     #[msg("The vault is Empty")]
-    VaultEmpty
+    VaultEmpty,
+
+    #[msg("Input data in too large")]
+    InputDataTooLarge,
+
+    #[msg("Can't call execute")]
+    CantCallExecute,
+
 }

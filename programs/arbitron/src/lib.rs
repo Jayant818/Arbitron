@@ -60,5 +60,14 @@ pub mod arbitron {
         Ok(())
     }
 
+    pub fn store_contest_inputs(
+        ctx: Context<StoreContestInput>,
+        data: Vec<u8>,
+    ) -> Result<()> {
+
+        handlers::store_contest_inputs(ctx,data);
+        Ok(())
+    }
+
 
 }

@@ -16,8 +16,7 @@ import { useWalletAccountTransactionSendingSigner } from "@solana/react"
 import { address } from "@solana/kit"
 import { useSolana } from "@/components/solana-provider"
 import { useCreateContestMutation } from "@/hooks/api-hooks/useContestQuery"
-
-export const USDC_MINT_ADDRESS = address("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr") // USDC Devnet
+import { USDC_MINT_ADDRESS } from "@/lib/constants"
 
 function ContestForm() {
   const [contestName, setContestName] = useState("")
