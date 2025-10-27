@@ -1,0 +1,30 @@
+import { create } from "domain";
+import { createClient } from "redis";
+export class RedisManager {
+    static standardClient = null;
+    constructor() { }
+    static async createClient() {
+        const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+        const redisClient = createClient({ url: REDIS_URL });
+        redisClient.on("error", (err) => console.log("Redis Client Error", err));
+        await redisClient.connect();
+        return redisClient;
+    }
+    static async getStandardClient() {
+        if (!this.standardClient) {
+            this.standardClient = await this.createClient();
+        }
+        return this.standardClient;
+    }
+    static async getSubscriberClient() {
+        const subscriberClient = await this.createClient();
+        return subscriberClient;
+    }
+}
+export const redis = await RedisManager.getStandardClient();
+export const publisher = redis;
+export async function createSubscriber() {
+    const subscriber = await RedisManager.getSubscriberClient();
+    return subscriber;
+}
+//# sourceMappingURL=index.js.map
