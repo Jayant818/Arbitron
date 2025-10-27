@@ -11,7 +11,7 @@ export * from './createPortfolio';
 export * from './initialize';
 export * from './joinContest';
 export * from './receiveEndContestProof';
-export * from './setExecutionAccount';
+export * from './requestEndContestProof';
 export * from './startContest';
 export * from './storeContestInputs';
 export * from './updatePortfolio';

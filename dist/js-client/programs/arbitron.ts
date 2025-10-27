@@ -19,7 +19,7 @@ import {
   type ParsedInitializeInstruction,
   type ParsedJoinContestInstruction,
   type ParsedReceiveEndContestProofInstruction,
-  type ParsedSetExecutionAccountInstruction,
+  type ParsedRequestEndContestProofInstruction,
   type ParsedStartContestInstruction,
   type ParsedStoreContestInputsInstruction,
   type ParsedUpdatePortfolioInstruction,
@@ -118,7 +118,7 @@ export enum ArbitronInstruction {
   Initialize,
   JoinContest,
   ReceiveEndContestProof,
-  SetExecutionAccount,
+  RequestEndContestProof,
   StartContest,
   StoreContestInputs,
   UpdatePortfolio,
@@ -187,12 +187,12 @@ export function identifyArbitronInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([15, 98, 193, 203, 135, 237, 20, 157])
+        new Uint8Array([189, 143, 28, 149, 201, 78, 121, 223])
       ),
       0
     )
   ) {
-    return ArbitronInstruction.SetExecutionAccount;
+    return ArbitronInstruction.RequestEndContestProof;
   }
   if (
     containsBytes(
@@ -251,8 +251,8 @@ export type ParsedArbitronInstruction<
       instructionType: ArbitronInstruction.ReceiveEndContestProof;
     } & ParsedReceiveEndContestProofInstruction<TProgram>)
   | ({
-      instructionType: ArbitronInstruction.SetExecutionAccount;
-    } & ParsedSetExecutionAccountInstruction<TProgram>)
+      instructionType: ArbitronInstruction.RequestEndContestProof;
+    } & ParsedRequestEndContestProofInstruction<TProgram>)
   | ({
       instructionType: ArbitronInstruction.StartContest;
     } & ParsedStartContestInstruction<TProgram>)

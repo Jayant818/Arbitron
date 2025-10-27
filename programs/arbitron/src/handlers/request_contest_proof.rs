@@ -46,7 +46,16 @@ pub fn request_end_contest_proof(context:Context<RequestEndContestProof>,executi
 
     let slot = Clock::get()?.slot;
 
-    let callback_ix_discriminator:Vec<u8> = vec![];
+    let callback_ix_discriminator:Vec<u8> = vec![
+        59,
+        177,
+        66,
+        179,
+        71,
+        128,
+        115,
+        196
+    ];
 
      let ix = execute_v1(
         &context.accounts.payer.key(),

@@ -55,19 +55,20 @@ pub mod arbitron {
         Ok(())
     }
 
-    pub fn set_execution_account(context:Context<SetExecutionAccount>,execution_account:Pubkey)->Result<()>{
-        handlers::set_execution_account(context, execution_account);
-        Ok(())
-    }
-
     pub fn store_contest_inputs(
         ctx: Context<StoreContestInput>,
         data: Vec<u8>,
     ) -> Result<()> {
-
-        handlers::store_contest_inputs(ctx,data);
+        handlers::store_contest_inputs(ctx, data)?;
         Ok(())
     }
+
+    pub fn request_end_contest_proof(context:Context<RequestEndContestProof>,execution_id: String,
+        tip: u64,)->Result<()>{
+            handlers::request_end_contest_proof(context, execution_id, tip)?;
+            Ok(())
+        }
+
 
 
 }

@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { redis } from "@arbitron/shared-redis";
 import { getContestByIdWithParticipantsAndSelectedTokens } from "@arbitron/db";
 import axios from "axios";
@@ -7,12 +8,47 @@ import {
   Address,
   getAddressEncoder,
   getProgramDerivedAddress,
+  createTransactionMessage,
+  setTransactionMessageFeePayerSigner,
+  setTransactionMessageLifetimeUsingBlockhash,
+  appendTransactionMessageInstructions,
+  assertIsTransactionMessageWithinSizeLimit,
+  pipe,
+  createSolanaRpc,
+  createSolanaRpcSubscriptions,
+  createKeyPairSignerFromPrivateKeyBytes,
+  signTransactionMessageWithSigners,
+  sendAndConfirmTransactionFactory,
+  getSignatureFromTransaction,
+  airdropFactory,
+  lamports,
 } from "@solana/kit";
 
-const END_CONTEST_QUEUE = "ended-contests";
-const ZK_INPUTS_QUEUE = "zk-inputs-queue";
+import { randomBytes } from "crypto";
+import fs from "fs";
+import {
+  getStoreContestInputsInstructionAsync,
+  StoreContestInputsAsyncInput,
+} from "../../../dist/js-client/instructions/storeContestInputs";
+import {
+  getRequestEndContestProofInstructionAsync,
+  RequestEndContestProofAsyncInput,
+} from "../../../dist/js-client/instructions/requestEndContestProof";
 
-// Interface for Jupiter API response
+const BONSOL_PROGRAM_ID = address(
+  "BoNsHRcyLLNdtnoDf8hiCNZpyehMC4FDMxs6NTxFi3ew"
+);
+const ARBITRON_IMAGE_ID =
+  "c3a3dc0e28f164c1925013f2e35e2daecc6c38762a5080f47956050117462ce8";
+const RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8899";
+const WS_RPC_URL = process.env.WS_RPC_URL || "ws://127.0.0.1:8900";
+const PAYER_KEYPAIR_PATH =
+  process.env.PAYER_KEYPAIR_PATH || "/path/to/your/wallet.json";
+
+// --- QUEUES ---
+const END_CONTEST_QUEUE = "ended-contests";
+
+// Interface for Jupiter API response (existing)
 interface IPriceUpdate {
   usdPrice: number;
   blockId: number;
@@ -26,7 +62,6 @@ async function getJupiterPrices(
   const finalPrices = new Map<string, bigint>();
 
   try {
-    // Jupiter's API is paginated, but 50 should be fine for unique tokens
     for (let i = 0; i < mints.length; i = i + 50) {
       const res = await axios.get<Record<string, IPriceUpdate>>(
         `https://lite-api.jup.ag/price/v3?ids=${mints
@@ -35,28 +70,23 @@ async function getJupiterPrices(
       );
       Object.assign(data, res.data);
     }
-
     for (const mint in data) {
       const priceUpdate = data[mint];
-      // Scale price to 6 decimals (1_000_000) as a BigInt
       const scaledPrice = BigInt(Math.round(priceUpdate.usdPrice * 1_000_000));
       finalPrices.set(mint, scaledPrice);
     }
-
-    // Check if any tokens are missing prices
     for (const mint of mints) {
       if (!finalPrices.has(mint)) {
         console.warn(
           `[Worker]: Missing final price for mint ${mint}. Setting to 0.`
         );
-        finalPrices.set(mint, BigInt(0)); // Handle missing price
+        finalPrices.set(mint, BigInt(0));
       }
     }
-
     return finalPrices;
   } catch (error) {
     console.error("[Worker]: Failed to fetch Jupiter prices:", error);
-    throw error; // Re-throw to be caught by main try/catch
+    throw error;
   }
 }
 
@@ -76,7 +106,8 @@ async function getContestPDA(
 }
 
 async function main() {
-  console.log("[Worker]: zk-data-prep worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+
   while (true) {
     const contestId = await redis.brPop(END_CONTEST_QUEUE, 0);
 
@@ -87,6 +118,7 @@ async function main() {
     console.log("[Worker]: Received contest ID to process:", contestId.element);
 
     try {
+      // 1. --- Data Fetching (same as before) ---
       const contest = await getContestByIdWithParticipantsAndSelectedTokens(
         contestId.element
       );
@@ -117,7 +149,7 @@ async function main() {
         address(contest.host)
       );
 
-      // We send simple JSON to Rust; Rust will handle struct creation and serialization.
+      // 2. --- Payload Creation (same as before) ---
       const jobPayload = {
         contestAddress: contestPDA as string,
         participants: contest.participants.map((p) => ({
@@ -126,29 +158,129 @@ async function main() {
             mint: t.mint,
             isPowerToken: t.isPowerToken,
             quantity: t.quantity,
-            entryPrice: t.entryPrice?.toString(), // BigInt as string
+            entryPrice: t.entryPrice?.toString(),
           })),
         })),
         finalPrices: Array.from(finalPricesMap.entries()).map(
           ([mint, price]) => ({
             mint: mint,
-            price: price.toString(), // BigInt as string
+            price: price.toString(),
           })
         ),
       };
 
-      await redis.lPush(ZK_INPUTS_QUEUE, JSON.stringify(jobPayload));
+      // 3. --- NEW: On-Chain Transaction Submission ---
+
+      console.log("[Worker]: Preparing on-chain instructions...");
+
+      const execution_id = randomBytes(16).toString("hex");
+      const contestAddress = address(contestPDA);
+
+      const rpc = createSolanaRpc(RPC_URL);
+      const rpcSubscriptions = createSolanaRpcSubscriptions(WS_RPC_URL);
+
+      const payer = await createKeyPairSignerFromPrivateKeyBytes(
+        JSON.parse(fs.readFileSync(PAYER_KEYPAIR_PATH, "utf-8"))
+      );
+
+      const airdropFunction = await airdropFactory({
+        rpc,
+        rpcSubscriptions,
+      });
+
+      await airdropFunction({
+        commitment: "confirmed",
+        lamports: lamports(1_000_000n),
+        recipientAddress: payer.address,
+      });
+
+      // Find PDAs
+      const [contestInputsPda] = await getProgramDerivedAddress({
+        programAddress: ARBITRON_PROGRAM_ADDRESS,
+        seeds: [
+          new TextEncoder().encode("contest_inputs"),
+          getAddressEncoder().encode(contestAddress),
+        ],
+      });
+
+      // Serialize payload for the chain
+      const payloadBytes = Buffer.from(JSON.stringify(jobPayload));
+      const tip = 1000_000n; // 0.001 SOL tip for the prover
+
+      // 4. --- Build & Send Transaction (using @solana/kit) ---
+      console.log("📦 Building and sending ZK request transaction...");
+
+      const setContestInputIxInput: StoreContestInputsAsyncInput = {
+        contest: contestAddress,
+        contestInputs: address(contestInputsPda),
+        payer: payer,
+        data: payloadBytes,
+      };
+
+      const storeContestInputIx = await getStoreContestInputsInstructionAsync(
+        setContestInputIxInput
+      );
+
+      const requestEndContestProof: RequestEndContestProofAsyncInput = {
+        contest: contestAddress,
+        contestInputs: address(contestInputsPda),
+        payer: payer,
+        tip: tip,
+        bonsolProgram: BONSOL_PROGRAM_ID,
+        executionId: execution_id,
+        deploymentAccount: address(ARBITRON_IMAGE_ID),
+        executionRequest: null,
+      };
+
+      const requestEndContestProofIx =
+        await getRequestEndContestProofInstructionAsync(requestEndContestProof);
+
+      const { value: blockhash } = await rpc.getLatestBlockhash().send();
+
+      const tx = pipe(
+        createTransactionMessage({ version: 0 }),
+        (tx) => setTransactionMessageFeePayerSigner(payer, tx),
+        (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+        (tx) =>
+          appendTransactionMessageInstructions(
+            [storeContestInputIx, requestEndContestProofIx],
+            tx
+          )
+      );
+
+      assertIsTransactionMessageWithinSizeLimit(tx);
+
+      const signedTx = await signTransactionMessageWithSigners(tx);
+
+      const sendAndConfirmTransaction = await sendAndConfirmTransactionFactory({
+        rpc,
+        rpcSubscriptions,
+      });
+
+      try {
+        await sendAndConfirmTransaction(signedTx, {
+          commitment: "confirmed",
+        });
+      } catch (error) {
+        console.error(
+          `[Worker]: Failed to send and confirm transaction:`,
+          error
+        );
+      }
+
+      const signature = await getSignatureFromTransaction(signedTx);
+
+      console.log("Transaction Signature:", signature);
 
       console.log(
-        `[Worker]: Successfully prepared and queued ZK inputs for contest ${contestId.element}.`
+        `[Worker]: Successfully requested ZK proof for contest ${contestId.element}.`
       );
+      // console.log(`[Worker]: Signature: ${signature}`);
     } catch (error) {
       console.error(
         `[Worker]: Failed to process contest ${contestId.element}:`,
         error
       );
-      // Optional: Pushing back to the queue for retry
-      // await redis.lPush(END_CONTEST_QUEUE, contestId.element);
     }
   }
 }
