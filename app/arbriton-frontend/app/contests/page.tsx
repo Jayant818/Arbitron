@@ -2,33 +2,33 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
-import { Search, Filter } from "lucide-react"
+import { Filter, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { ContestCard } from "@/components/contest-card"
+import { ContestCardSkeleton } from "@/components/contest-card-skeleton"
 import { useGetAllContestsQuery } from "@/hooks/api-hooks/useContestQuery"
 
 export default function ContestsPage() {
   const [searchQuery, setSearchQuery] = useState("")
 
-  const {data:contests, isLoading:isContestLoading} = useGetAllContestsQuery()
+  const { data: contests, isLoading: isContestLoading } = useGetAllContestsQuery()
 
-  // Filter contests by status: 0 = Upcoming, 1 = Active/Ongoing, 2 = Completed/Ended
+  // Filter contests by status
   const filteredUpcoming = contests
-    ?.filter((contest) => contest.status === 0) // Status 0 = Upcoming
+    ?.filter((contest) => contest.status === 0)
     ?.filter((contest) => contest.title.toLowerCase().includes(searchQuery.toLowerCase()))
-  
+
   const filteredActive = contests
-    ?.filter((contest) => contest.status === 1) // Status 1 = Active/Ongoing
+    ?.filter((contest) => contest.status === 1)
     ?.filter((contest) => contest.title.toLowerCase().includes(searchQuery.toLowerCase()))
-  
+
   const filteredCompleted = contests
-    ?.filter((contest) => contest.status === 2) // Status 2 = Completed
+    ?.filter((contest) => contest.status === 2)
     ?.filter((contest) => contest.title.toLowerCase().includes(searchQuery.toLowerCase()))
 
   return (
     <div className="min-h-screen bg-background">
-
       <div className="container mx-auto px-4 pt-24 pb-16">
         <div className="mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">All Contests</h1>
@@ -36,17 +36,19 @@ export default function ContestsPage() {
         </div>
 
         <div className="mb-8 flex flex-col sm:flex-row gap-4 max-w-2xl">
-          <div className="relative flex-1 ">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 " />
+          {/* Search bar with icon */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/70 z-10 pointer-events-none" />
             <Input
               placeholder="Search contests..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 glass border-border text-white placeholder:text-muted-foreground"
+              className="pl-11 glass border-border text-white placeholder:text-muted-foreground bg-background/50"
             />
           </div>
+
           <Button variant="outline" className="glass glass-hover text-white font-semibold bg-transparent">
-            <Filter className="h-4 w-4 mr-2" />
+            <Filter className="h-5 w-5 mr-2" />
             Filter
           </Button>
         </div>
@@ -66,8 +68,10 @@ export default function ContestsPage() {
 
           <TabsContent value="upcoming" className="space-y-6">
             {isContestLoading ? (
-              <div className="col-span-full text-center py-12">
-                <p className="text-muted-foreground">Loading contests...</p>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(6)].map((_, i) => (
+                  <ContestCardSkeleton key={i} />
+                ))}
               </div>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -80,7 +84,7 @@ export default function ContestsPage() {
                 ) : (
                   <div className="col-span-full text-center py-12">
                     <p className="text-muted-foreground">
-                      {searchQuery 
+                      {searchQuery
                         ? `No upcoming contests found matching "${searchQuery}"`
                         : "No upcoming contests available"}
                     </p>
@@ -92,8 +96,10 @@ export default function ContestsPage() {
 
           <TabsContent value="active" className="space-y-6">
             {isContestLoading ? (
-              <div className="col-span-full text-center py-12">
-                <p className="text-muted-foreground">Loading contests...</p>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(6)].map((_, i) => (
+                  <ContestCardSkeleton key={i} />
+                ))}
               </div>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -106,7 +112,7 @@ export default function ContestsPage() {
                 ) : (
                   <div className="col-span-full text-center py-12">
                     <p className="text-muted-foreground">
-                      {searchQuery 
+                      {searchQuery
                         ? `No active contests found matching "${searchQuery}"`
                         : "No active contests at the moment"}
                     </p>
@@ -118,8 +124,10 @@ export default function ContestsPage() {
 
           <TabsContent value="completed" className="space-y-6">
             {isContestLoading ? (
-              <div className="col-span-full text-center py-12">
-                <p className="text-muted-foreground">Loading contests...</p>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(6)].map((_, i) => (
+                  <ContestCardSkeleton key={i} />
+                ))}
               </div>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -132,7 +140,7 @@ export default function ContestsPage() {
                 ) : (
                   <div className="col-span-full text-center py-12">
                     <p className="text-muted-foreground">
-                      {searchQuery 
+                      {searchQuery
                         ? `No completed contests found matching "${searchQuery}"`
                         : "No completed contests yet"}
                     </p>

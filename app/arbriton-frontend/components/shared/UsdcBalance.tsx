@@ -50,7 +50,7 @@ export function UsdcBalance() {
       <div className="flex-1">
         <div className="flex items-center gap-2">
           <Coins className="h-5 w-5 text-primary" />
-          <span className="font-semibold text-primary">USDC Balance</span>
+          <span className="font-semibold text-white">USDC Balance</span>
         </div>
         <div className="mt-1 text-2xl font-bold gradient-text">
           {isLoading

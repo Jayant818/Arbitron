@@ -12,7 +12,7 @@
   --card-foreground: #e0e0e0;
   --popover: rgba(255, 255, 255, 0.08);
   --popover-foreground: #e0e0e0;
-  --primary: #FAC31B;
+  --primary: #72580b;
   --primary-foreground: #0d0f1b;
   --secondary: rgba(255, 0, 255, 0.15);
   --secondary-foreground: #e0e0e0;
@@ -82,8 +82,8 @@
 }
 
 @theme inline {
-  /* Switched to Inter font for cleaner, more modern look */
-  --font-sans: "Inter", system-ui, sans-serif;
+  /* Space Grotesk for text, Geist Mono for numbers */
+  --font-sans: var(--font-space-grotesk), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -136,6 +136,19 @@
       radial-gradient(ellipse at 80% 70%, rgba(0, 255, 255, 0.12) 0%, transparent 50%),
       radial-gradient(ellipse at 50% 50%, rgba(255, 0, 255, 0.08) 0%, transparent 50%);
     background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  /* Utility class for numeric values - applies Geist Mono font */
+  .font-numeric {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  /* Tabular numbers for better alignment */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -529,10 +542,10 @@
 }
 
 .glass-hover:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(0, 255, 255, 0.3);
+  background: rgba(255, 255, 200, 0.05);
+  border-color: rgba(255, 200, 0, 0.15);
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px 0 rgba(0, 255, 255, 0.2);
+  box-shadow: 0 4px 20px 0 rgba(255, 200, 0, 0.1);
 }
 
 /* Status-based glow borders for contest cards */

@@ -42,7 +42,7 @@ export default function ProfilePage() {
     // NOW do conditional checks and early returns AFTER all hooks
     if (!isConnected || !selectedAccount) {
         return (
-          <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
+          <div className="min-h-screen pt-24 pb-16 flex items-center justify-center bg-background">
             <div className="text-center space-y-4">
               <h2 className="text-2xl font-bold text-white">Wallet Not Connected</h2>
               <p className="text-muted-foreground">

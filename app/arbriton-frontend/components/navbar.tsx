@@ -25,53 +25,53 @@ export function Navbar() {
             <Link href="/" className="flex items-center gap-2 transition-smooth hover:opacity-80">
               {/* <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
               </div> */}
-              <span className="text-2xl font-bold text-white uppercase leading-tight border-dashed border-2 border-[#7A6F4B] p-2 ">Arbitron</span>
+              <span className="text-2xl font-bold text-white uppercase leading-tight border-dashed border-2 border-[#a99145] p-2 ">Arbitron</span>
             </Link>
 
             {/* Navigation Links */}
-            <div className="hidden md:flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-8">
               <Link
                 href="/"
-                className={`flex items-center gap-2 text-sm font-medium transition-smooth hover:text-foreground ${
+                className={`flex items-center gap-2.5 text-base font-medium transition-smooth hover:text-foreground ${
                   isActive("/") 
                     ? "text-primary border-b-2 border-primary" 
                     : "text-muted-foreground"
                 }`}
               >
-                <Home className="h-4 w-4" />
+                <Home className="h-5 w-5" />
                 Home
               </Link>
               <Link
                 href="/contests"
-                className={`flex items-center gap-2 text-sm font-medium transition-smooth hover:text-foreground ${
+                className={`flex items-center gap-2.5 text-base font-medium transition-smooth hover:text-foreground ${
                   isActive("/contests") 
                     ? "text-primary border-b-2 border-primary" 
                     : "text-muted-foreground"
                 }`}
               >
-                <Trophy className="h-4 w-4" />
+                <Trophy className="h-5 w-5" />
                 Contests
               </Link>
               <Link
                 href="/create"
-                className={`flex items-center gap-2 text-sm font-medium transition-smooth hover:text-foreground ${
+                className={`flex items-center gap-2.5 text-base font-medium transition-smooth hover:text-foreground ${
                   isActive("/create") 
                     ? "text-primary border-b-2 border-primary" 
                     : "text-muted-foreground"
                 }`}
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-5 w-5" />
                 Create
               </Link>
               <Link
                 href="/profile"
-                className={`flex items-center gap-2 text-sm font-medium transition-smooth hover:text-foreground ${
+                className={`flex items-center gap-2.5 text-base font-medium transition-smooth hover:text-foreground ${
                   isActive("/profile") 
                     ? "text-primary border-b-2 border-primary" 
                     : "text-muted-foreground"
                 }`}
               >
-                <User className="h-4 w-4" />
+                <User className="h-5 w-5" />
                 Profile
               </Link>
             </div>

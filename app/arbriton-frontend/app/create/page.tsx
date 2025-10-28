@@ -201,38 +201,7 @@ function ContestForm() {
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-16">
-      {/* Animated Background */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <svg className="absolute inset-0 h-full w-full">
-          <defs>
-            <linearGradient id="create-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="rgba(0, 255, 255, 0.1)">
-                <animate
-                  attributeName="stop-color"
-                  values="rgba(0, 255, 255, 0.1); rgba(255, 0, 255, 0.1); rgba(0, 255, 255, 0.1)"
-                  dur="8s"
-                  repeatCount="indefinite"
-                />
-              </stop>
-              <stop offset="100%" stopColor="rgba(255, 0, 255, 0.1)">
-                <animate
-                  attributeName="stop-color"
-                  values="rgba(255, 0, 255, 0.1); rgba(0, 255, 255, 0.1); rgba(255, 0, 255, 0.1)"
-                  dur="8s"
-                  repeatCount="indefinite"
-                />
-              </stop>
-            </linearGradient>
-          </defs>
-          <circle cx="20%" cy="30%" r="300" fill="url(#create-gradient)" opacity="0.3">
-            <animate attributeName="r" values="300;350;300" dur="6s" repeatCount="indefinite" />
-          </circle>
-          <circle cx="80%" cy="70%" r="250" fill="url(#create-gradient)" opacity="0.3">
-            <animate attributeName="r" values="250;300;250" dur="7s" repeatCount="indefinite" />
-          </circle>
-        </svg>
-      </div>
+    <div className="min-h-screen pt-24 pb-16 bg-background">
 
       <div className="container mx-auto px-4">
         {/* Header */}
@@ -274,13 +243,16 @@ function ContestForm() {
               <div className="space-y-2">
                 <Label htmlFor="duration" className="text-sm font-medium">
                   <Clock className="mr-2 inline h-4 w-4" />
-                  Contest Duration
+                  Contest Durations
                 </Label>
                 <Select value={duration} onValueChange={setDuration}>
                   <SelectTrigger className="glass-input h-12 border-white/10 bg-background/50 backdrop-blur-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass-card border-white/10 bg-background backdrop-blur-md">
+                  <SelectItem value="1">1 Minutes - Quick Battle</SelectItem>
+                  <SelectItem value="2">2 Minutes - Quick Battle</SelectItem>
+                    
                     <SelectItem value="5">5 Minutes - Quick Battle</SelectItem>
                     <SelectItem value="15">15 Minutes - Standard</SelectItem>
                     <SelectItem value="30">30 Minutes - Extended</SelectItem>
@@ -435,7 +407,7 @@ function ContestForm() {
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 backdrop-blur-sm">
                 <div className="mb-2 flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-primary" />
-                  <span className="font-semibold text-primary">Estimated Prize Pool</span>
+                  <span className="font-semibold text-white">Estimated Prize Pool</span>
                 </div>
                 <div className="text-3xl font-bold gradient-text">
                   {(Number.parseFloat(entryFee || "0") * maxParticipants[0] * 0.95).toFixed(2)} USDC
@@ -474,7 +446,7 @@ export default function CreateContestPage() {
 
   if (!isConnected || !selectedAccount) {
     return (
-      <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
+      <div className="min-h-screen pt-24 pb-16 flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <h2 className="text-2xl font-bold text-white">Wallet Not Connected</h2>
           <p className="text-muted-foreground">

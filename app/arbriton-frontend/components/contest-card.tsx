@@ -9,6 +9,7 @@ import { useEffect, useState, useCallback } from "react"
 import { IContest } from "@/api-functions/contest.api"
 import { useRouter } from "next/router"
 import Link from "next/link"
+import { MonoCurrency } from "@/components/ui/mono-number"
 
 type ContestCardProps = IContest
 
@@ -81,7 +82,9 @@ export function ContestCard({
         <div className="flex items-start justify-between">
           <div>
             <h3 className="text-xl font-bold text-white">{title}</h3>
-            <p className="text-sm text-muted-foreground mt-1">{Math.floor(duration/60)} minute contest</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              <span className="font-mono tabular-nums">{Math.floor(duration/60)}</span> minute contest
+            </p>
           </div>
           <Badge
             variant={status === "active" ? "default" : "secondary"}
@@ -102,13 +105,13 @@ export function ContestCard({
             <Trophy className="h-5 w-5 text-primary" />
             <span className="text-sm text-card-foreground">Prize Pool</span>
           </div>
-          <span className="text-lg font-bold text-primary">{prizePool.toFixed(2)} USDC</span>
+          <MonoCurrency value={prizePool} currency="USDC" decimals={2} className="text-lg font-bold text-primary" />
         </div>
 
         {/* Entry Fee */}
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Entry Fee</span>
-          <span className="font-semibold text-white">{displayEntryFee.toFixed(2)} USDC</span>
+          <MonoCurrency value={displayEntryFee} currency="USDC" decimals={2} className="font-semibold text-white" />
         </div>
 
         {/* Slots Progress */}
@@ -118,7 +121,7 @@ export function ContestCard({
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Players</span>
             </div>
-            <span className="font-medium text-white">
+            <span className="font-medium text-white font-mono tabular-nums">
               {currentPlayers}/{maxPlayers}
             </span>
           </div>
@@ -127,7 +130,7 @@ export function ContestCard({
 
         {status === "upcoming" && (
           <>
-            <div className="flex items-center justify-between  border-primary/30 p-3">
+            {/* <div className="flex items-center justify-between  border-primary/30 p-3">
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
                 <span className="text-sm text-card-foreground">
@@ -137,7 +140,7 @@ export function ContestCard({
               <span className="font-mono text-lg font-bold text-primary animate-countdown-pulse">
                 {isPastStartTime && !canStart ? "—" : formatTime(timeLeft)}
               </span>
-            </div>
+            </div> */}
             
             {isPastStartTime && !canStart && (
               <div className="rounded-lg glass border-destructive/30 p-3">
@@ -157,12 +160,6 @@ export function ContestCard({
           </>
         )}
 
-        {status === "active" && (
-          <div className="flex items-center gap-2 rounded-lg glass border-primary/30 p-3">
-            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-sm font-medium text-primary">Contest in progress</span>
-          </div>
-        )}
       </CardContent>
 
       <CardFooter className="relative">

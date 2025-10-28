@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Trophy, TrendingUp, TrendingDown, Minus } from "lucide-react"
+import { MonoPercentage } from "@/components/ui/mono-number"
 
 interface Player {
   id: string
@@ -60,7 +61,7 @@ export function Leaderboard({ players }: { players: Player[] }) {
               >
                 {/* Rank */}
                 <div className="flex items-center gap-2 w-12">
-                  <span className={`text-lg font-bold ${player.rank <= 3 ? "text-primary" : "text-muted-foreground"}`}>
+                  <span className={`text-lg font-bold font-mono tabular-nums ${player.rank <= 3 ? "text-primary" : "text-muted-foreground"}`}>
                     #{player.rank}
                   </span>
                   {rankChange === "up" && <TrendingUp className="h-3 w-3 text-success" />}
@@ -81,14 +82,13 @@ export function Leaderboard({ players }: { players: Player[] }) {
                 {/* P&L */}
                 <Badge
                   variant="outline"
-                  className={`font-mono ${
+                  className={`${
                     player.pnl >= 0
                       ? "border-success/50 bg-success/10 text-success"
                       : "border-destructive/50 bg-destructive/10 text-destructive"
                   }`}
                 >
-                  {player.pnl >= 0 ? "+" : ""}
-                  {player.pnl.toFixed(2)}%
+                  <MonoPercentage value={player.pnl} decimals={2} showSign />
                 </Badge>
               </div>
             )
