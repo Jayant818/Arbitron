@@ -22,9 +22,17 @@ pub fn append_contest_inputs(context:Context<AppendContestInputs>,offset:u32,chu
     let contest_inputs = &mut context.accounts.contest_inputs;
     let offset = offset as usize;
     let chunk_len = chunk.len();
+    let required_len = offset + chunk_len;
 
-    require!(offset + chunk_len <= contest_inputs.data.len(), ErrorCode::OffsetOutOfRange);
+    // Ensure the data Vec is large enough to accommodate the new chunk
+    if contest_inputs.data.len() < required_len {
+        contest_inputs.data.resize(required_len, 0);
+    }
 
+    // Verify we're not exceeding maximum allowed size
+    require!(required_len <= ContestInput::MAX_DATA_LEN, ErrorCode::OffsetOutOfRange);
+
+    // Copy the chunk data at the specified offset
     contest_inputs.data[offset..offset+chunk_len].copy_from_slice(&chunk);
 
     Ok(())

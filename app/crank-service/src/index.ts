@@ -107,13 +107,13 @@ async function main() {
 
   // --- Cron Job to START Contests ---
   cron.schedule("* * * * * *", async () => {
-    console.log("[Crank - Start]: Checking for contests to start...");
+    // console.log("[Crank - Start]: Checking for contests to start...");
     let contests: ContestWithParticipantsCount[] = [];
     try {
       contests = await getAllUpcomingContestsWhoseStartTimeIsDue(new Date());
-      console.log(
-        `[Crank - Start]: Found ${contests.length} contest(s) ready to start.`
-      );
+      // console.log(
+      //   // `[Crank - Start]: Found ${contests.length} contest(s) ready to start.`
+      // );
     } catch (dbError) {
       console.error(
         "[Crank - Start]: Error fetching contests from DB:",
@@ -125,17 +125,17 @@ async function main() {
     for (const contest of contests) {
       // Check participant count (using _count from your snippet)
       if (contest._count.participants < 2) {
-        console.log(
-          `[Crank - Start]: Skipping contest ${contest.id} (${contest.name}) - insufficient participants (${contest._count.participants}).`
-        );
+        // console.log(
+        //   `[Crank - Start]: Skipping contest ${contest.id} (${contest.name}) - insufficient participants (${contest._count.participants}).`
+        // );
         // Optional: Update status to cancelled?
         // await updateContestStatus(contest.id, ContestStatus.CANCELLED);
         continue; // Skip to the next contest
       }
 
-      console.log(
-        `[Crank - Start]: Processing contest ${contest.id} (${contest.name})...`
-      );
+      // console.log(
+      //   `[Crank - Start]: Processing contest ${contest.id} (${contest.name})...`
+      // );
       try {
         const contestAddress = await getContestPDA(
           contest.name,
@@ -155,9 +155,9 @@ async function main() {
         // Send transaction using helper
         await sendInstructions(crankSigner, [startContestIx]);
 
-        console.log(
-          `[Crank - Start]: ✅ Successfully started contest ${contest.id} on-chain.`
-        );
+        // console.log(
+        //   `[Crank - Start]: ✅ Successfully started contest ${contest.id} on-chain.`
+        // );
 
         // Update DB status and set start time *after* successful transaction
         const startTime = new Date();

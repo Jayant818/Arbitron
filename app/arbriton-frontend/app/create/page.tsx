@@ -18,6 +18,7 @@ import { useSolana } from "@/components/solana-provider"
 import { useCreateContestMutation } from "@/hooks/api-hooks/useContestQuery"
 import { USDC_MINT_ADDRESS } from "@/lib/constants"
 import { UsdcBalance } from "@/components/shared/UsdcBalance"
+import { toast } from "sonner"
 
 function ContestForm() {
   const [contestName, setContestName] = useState("")
@@ -48,7 +49,9 @@ function ContestForm() {
 
   const handleCreateContest = async () => {
     if (!signer) {
-      alert("Please connect your wallet first")
+      toast.error("Wallet not connected", {
+        description: "Please connect your wallet to create a contest",
+      })
       return
     }
 
@@ -75,7 +78,9 @@ function ContestForm() {
       
       if (startTimeOption === "custom") {
         if (!customStartTime) {
-          alert("Please select a custom start time")
+          toast.error("Missing start time", {
+            description: "Please select a custom start time",
+          })
           setIsCreating(false)
           return
         }
@@ -84,7 +89,9 @@ function ContestForm() {
         
         // Validate that custom time is in the future
         if (startTimeUnix <= now) {
-          alert("Start time must be in the future")
+          toast.error("Invalid start time", {
+            description: "Start time must be in the future",
+          })
           setIsCreating(false)
           return
         }
@@ -174,11 +181,20 @@ function ContestForm() {
       await createContestInDb(contestDataForDb);
       console.log("Request Completed")
   
-      alert("Contest created successfully!")
-      router.push("/contests")
+      toast.success("Contest Created! 🎉", {
+        description: `${contestName} has been created successfully. Redirecting to contests...`,
+        duration: 3000,
+      })
+      
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push("/contests")
+      }, 1500)
     } catch (error) {
       console.error("❌ Error creating contest:", error)
-      alert("Error creating contest. Check console for details.")
+      toast.error("Failed to create contest", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
+      })
     } finally {
       setIsCreating(false)
     }

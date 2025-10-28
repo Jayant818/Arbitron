@@ -144,15 +144,38 @@ async function sendAndConfirmSingleInstruction(
 }
 
 async function main() {
-  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: 🚀 zk-data-prep worker starting...");
+  
+  // Test Redis connection
+  try {
+    console.log("[Worker]: Testing Redis connection...");
+    await redis.ping();
+    console.log("[Worker]: ✅ Redis connection successful");
+    
+    // Check queue length
+    const queueLength = await redis.lLen(END_CONTEST_QUEUE);
+    console.log(`[Worker]: Current queue "${END_CONTEST_QUEUE}" length: ${queueLength}`);
+  } catch (error) {
+    console.error("[Worker]: ❌ Failed to connect to Redis:", error);
+    process.exit(1);
+  }
 
+  console.log("[Worker]: Initializing RPC connections...");
   const rpc = createSolanaRpc(devnet(RPC_URL));
   const rpcSubscriptions = createSolanaRpcSubscriptions(devnet(WS_RPC_URL));
+  
+  console.log("[Worker]: Loading payer keypair from:", PAYER_KEYPAIR_PATH);
   const payer = await createKeyPairSignerFromBytes(
     Uint8Array.from(JSON.parse(fs.readFileSync(PAYER_KEYPAIR_PATH, "utf-8")))
   );
+  console.log("[Worker]: Payer wallet loaded:", payer.address);
+
+  console.log(`[Worker]: ✅ All systems ready!`);
+  console.log(`[Worker]: 👂 Listening on Redis queue: "${END_CONTEST_QUEUE}"`);
+  console.log("[Worker]: Waiting for contests to process...\n");
 
   while (true) {
+    console.log(`[Worker]: [${new Date().toISOString()}] Blocking on queue "${END_CONTEST_QUEUE}"...`);
     const contestId = await redis.brPop(END_CONTEST_QUEUE, 0);
     if (!contestId) continue;
     console.log(

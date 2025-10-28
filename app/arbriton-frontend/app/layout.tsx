@@ -8,6 +8,7 @@ import { Suspense } from "react"
 import App from "next/app"
 import AppProvider from "@/lib/AppProvider"
 import { Navbar } from "@/components/navbar"
+import { Toaster } from "sonner"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -36,6 +37,12 @@ export default function RootLayout({
             <Navbar/>
           {children}
           </AppProvider>
+          <Toaster 
+            position="top-right" 
+            richColors 
+            closeButton
+            theme="dark"
+          />
           <Analytics />
         </Suspense>
       </body>
