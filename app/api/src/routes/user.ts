@@ -3,6 +3,33 @@ import { createParticipant, findOrCreateUser, updateUser } from "@arbitron/db";
 
 const userRouter = Router();
 
+// Utility function to convert BigInt to string in objects
+const serializeBigInt = (obj: any): any => {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (typeof obj === 'bigint') {
+    return obj.toString();
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(serializeBigInt);
+  }
+  
+  if (typeof obj === 'object') {
+    const serialized: any = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        serialized[key] = serializeBigInt(obj[key]);
+      }
+    }
+    return serialized;
+  }
+  
+  return obj;
+};
+
 userRouter.put("/:walletAddress", async (req, res) => {
   try {
     const { walletAddress } = req.params;
@@ -14,7 +41,7 @@ userRouter.put("/:walletAddress", async (req, res) => {
 
     const user = await updateUser(walletAddress, username, email);
 
-    return res.status(200).json(user);
+    return res.status(200).json(serializeBigInt(user));
   } catch (error) {
     console.error("Error in update user:", error);
     return res.status(500).send("Internal Server Error");
@@ -31,7 +58,7 @@ userRouter.post("/find-or-create", async (req, res) => {
 
     const user = await findOrCreateUser(publicKey);
 
-    return res.status(200).json({ user });
+    return res.status(200).json({ user: serializeBigInt(user) });
   } catch (error) {
     console.error("Error in find-or-create user:", error);
     return res.status(500).send("Internal Server Error");

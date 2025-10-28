@@ -18,60 +18,46 @@ import {
     type UiWalletAccount
   } from "@wallet-standard/react";
 
-const quizQuestions = [
-  {
-    question: "Which token has the highest 24h volume?",
-    options: ["SOL", "BONK", "JUP", "RAY"],
-    correct: 0,
-  },
-  {
-    question: "What's the current market trend?",
-    options: ["Bullish", "Bearish", "Sideways", "Volatile"],
-    correct: 3,
-  },
-]
-
-// Array of Solana facts
 const solanaFacts = [
   "Solana was founded in 2017 by Anatoly Yakovenko, a former Qualcomm engineer.",
-  "Solana uses **Proof of History (PoH)** to order transactions efficiently.",
-  "Solana blockchain can process **65,000+ transactions per second** under test conditions.",
-  "The average **block time** on Solana is ~400 milliseconds.",
-  "**Transaction fees** on Solana are usually less than **$0.001**.",
-  "Solana's native token is **SOL**.",
-  "Solana launched its **mainnet beta** in **March 2020**.",
-  "Solana supports **smart contracts written in Rust, C, and C++**.",
-  "Solana has **8 core innovations**, including Proof of History, Sealevel, and Gulf Stream.",
-  "Solana's runtime system, **Sealevel**, allows parallel transaction processing.",
-  "Solana uses **Tower BFT**, a modified version of Practical Byzantine Fault Tolerance.",
-  "Validators on Solana vote on blocks using a **gossip protocol**.",
-  "**Turbine** is Solana's block propagation protocol — it splits data into small packets.",
-  "The **Gulf Stream** system pushes transactions to validators **before** blocks are finalized.",
-  "Solana's **Cloudbreak** data structure handles parallel reads/writes efficiently.",
-  "The **Archivers** in Solana store historical data off-chain.",
-  "Solana's runtime can execute **tens of thousands of smart contracts simultaneously**.",
-  "Solana blocks are verified by **leaders**, selected through a proof-of-stake rotation.",
-  "Validators need **high-end hardware** to handle the chain's throughput.",
-  "**State compression** lets Solana store massive NFT or account data with minimal cost.",
-  "Solana's developer framework is called **Anchor**.",
+  "Solana uses Proof of History (PoH) to order transactions efficiently.",
+  "Solana blockchain can process 65,000+ transactions per second under test conditions.",
+  "The average block time on Solana is ~400 milliseconds.",
+  "Transaction fees on Solana are usually less than $0.001.",
+  "Solana's native token is SOL.",
+  "Solana launched its mainnet beta in March 2020.",
+  "Solana supports smart contracts written    Rust, C, and C++.",
+  "Solana has 8 core innovations, including Proof of History, Sealevel, and Gulf Stream.",
+  "Solana's runtime system, Sealevel, allows parallel transaction processing.",
+  "Solana uses Tower BFT, a modified version of Practical Byzantine Fault Tolerance.",
+  "Validators on Solana vote on blocks using a gossip protocol.",
+  "Turbine is Solana's block propagation protocol — it splits data into small packets.",
+  "The Gulf Stream system pushes transactions to validators before blocks are finalized.",
+  "Solana's Cloudbreak data structure handles parallel reads/writes efficiently.",
+  "The Archivers in Solana store historical data off-chain.",
+  "Solana's runtime can execute tens of thousands of smart contracts simultaneously.",
+  "Solana blocks are verified by leaders, selected through a proof-of-stake rotation.",
+  "Validators need high-end hardware to handle the chain's throughput.",
+  "State compression lets Solana store massive NFT or account data with minimal cost.",
+  "Solana's developer framework is called Anchor.",
   "Anchor provides macros that simplify writing secure Solana programs.",
-  "**Phantom** is the most popular Solana wallet.",
-  "**Metaplex** powers most NFT collections on Solana.",
-  "Solana's block explorer is available at **explorer.solana.com**.",
-  "**Solana Pay** enables instant crypto payments with no intermediaries.",
-  "**Helius** and **QuickNode** provide powerful Solana APIs for developers.",
-  "The Solana ecosystem has over **2,000 active projects**.",
-  "**Solana Mobile Stack (SMS)** brings dApps to Android.",
-  "**Saga**, Solana's smartphone, launched in 2023 with built-in crypto tools.",
-  "The Solana mascot is a **dog named Bonk**, from the meme token BONK.",
-  "**Breakpoint** is Solana's official annual developer conference.",
-  "The **Solana Foundation** is a non-profit supporting ecosystem growth.",
-  "Solana's testnet is called **Devnet**, and anyone can deploy there.",
-  "Solana once had an outage that lasted over **17 hours**, which led to major upgrades.",
-  "Some Solana validators run on **Raspberry Pi clusters** for fun.",
-  "Solana supports **cross-chain bridges** to Ethereum and Bitcoin.",
-  "Solana NFTs can be traded gas-free on marketplaces like **Tensor** and **Magic Eden**.",
-  "The Solana logo's gradient colors are inspired by **auroras**.",
+  "Phantom is the most popular Solana wallet.",
+  "Metaplex powers most NFT collections on Solana.",
+  "Solana's block explorer is available at explorer.solana.com.",
+  "Solana Pay enables instant crypto payments with no intermediaries.",
+  "Helius and QuickNode provide powerful Solana APIs for developers.",
+  "The Solana ecosystem has over 2,000 active projects.",
+  "Solana Mobile Stack (SMS) brings dApps to Android.",
+  "Saga, Solana's smartphone, launched in 2023 with built-in crypto tools.",
+  "The Solana mascot is a dog named Bonk, from the meme token BONK.",
+  "Breakpoint is Solana's official annual developer conference.",
+  "The Solana Foundation is a non-profit supporting ecosystem growth.",
+  "Solana's testnet is called Devnet, and anyone can deploy there.",
+  "Solana once had an outage that lasted over 17 hours, which led to major upgrades.",
+  "Some Solana validators run on Raspberry Pi clusters for fun.",
+  "Solana supports cross-chain bridges to Ethereum and Bitcoin.",
+  "Solana NFTs can be traded gas-free on marketplaces like Tensor and Magic Eden.",
+  "The Solana logo's gradient colors are inspired by auroras.",
   "The Solana community often calls itself the  - Solana fam. 💜"
 ];
 
@@ -241,19 +227,6 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
       return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     }
   
-    const handleAnswerSelect = (index: number) => {
-      if (selectedAnswer !== null) return
-      setSelectedAnswer(index)
-      if (index === quizQuestions[currentQuiz].correct) {
-        setScore((prev) => prev + 10)
-      }
-      setTimeout(() => {
-        if (currentQuiz < quizQuestions.length - 1) {
-          setCurrentQuiz((prev) => prev + 1)
-          setSelectedAnswer(null)
-        }
-      }, 1500)
-    }
   
     // Calculate progress based on time remaining (100% at start, 0% when time is up)
     // We need the initial waiting time to calculate progress correctly
@@ -416,18 +389,30 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
               </Card> */}
   
               {/* Solana Fun Fact */}
-              <Card className="border-border bg-gradient-to-br from-primary/5 via-accent/5 to-background">
-                <CardHeader>
+              <Card className="border-primary/20 bg-gradient-to-br from-primary/10 via-accent/10 to-background relative overflow-hidden">
+                {/* Decorative background elements */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl" />
+                
+                <CardHeader className="relative">
                   <CardTitle className="flex items-center justify-center gap-2 text-foreground">
-                    <Lightbulb className="h-5 w-5 text-primary animate-pulse" />
-                    Did You Know?
+                    <div className="relative">
+                      <Lightbulb className="h-6 w-6 text-primary animate-pulse" />
+                      <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg animate-pulse" />
+                    </div>
+                    <span className="text-xl">Did You Know?</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-center min-h-[100px] px-4">
-                    <p className="text-center text-base text-foreground leading-relaxed font-medium">
-                      {randomFact}
-                    </p>
+                <CardContent className="relative">
+                  <div className="flex items-center justify-center min-h-[120px] px-6 py-4">
+                    <div className="relative">
+                      {/* Decorative quote marks */}
+                      <div className="absolute -top-4 -left-4 text-5xl text-primary/10 font-serif leading-none">"</div>
+                      <p className="text-center text-base md:text-lg text-foreground/90 leading-relaxed font-medium relative z-10 italic">
+                        {randomFact}
+                      </p>
+                      <div className="absolute -bottom-4 -right-4 text-5xl text-primary/10 font-serif leading-none rotate-180">"</div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

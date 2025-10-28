@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use anchor_lang::{prelude::*, solana_program::program::invoke};
 use bonsol_anchor_interface::{bonsol_interface, instructions::{CallbackConfig, ExecutionConfig, InputRef, execute_v1}};
 
@@ -62,21 +64,18 @@ pub fn request_end_contest_proof(context:Context<RequestEndContestProof>,executi
         &context.accounts.payer.key(),
         IMAGE_ID, // Your Arbitron PNL ZK Guest Image ID
         &execution_id,
-        //
-        // --- THIS IS THE KEY CHANGE ---
-        // Pass a private reference to the PDA instead of public data.
+        // Passing a private reference to the PDA instead of public data.
         // Bonsol will read the data from this account.
         vec![InputRef::private(context.accounts.contest_inputs.key().as_ref())],
-        //
         tip,
-        slot + 100000000, // Expiration slot
+        slot + 100000000, 
         ExecutionConfig {
             forward_output: true,
             verify_input_hash: false,
             input_hash: None,
         },
         Some(CallbackConfig {
-            program_id: crate::id(), // Your Arbitron program ID
+            program_id: crate::id(), 
             instruction_prefix: callback_ix_discriminator,
             extra_accounts: vec![
                 // Pass the 'contest' account to the callback
@@ -84,11 +83,10 @@ pub fn request_end_contest_proof(context:Context<RequestEndContestProof>,executi
             ],
         }),
         None,
-        vec![], // Or your required oracle/signer accounts
+        vec![Pubkey::from_str("66ipxbdjkKizkwcPdNjCrkZKj72kU7fm8DRRVgAGfeQu").unwrap()], // Or your required oracle/signer accounts
     )
     .map_err(|_| ErrorCode::CantCallExecute)?; // Add CantCallExecute to your ErrorCode
 
-    // Build the account infos array for the CPI call to Bonsol
     // Bonsol's execute_v1 instruction needs these accounts in order:
     // 1. payer (signer, writable)
     // 2. system_program
