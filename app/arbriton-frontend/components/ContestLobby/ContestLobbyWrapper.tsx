@@ -51,7 +51,6 @@ export const ContestLobbyWrapper = () => {
           return;
         }
 
-        console.log("✅ User is authorized participant");
 
         // 2. Check contest status
         const contestInfo = await fetchMaybeContest(
@@ -90,7 +89,6 @@ export const ContestLobbyWrapper = () => {
     instance.registerCallback(
       "contest-started",
       (data: any) => {
-        console.log("Contest started event received via WebSocket:", data);
         if (data.contestId !== contestId) return;
         router.push(`/contest/${contestId}`);
       },

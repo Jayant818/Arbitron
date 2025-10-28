@@ -57,7 +57,7 @@ const PAYER_KEYPAIR_PATH =
   process.env.PAYER_KEYPAIR_PATH || "./host-arbitron-wallet.json"; // Adjusted relative path
 
 // --- Transaction Constants ---
-const TRANSACTION_OVERHEAD = 200; // Estimated bytes for signatures, accounts, etc. Adjust as needed.
+const TRANSACTION_OVERHEAD = 400; // Estimated bytes for signatures, accounts, etc. Adjust as needed.
 const MAX_CHUNK_SIZE = 1232 - TRANSACTION_OVERHEAD; // Max data per append tx
 const END_CONTEST_QUEUE = "ended-contests";
 

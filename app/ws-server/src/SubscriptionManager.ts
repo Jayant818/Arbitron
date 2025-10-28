@@ -53,33 +53,27 @@ export class SubscriptionManager {
 
   public async initPriceSubscriber() {
     if (this.priceSubscriber) return;
-    console.log("Initializing Redis subscriber for price updates...");
     this.priceSubscriber = await createSubscriber();
     try {
       await this.priceSubscriber.SUBSCRIBE(
         PRICE_UPDATES,
         this.priceUpdateCallbackHandler.bind(this)
       );
-      console.log(`Successfully subscribed to Redis channel: ${PRICE_UPDATES}`);
     } catch (err) {
       console.error("Failed to subscribe to Redis price updates:", err);
     }
   }
 
   private priceUpdateCallbackHandler(message: string, channel: string) {
-    console.log("Received message on channel:", channel);
     if (channel !== PRICE_UPDATES) {
       return;
     }
 
-    console.log("Received price update from Redis:", message);
     const payload: PriceUpdatePayload = JSON.parse(message);
 
     // Iterate over each mint address in the update payload
     for (const mint in payload) {
-      console.log("Processing mint:", mint);
       const subscribers = this.priceSubscriptions.get(mint);
-      console.log("Subscribers for mint:", subscribers);
 
       if (subscribers && subscribers.length > 0) {
         const priceData = payload[mint];
@@ -91,7 +85,6 @@ export class SubscriptionManager {
           },
         };
 
-        console.log("Sending price update to subscribers:", subscribers);
         // Send update to all players subscribed to this mint
         subscribers.forEach((playerId) => {
           PlayerManager.getInstance()
@@ -119,7 +112,6 @@ export class SubscriptionManager {
       ...existingReverseSubs,
       ...newMints,
     ]);
-    console.log(`Player ${playerId} subscribed to prices for mints:`, mints);
   }
 
   public unsubscribeFromPrices(playerId: string) {
@@ -137,7 +129,6 @@ export class SubscriptionManager {
         }
       });
       this.reversePriceSubscriptions.delete(playerId);
-      console.log(`Player ${playerId} unsubscribed from all price updates.`);
     }
   }
 
@@ -145,15 +136,11 @@ export class SubscriptionManager {
 
   public async initAggregateSubscriber() {
     if (this.aggregateSubscriber) return;
-    console.log("Initializing Redis subscriber for price aggregation...");
     this.aggregateSubscriber = await createSubscriber();
     try {
       await this.aggregateSubscriber.SUBSCRIBE(
         PRICE_AGGREGATION_CHANNEL,
         this.aggregateCallbackHandler.bind(this)
-      );
-      console.log(
-        `Successfully subscribed to Redis channel: ${PRICE_AGGREGATION_CHANNEL}`
       );
     } catch (err) {
       console.error("Failed to subscribe to Redis price aggregation:", err);
@@ -161,7 +148,6 @@ export class SubscriptionManager {
   }
 
   private aggregateCallbackHandler(message: string, channel: string) {
-    console.log("Received aggregate update from Redis:", message);
     if (channel !== PRICE_AGGREGATION_CHANNEL) {
       return;
     }
@@ -195,10 +181,6 @@ export class SubscriptionManager {
       this.aggregateSubscriptions.set(contestId, [...existingSubs, playerId]);
     }
     this.reverseAggregateSubscriptions.set(playerId, contestId);
-    console.log(
-      `Player ${playerId} subscribed to aggregate for contest:`,
-      contestId
-    );
   }
 
   public unsubscribeFromAggregate(playerId: string, contestId: string) {
@@ -211,10 +193,6 @@ export class SubscriptionManager {
         this.aggregateSubscriptions.delete(contestId);
       }
     }
-    console.log(
-      `Player ${playerId} unsubscribed from aggregate for contest:`,
-      contestId
-    );
   }
 
   public unsubscribeFromAllAggregates(playerId: string) {
@@ -261,7 +239,6 @@ export class SubscriptionManager {
         `contest-${contestId}`,
         this.contestCallbackHandler.bind(this)
       );
-      console.log("Subscribed to contest channel:", contestId);
     }
   }
 

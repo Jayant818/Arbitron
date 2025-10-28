@@ -11,11 +11,9 @@ export interface IPriceUpdate {
 }
 
 async function pollPrice() {
-  console.log("Fetching Token Prices...");
   const tokens = await getAllOngoingContestUniqueSelectedTokens();
 
   if (tokens.length === 0) {
-    console.log("No active Contest to poll");
     return; // Return early if no tokens to process
   }
 
@@ -62,10 +60,6 @@ async function pollPrice() {
     await prisma.priceHistory.createMany({
       data: resArray,
     });
-
-    console.log(
-      `Successfully polled and stored prices for ${resArray.length} tokens.`
-    );
   } catch (error) {
     console.log("Error Fetching and publishing the Token Price", error);
   }

@@ -100,11 +100,7 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
             enabled: !!contestId
         }
     })
-  
 
-  console.log("Participants Data", participantsData, participantsData?.length);
-
-    console.log("Contest Details", contestDetails);
   
     // Set a random fact on component mount
     useEffect(() => {

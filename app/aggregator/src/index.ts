@@ -1,23 +1,26 @@
-import { getAllParticipantsOfOngoingContestsWithSelectedTokens, getLatestPrices } from "@arbitron/db";
+import {
+  getAllParticipantsOfOngoingContestsWithSelectedTokens,
+  getLatestPrices,
+} from "@arbitron/db";
 import { publisher } from "@arbitron/shared-redis";
 
 const PRICE_AGGREGATION_CHANNEL = "PRICE_AGGREGATION";
 
 async function runAggregator() {
-  console.log("Running aggregator...");
   try {
-    const participants = await getAllParticipantsOfOngoingContestsWithSelectedTokens();
+    const participants =
+      await getAllParticipantsOfOngoingContestsWithSelectedTokens();
 
     if (participants.length === 0) {
-      console.log("No participants in ongoing contests.");
       return;
     }
 
-    const allMints = participants.flatMap(p => p.SelectedTokens.map(t => t.mint));
+    const allMints = participants.flatMap((p) =>
+      p.SelectedTokens.map((t) => t.mint)
+    );
     const uniqueMints = [...new Set(allMints)];
 
     if (uniqueMints.length === 0) {
-      console.log("No selected tokens in ongoing contests.");
       return;
     }
 
@@ -54,9 +57,10 @@ async function runAggregator() {
       });
     }
 
-    await publisher.publish(PRICE_AGGREGATION_CHANNEL, JSON.stringify(aggregatedData));
-    console.log("Published aggregated data to Redis:", JSON.stringify(aggregatedData, null, 2));
-
+    await publisher.publish(
+      PRICE_AGGREGATION_CHANNEL,
+      JSON.stringify(aggregatedData)
+    );
   } catch (error) {
     console.error("Error running aggregator:", error);
   }

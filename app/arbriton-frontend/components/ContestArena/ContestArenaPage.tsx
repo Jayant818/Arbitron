@@ -73,9 +73,14 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
 
   // Fetch contest details from on-chain using RPC
   useEffect(() => {
+    let isInitialFetch = true;
+    
     const fetchContestDetails = async () => {
       try {
-        setIsContestLoading(true);
+        // Only show loading spinner on initial fetch
+        if (isInitialFetch) {
+          setIsContestLoading(true);
+        }
         const contest = await fetchContest(rpc, address(contestId));
         console.log("Fetched contest from on-chain:", contest);
         
@@ -96,7 +101,10 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
       } catch (error) {
         console.error("Error fetching contest from on-chain:", error);
       } finally {
-        setIsContestLoading(false);
+        if (isInitialFetch) {
+          setIsContestLoading(false);
+          isInitialFetch = false;
+        }
       }
     };
 
@@ -155,11 +163,9 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
       type: "SUBSCRIBE_PRICES",
       payload: { mints },
     });
-    console.log("Sent SUBSCRIBE_PRICES for:", mints);
 
     // Cleanup on component unmount
     return () => {
-      console.log("Unregistering price update callback");
       signalingManager.unregisterCallback("priceUpdate", callbackId);
     };
   }, [selectedTokens, contestId]);
@@ -246,8 +252,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
       
       // Show popup when contest ends (timer transitions from >0 to 0)
       // Only show once using the ref flag
-      if (remaining === 0 && prevTime !== null && prevTime > 0 && !hasShownEndDialogRef.current) {
-        console.log("Contest timer reached zero! Showing end dialog.");
+      if (remaining === 0 && prevTime !== null && prevTime >= 0 && !hasShownEndDialogRef.current) {
         setShowEndDialog(true);
         hasShownEndDialogRef.current = true;
       }
@@ -776,7 +781,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
 
       {/* Contest Ended Dialog */}
       <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
-        <DialogContent className="sm:max-w-md border-border bg-black bg-opacity-100">
+        <DialogContent className="sm:max-w-md border-border bg-black! bg-opacity-100">
           <DialogHeader>
             <div className="flex items-center justify-center mb-4">
               <div className={`h-16 w-16 rounded-full ${isWinner ? 'bg-green-500/20' : 'bg-amber-500/20'} flex items-center justify-center`}>

@@ -11,8 +11,6 @@ export default function HomePage() {
 
   const { data: contests, isLoading: isLoadingContests } = useGetAllContestsQuery();
 
-  console.log("Contests:", contests);
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />

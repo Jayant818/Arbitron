@@ -142,11 +142,6 @@ ContestRouter.get("/:id/participents/all", async (req, res) => {
 
     // Convert BigInt fields to numbers for JSON serialization
 
-    // console.log(
-    //   "🔍 First participant data:",
-    //   JSON.stringify(participantsWithNumbers?.[0], null, 2)
-    // );
-
     res.status(200).json({ participants });
   } catch (error: any) {
     console.error("Error Fetching all Participant", error);

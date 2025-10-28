@@ -92,9 +92,6 @@ userRouter.post("/join-contest", async (req, res) => {
 
     const user = await findOrCreateUser(userPublickey);
 
-    console.log("User found or created:", user);
-    console.log("Contest ID:", contestId);
-    console.log("Tokens:", tokens);
     const participant = await createParticipant(contestId, user.id, tokens);
 
     return res.status(201).json({ participant });

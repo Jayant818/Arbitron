@@ -62,20 +62,20 @@ export const getParticipantsByContestId = async (contestId: string) => {
       })) || [],
   }));
 
-  console.log("🔍 DB Query Result - Participants count:", participants.length);
+  // console.log("🔍 DB Query Result - Participants count:", participants.length);
   if (participants.length > 0 && participants[0]) {
-    console.log(
-      "🔍 First participant structure:",
-      JSON.stringify(
-        participants[0],
-        (key, value) => (typeof value === "bigint" ? value.toString() : value),
-        2
-      )
-    );
-    console.log(
-      "🔍 First participant SelectedTokens:",
-      participants[0].SelectedTokens
-    );
+    // console.log(
+    //   "🔍 First participant structure:",
+    //   JSON.stringify(
+    //     participants[0],
+    //     (key, value) => (typeof value === "bigint" ? value.toString() : value),
+    //     2
+    //   )
+    // );
+    // console.log(
+    //   "🔍 First participant SelectedTokens:",
+    //   participants[0].SelectedTokens
+    // );
   }
 
   return participantsWithNumbers;
