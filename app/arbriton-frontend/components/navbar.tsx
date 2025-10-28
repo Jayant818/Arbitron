@@ -1,10 +1,20 @@
 "use client"
 
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Trophy, User, Home, Plus } from "lucide-react"
 import { WalletConnectButton } from "./wallet-connect-button"
 
 export function Navbar() {
+  const pathname = usePathname()
+
+  // Helper function to check if a link is active
+  const isActive = (path: string) => {
+    if (path === "/") {
+      return pathname === "/"
+    }
+    return pathname?.startsWith(path)
+  }
 
   return (
     <>
@@ -22,28 +32,44 @@ export function Navbar() {
             <div className="hidden md:flex items-center gap-6">
               <Link
                 href="/"
-                className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-smooth hover:text-foreground"
+                className={`flex items-center gap-2 text-sm font-medium transition-smooth hover:text-foreground ${
+                  isActive("/") 
+                    ? "text-primary border-b-2 border-primary" 
+                    : "text-muted-foreground"
+                }`}
               >
                 <Home className="h-4 w-4" />
                 Home
               </Link>
               <Link
                 href="/contests"
-                className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-smooth hover:text-foreground"
+                className={`flex items-center gap-2 text-sm font-medium transition-smooth hover:text-foreground ${
+                  isActive("/contests") 
+                    ? "text-primary border-b-2 border-primary" 
+                    : "text-muted-foreground"
+                }`}
               >
                 <Trophy className="h-4 w-4" />
                 Contests
               </Link>
               <Link
                 href="/create"
-                className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-smooth hover:text-foreground"
+                className={`flex items-center gap-2 text-sm font-medium transition-smooth hover:text-foreground ${
+                  isActive("/create") 
+                    ? "text-primary border-b-2 border-primary" 
+                    : "text-muted-foreground"
+                }`}
               >
                 <Plus className="h-4 w-4" />
                 Create
               </Link>
               <Link
                 href="/profile"
-                className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-smooth hover:text-foreground"
+                className={`flex items-center gap-2 text-sm font-medium transition-smooth hover:text-foreground ${
+                  isActive("/profile") 
+                    ? "text-primary border-b-2 border-primary" 
+                    : "text-muted-foreground"
+                }`}
               >
                 <User className="h-4 w-4" />
                 Profile

@@ -23,7 +23,20 @@ const iconMap: { [key: string]: React.ElementType } = {
 };
 
 export default function ProfilePage() {
-    const { selectedAccount } = useSolana();
+    const { selectedAccount, isConnected } = useSolana();
+    if (!isConnected || !selectedAccount) {
+        return (
+          <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <h2 className="text-2xl font-bold text-white">Wallet Not Connected</h2>
+              <p className="text-muted-foreground">
+                Please connect your wallet to view your profile
+              </p>
+            </div>
+          </div>
+        )
+      }
+
     const { data: userStats, isLoading: loading } = useUser();
     const { mutate: updateUser } = useUpdateUser();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -56,14 +69,20 @@ export default function ProfilePage() {
         return <div>Loading...</div>;
     }
 
-    if (!userStats) {
-        return <div>User not found</div>;
-    }
-
-    const xpProgress = (userStats.xp / userStats.nextLevelXp) * 100;
-    const nfts = userStats.nfts || [];
-    const badges = userStats.badges || [];
-    const recentContests = userStats.recentContests || [];
+    // Set default values for new users or when data is missing
+    const xp = userStats?.xp || 0;
+    const nextLevelXp = userStats?.nextLevelXp || 100;
+    const contestsPlayed = userStats?.contestsPlayed || 0;
+    const winRate = userStats?.winRate || 0;
+    const totalEarnings = userStats?.totalEarnings || 0;
+    const username = userStats?.username || 'Anonymous';
+    const avatar = userStats?.avatar || 'A';
+    const rank = userStats?.rank || 'N/A';
+    
+    const xpProgress = nextLevelXp > 0 ? (xp / nextLevelXp) * 100 : 0;
+    const nfts = userStats?.nfts || [];
+    const badges = userStats?.badges || [];
+    const recentContests = userStats?.recentContests || [];
 
     return (
         <div className="min-h-screen bg-background">
@@ -73,15 +92,15 @@ export default function ProfilePage() {
                         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                             <Avatar className="h-24 w-24 border-4 border-primary">
                                 <AvatarFallback className="bg-primary/10 text-primary font-bold text-3xl">
-                                    {userStats.avatar || 'A'}
+                                    {avatar}
                                 </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 text-center md:text-left">
                                 <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
-                                    <h1 className="text-3xl font-bold text-foreground">{userStats.username || 'Anonymous'}</h1>
+                                    <h1 className="text-3xl font-bold text-foreground">{username}</h1>
                                     <Badge className="bg-primary text-primary-foreground">
                                         <Crown className="h-3 w-3 mr-1" />
-                                        Rank #{userStats.rank || 'N/A'}
+                                        Rank #{rank}
                                     </Badge>
                                     <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
                                         <DialogTrigger asChild>
@@ -126,22 +145,22 @@ export default function ProfilePage() {
                                     <div className="flex items-center justify-between text-sm mb-2">
                                         <span className="text-muted-foreground">Level Progress</span>
                                         <span className="font-medium text-foreground">
-                                            {userStats.xp || 0} / {userStats.nextLevelXp || 100} XP
+                                            {xp} / {nextLevelXp} XP
                                         </span>
                                     </div>
                                     <Progress value={xpProgress} className="h-3" />
                                 </div>
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="text-center p-3 rounded-lg bg-secondary/30">
-                                        <div className="text-2xl font-bold text-foreground">{userStats.contestsPlayed || 0}</div>
+                                        <div className="text-2xl font-bold text-foreground">{contestsPlayed}</div>
                                         <div className="text-xs text-muted-foreground">Contests</div>
                                     </div>
                                     <div className="text-center p-3 rounded-lg bg-secondary/30">
-                                        <div className="text-2xl font-bold text-success">{userStats.winRate || 0}%</div>
+                                        <div className="text-2xl font-bold text-success">{winRate}%</div>
                                         <div className="text-xs text-muted-foreground">Win Rate</div>
                                     </div>
                                     <div className="text-center p-3 rounded-lg bg-secondary/30">
-                                        <div className="text-2xl font-bold text-primary">{userStats.totalEarnings || 0} SOL</div>
+                                        <div className="text-2xl font-bold text-primary">{totalEarnings} SOL</div>
                                         <div className="text-xs text-muted-foreground">Earned</div>
                                     </div>
                                 </div>

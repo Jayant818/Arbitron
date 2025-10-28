@@ -31,7 +31,7 @@ ContestRouter.post("/", async (req, res) => {
     const newContest = await createContest({
       ...contestData,
       entryFee: BigInt(contestData.entryFee),
-      startTime: new Date(contestData.startTime),
+      scheduledStartTime: new Date(contestData.startTime),
     });
 
     // Convert BigInt to string for JSON serialization

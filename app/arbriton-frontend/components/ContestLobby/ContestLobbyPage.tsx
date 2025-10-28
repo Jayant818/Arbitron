@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Users, Clock, Trophy, TrendingUp, Brain, Target, Play } from "lucide-react"
+import { Users, Clock, Trophy, TrendingUp, Brain, Target, Play, Lightbulb } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useGetAllParticipantsForContest, useGetContestByIdQuery, useUpdateContestStatusMutation } from "@/hooks/api-hooks/useContestQuery"
@@ -31,6 +31,50 @@ const quizQuestions = [
   },
 ]
 
+// Array of Solana facts
+const solanaFacts = [
+  "Solana was founded in 2017 by Anatoly Yakovenko, a former Qualcomm engineer.",
+  "Solana uses **Proof of History (PoH)** to order transactions efficiently.",
+  "Solana blockchain can process **65,000+ transactions per second** under test conditions.",
+  "The average **block time** on Solana is ~400 milliseconds.",
+  "**Transaction fees** on Solana are usually less than **$0.001**.",
+  "Solana's native token is **SOL**.",
+  "Solana launched its **mainnet beta** in **March 2020**.",
+  "Solana supports **smart contracts written in Rust, C, and C++**.",
+  "Solana has **8 core innovations**, including Proof of History, Sealevel, and Gulf Stream.",
+  "Solana's runtime system, **Sealevel**, allows parallel transaction processing.",
+  "Solana uses **Tower BFT**, a modified version of Practical Byzantine Fault Tolerance.",
+  "Validators on Solana vote on blocks using a **gossip protocol**.",
+  "**Turbine** is Solana's block propagation protocol — it splits data into small packets.",
+  "The **Gulf Stream** system pushes transactions to validators **before** blocks are finalized.",
+  "Solana's **Cloudbreak** data structure handles parallel reads/writes efficiently.",
+  "The **Archivers** in Solana store historical data off-chain.",
+  "Solana's runtime can execute **tens of thousands of smart contracts simultaneously**.",
+  "Solana blocks are verified by **leaders**, selected through a proof-of-stake rotation.",
+  "Validators need **high-end hardware** to handle the chain's throughput.",
+  "**State compression** lets Solana store massive NFT or account data with minimal cost.",
+  "Solana's developer framework is called **Anchor**.",
+  "Anchor provides macros that simplify writing secure Solana programs.",
+  "**Phantom** is the most popular Solana wallet.",
+  "**Metaplex** powers most NFT collections on Solana.",
+  "Solana's block explorer is available at **explorer.solana.com**.",
+  "**Solana Pay** enables instant crypto payments with no intermediaries.",
+  "**Helius** and **QuickNode** provide powerful Solana APIs for developers.",
+  "The Solana ecosystem has over **2,000 active projects**.",
+  "**Solana Mobile Stack (SMS)** brings dApps to Android.",
+  "**Saga**, Solana's smartphone, launched in 2023 with built-in crypto tools.",
+  "The Solana mascot is a **dog named Bonk**, from the meme token BONK.",
+  "**Breakpoint** is Solana's official annual developer conference.",
+  "The **Solana Foundation** is a non-profit supporting ecosystem growth.",
+  "Solana's testnet is called **Devnet**, and anyone can deploy there.",
+  "Solana once had an outage that lasted over **17 hours**, which led to major upgrades.",
+  "Some Solana validators run on **Raspberry Pi clusters** for fun.",
+  "Solana supports **cross-chain bridges** to Ethereum and Bitcoin.",
+  "Solana NFTs can be traded gas-free on marketplaces like **Tensor** and **Magic Eden**.",
+  "The Solana logo's gradient colors are inspired by **auroras**.",
+  "The Solana community often calls itself the  - Solana fam. 💜"
+];
+
 export default function ContestLobbyPage({ accountAddress }: { accountAddress:  UiWalletAccount }) {
     const { id: contestId } = useParams();
     const router = useRouter();
@@ -39,13 +83,14 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
     const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
     const [score, setScore] = useState(0)
     const [isStarting, setIsStarting] = useState(false);
+    const [randomFact, setRandomFact] = useState("");
      
   
     const { data: contestDetails, isLoading: isContestLoading } = useGetContestByIdQuery({
       id: contestId as string,
       customConfig: {
         enabled: !!contestId,
-        refetchInterval:10000,
+        refetchInterval:1000,
       }
     })
 
@@ -61,6 +106,12 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
 
     console.log("Contest Details", contestDetails);
   
+    // Set a random fact on component mount
+    useEffect(() => {
+      const randomIndex = Math.floor(Math.random() * solanaFacts.length);
+      setRandomFact(solanaFacts[randomIndex]);
+    }, []);
+
     // Contest state enum
     const ContestState = {
       UPCOMING: 0,
@@ -97,6 +148,9 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
     // Update time left when contest details load
     useEffect(() => {
       if (contestDetails) {
+        if (contestDetails.status === ContestState.ONGOING) {
+          router.push(`/contest/${contestId}`);
+        }
         setTimeLeft(calculateTimeLeft());
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -316,7 +370,7 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
               </Card>
   
               {/* Mini Quiz/Tasks */}
-              <Card className="border-border bg-card">
+              {/* <Card className="border-border bg-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-foreground">
                     <Brain className="h-5 w-5 text-primary" />
@@ -362,38 +416,21 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
                     </div>
                   )}
                 </CardContent>
-              </Card>
+              </Card> */}
   
-              {/* Spectator Analytics */}
-              <Card className="border-border bg-card">
+              {/* Solana Fun Fact */}
+              <Card className="border-border bg-gradient-to-br from-primary/5 via-accent/5 to-background">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-foreground">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    Popular Picks
+                  <CardTitle className="flex items-center justify-center gap-2 text-foreground">
+                    <Lightbulb className="h-5 w-5 text-primary animate-pulse" />
+                    Did You Know?
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {[
-                      { token: "SOL", picks: 85, color: "bg-chart-3" },
-                      { token: "BONK", picks: 72, color: "bg-chart-5" },
-                      { token: "JUP", picks: 68, color: "bg-chart-2" },
-                      { token: "WIF", picks: 54, color: "bg-chart-1" },
-                    ].map((item) => (
-                      <div key={item.token} className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="font-medium text-foreground">{item.token}</span>
-                          <span className="text-muted-foreground">{item.picks}% of players</span>
-                        </div>
-                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${item.color} transition-all duration-500`}
-                            style={{ width: `${item.picks}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))
-                  }
+                  <div className="flex items-center justify-center min-h-[100px] px-4">
+                    <p className="text-center text-base text-foreground leading-relaxed font-medium">
+                      {randomFact}
+                    </p>
                   </div>
                 </CardContent>
               </Card>

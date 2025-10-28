@@ -34,6 +34,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
     },
   });
 
+
   // Fetch participants and their selected tokens
   const { data: participants, isLoading: isParticipantsLoading } = useGetParticipantsByContestIdQuery({
     contestId,
@@ -256,6 +257,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                 <Clock className="h-4 w-4" />
+                { JSON.stringify(contestDetails)}
                 <span>Duration</span>
               </div>
               <div className="text-2xl font-bold text-foreground">

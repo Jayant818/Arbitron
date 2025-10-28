@@ -1,112 +1,108 @@
 import {
-  createSolanaRpc,
-  createSolanaRpcSubscriptions,
-  generateKeyPairSigner,
-  KeyPairSigner,
+  address,
   Address,
-  assertIsAddress,
-  airdropFactory,
-  lamports,
-  pipe,
+  getAddressEncoder,
+  getProgramDerivedAddress,
   createTransactionMessage,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
   appendTransactionMessageInstructions,
   assertIsTransactionMessageWithinSizeLimit,
+  pipe,
+  createSolanaRpc,
+  createSolanaRpcSubscriptions,
+  createKeyPairSignerFromPrivateKeyBytes,
   signTransactionMessageWithSigners,
   sendAndConfirmTransactionFactory,
   getSignatureFromTransaction,
-  getProgramDerivedAddress,
-  getAddressEncoder,
-  Instruction,
-  address,
+  airdropFactory,
+  lamports,
+  fetchEncodedAccount,
+  generateKeyPairSigner, // Needed for mint account
+  KeyPairSigner, // Type for mint account
+  Instruction, // Type for instructions array
 } from "@solana/kit";
-
-import {
-  findAssociatedTokenPda,
-  getCreateAssociatedTokenInstruction,
-  getInitializeMint2Instruction,
-  getMintSize,
-  getMintToCheckedInstruction,
-  TOKEN_PROGRAM_ADDRESS,
-} from "@solana-program/token";
+import { randomBytes } from "crypto";
+import fs from "fs";
+import { keccak_256 } from "@noble/hashes/sha3";
 import { describe, before, test } from "node:test";
 import assert from "node:assert";
 
+// --- NEW: Imports for SPL Token ---
 import {
-  CreateContestAsyncInput,
-  getCreateContestInstructionAsync,
-  getContestDecoder,
-  isArbitronError,
-  ARBITRON_ERROR__INVALID_ENTRY_FEES,
-  ARBITRON_ERROR__INVALID_DURATION,
-  ARBITRON_ERROR__INVALID_START_TIME,
-  getArbitronErrorMessage,
-  CreateContestInstruction,
-  JoinContestAsyncInput,
-  getJoinContestInstructionAsync,
-  getParticipentDecoder,
-  StartContestInput,
-  getStartContestInstruction,
-  ContestState,
-} from "../dist/js-client/index";
-import { getCreateAccountInstruction } from "@solana-program/system";
+  getCreateAccountInstruction,
+  SYSTEM_PROGRAM_ADDRESS, // Needed for createAccount Ix
+} from "@solana-program/system";
+import {
+  getInitializeMint2Instruction,
+  getMintSize,
+  TOKEN_PROGRAM_ADDRESS,
+  // Other token instructions like createATA, mintTo can be added if needed
+} from "@solana-program/token";
+
+import { ARBITRON_PROGRAM_ADDRESS } from "../dist/js-client";
 import {
   getInitializeInstructionAsync,
   InitializeAsyncInput,
 } from "../dist/js-client/instructions/initialize";
-import { getConfigDecoder } from "../dist/js-client/accounts/config";
+import {
+  getStoreContestInputsInstructionAsync,
+  StoreContestInputsAsyncInput,
+} from "../dist/js-client/instructions/storeContestInputs";
+import {
+  getRequestEndContestProofInstructionAsync,
+  RequestEndContestProofAsyncInput,
+} from "../dist/js-client/instructions/requestEndContestProof";
+import { Contest, fetchMaybeContest } from "../dist/js-client/accounts/contest";
+import { ContestState } from "../dist/js-client";
 
-const RPC_URL = "http://127.0.0.1:8899";
-const RPC_SUBSCRIPTION_URL = "ws://127.0.0.1:8900";
-const ARBITRON_PROGRAM_ID =
-  "C63yc2q8kZKsVfabH5A6ip5DSDAx4ryW4av8e4vXMaw2" as Address;
-const rpc = createSolanaRpc("http://127.0.0.1:8899");
-const rpcSubscription = createSolanaRpcSubscriptions("ws://127.0.0.1:8900");
+// --- Constants ---
+const BONSOL_PROGRAM_ID = address(
+  "BoNsHRcyLLNdtnoDf8hiCNZpyehMC4FDMxs6NTxFi3ew"
+);
+const ARBITRON_IMAGE_ID =
+  "c3a3dc0e28f164c1925013f2e35e2daecc6c38762a5080f47956050117462ce8";
+const RPC_URL =
+  "https://devnet.helius-rpc.com/?api-key=a6b64cf0-fa26-47ba-82a9-b876ec658ac9";
+const WS_RPC_URL =
+  "wss://devnet.helius-rpc.com/?api-key=a6b64cf0-fa26-47ba-82a9-b876ec658ac9";
+const PAYER_KEYPAIR_PATH =
+  process.env.PAYER_KEYPAIR_PATH || "./host-arbitron-wallet.json";
 
-export async function sendInstructions({
-  payer,
-  instructions,
-}: {
-  payer: KeyPairSigner;
-  instructions: Instruction[];
-}) {
-  // Fetch latest blockhash
+const rpc = createSolanaRpc(RPC_URL);
+const rpcSubscriptions = createSolanaRpcSubscriptions(WS_RPC_URL);
+
+async function sendInstructions(
+  payer: KeyPairSigner,
+  instructions: Instruction[]
+) {
   const { value: blockhash } = await rpc.getLatestBlockhash().send();
-
-  // Build transaction message
-  const txMsg = pipe(
+  const txMessage = pipe(
     createTransactionMessage({ version: 0 }),
     (tx) => setTransactionMessageFeePayerSigner(payer, tx),
     (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
     (tx) => appendTransactionMessageInstructions(instructions, tx)
   );
-
-  assertIsTransactionMessageWithinSizeLimit(txMsg);
-
-  const signedTx = await signTransactionMessageWithSigners(txMsg);
-
-  const sendAndConfirmTransactionMethod = sendAndConfirmTransactionFactory({
+  assertIsTransactionMessageWithinSizeLimit(txMessage);
+  const signedTx = await signTransactionMessageWithSigners(txMessage);
+  const sendAndConfirm = sendAndConfirmTransactionFactory({
     rpc,
-    rpcSubscriptions: rpcSubscription,
+    rpcSubscriptions,
   });
-
-  return await sendAndConfirmTransactionMethod(signedTx, {
-    commitment: "confirmed",
-  });
+  const signature = await getSignatureFromTransaction(signedTx);
+  console.log(`  Sending transaction: ${signature}`);
+  await sendAndConfirm(signedTx, { commitment: "confirmed" });
+  console.log(`  Transaction confirmed: ${signature}`);
+  return signature;
 }
 
-async function createMint({
-  payer,
-  mintAuthority,
-  decimals,
-}: {
-  payer: KeyPairSigner;
-  mintAuthority: Address;
-  decimals: number;
-}) {
-  // Create a Account for the Mint, whose owner will be the Token Program
-  const mint = await generateKeyPairSigner();
+async function createMockMint(
+  payer: KeyPairSigner,
+  mintAuthority: Address,
+  decimals: number = 6 // Default to 6 decimals like USDC
+): Promise<Address> {
+  console.log("  Creating mock SPL mint...");
+  const mintSigner = await generateKeyPairSigner();
   const mintSpace = BigInt(getMintSize());
   const rentExemption = await rpc
     .getMinimumBalanceForRentExemption(mintSpace)
@@ -114,29 +110,22 @@ async function createMint({
 
   const createAccountIx = getCreateAccountInstruction({
     lamports: rentExemption,
-    newAccount: mint,
-    payer: payer,
+    newAccount: mintSigner, // Pass address here
+    payer: payer, // Pass address here
     space: mintSpace,
     programAddress: TOKEN_PROGRAM_ADDRESS,
   });
 
-  const initializeMintIx = getInitializeMint2Instruction(
-    {
-      mint: mint.address,
-      decimals,
-      mintAuthority: mintAuthority,
-    },
-    {
-      programAddress: TOKEN_PROGRAM_ADDRESS,
-    }
-  );
+  const initializeMintIx = getInitializeMint2Instruction({
+    mint: mintSigner.address,
+    decimals,
+    mintAuthority: mintAuthority,
+  });
 
+  // Need to sign with both payer and the new mint account signer
   const { value: blockhash } = await rpc.getLatestBlockhash().send();
-
-  const txMsg = pipe(
-    createTransactionMessage({
-      version: 0,
-    }),
+  const txMessage = pipe(
+    createTransactionMessage({ version: 0 }),
     (tx) => setTransactionMessageFeePayerSigner(payer, tx),
     (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
     (tx) =>
@@ -145,367 +134,175 @@ async function createMint({
         tx
       )
   );
-
-  assertIsTransactionMessageWithinSizeLimit(txMsg);
-
-  const signedTx = await signTransactionMessageWithSigners(txMsg);
-
-  const sendAndConfirmTransactionMethod = sendAndConfirmTransactionFactory({
+  assertIsTransactionMessageWithinSizeLimit(txMessage);
+  // Sign with both payer and the mint's keypair
+  const signedTx = await signTransactionMessageWithSigners(txMessage);
+  const sendAndConfirm = sendAndConfirmTransactionFactory({
     rpc,
-    rpcSubscriptions: rpcSubscription,
+    rpcSubscriptions,
   });
+  const signature = await getSignatureFromTransaction(signedTx);
 
-  await sendAndConfirmTransactionMethod(signedTx, {
-    commitment: "confirmed",
-  });
-
-  const tx_signature = await getSignatureFromTransaction(signedTx);
-  return mint.address;
+  console.log(`    Sending create mint transaction: ${signature}`);
+  await sendAndConfirm(signedTx, { commitment: "confirmed" });
+  console.log(`    Create mint transaction confirmed: ${signature}`);
+  console.log(`  Mock mint created: ${mintSigner.address}`);
+  return mintSigner.address;
 }
 
-async function createATA_MintToken({
-  mint_address,
-  mint_authority,
-  user,
-}: {
-  mint_address: Address;
-  mint_authority: KeyPairSigner;
-  user: KeyPairSigner;
-}) {
-  const [ataAddress] = await findAssociatedTokenPda({
-    mint: mint_address,
-    owner: user.address,
-    tokenProgram: TOKEN_PROGRAM_ADDRESS,
-  });
-
-  const createATAIX = getCreateAssociatedTokenInstruction({
-    mint: mint_address,
-    ata: ataAddress,
-    owner: user.address,
-    payer: user,
-    tokenProgram: TOKEN_PROGRAM_ADDRESS,
-  });
-
-  const mintTokenIx = getMintToCheckedInstruction({
-    amount: 6_00_000_000,
-    decimals: 6,
-    mint: mint_address,
-    mintAuthority: mint_authority,
-    token: ataAddress,
-  });
-
-  await sendInstructions({
-    payer: user,
-    instructions: [createATAIX, mintTokenIx],
-  });
-
-  return ataAddress;
-}
-
-async function StartContest(
-  startContestInput: StartContestInput,
-  payer: KeyPairSigner
-) {
-  const StartContestIX = await getStartContestInstruction(startContestInput);
-
-  const { value: blockhash } = await rpc.getLatestBlockhash().send();
-
-  const txMsg = pipe(
-    createTransactionMessage({ version: 0 }),
-    (tx) => setTransactionMessageFeePayerSigner(payer, tx),
-    (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
-    (tx) => appendTransactionMessageInstructions([StartContestIX], tx)
-  );
-
-  assertIsTransactionMessageWithinSizeLimit(txMsg);
-
-  const signedTx = await signTransactionMessageWithSigners(txMsg);
-
-  const sendAndConfirmTransactionMethod = sendAndConfirmTransactionFactory({
-    rpc,
-    rpcSubscriptions: rpcSubscription,
-  });
-
-  await sendAndConfirmTransactionMethod(signedTx, {
-    commitment: "confirmed",
-  });
-
-  const tx_signature = await getSignatureFromTransaction(signedTx);
-
-  return tx_signature;
-}
-
-async function joinContest({
-  joinContestInput,
-  payer,
-}: {
-  joinContestInput: JoinContestAsyncInput;
-  payer: KeyPairSigner;
-}) {
-  const JoinContestIX = await getJoinContestInstructionAsync(joinContestInput);
-
-  const { value: blockhash } = await rpc.getLatestBlockhash().send();
-
-  const txMsg = pipe(
-    createTransactionMessage({ version: 0 }),
-    (tx) => setTransactionMessageFeePayerSigner(payer, tx),
-    (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
-    (tx) => appendTransactionMessageInstructions([JoinContestIX], tx)
-  );
-
-  assertIsTransactionMessageWithinSizeLimit(txMsg);
-
-  const signedTx = await signTransactionMessageWithSigners(txMsg);
-
-  const sendAndConfirmTransactionMethod = sendAndConfirmTransactionFactory({
-    rpc,
-    rpcSubscriptions: rpcSubscription,
-  });
-
-  await sendAndConfirmTransactionMethod(signedTx, {
-    commitment: "confirmed",
-  });
-}
-
-describe("Bonsol ZK Integration Tests", () => {
-  let owner: KeyPairSigner;
-  let host: KeyPairSigner;
-  let sudo_host: KeyPairSigner;
-  let user1: KeyPairSigner;
-
-  let tokenMint: Address;
-  let tokenMint2: Address;
-  let tokenMint3: Address;
-
-  let user1_ata: Address;
-  let fee_wallet_ata: Address; // New fee wallet ATA owned by owner
+// --- Test Suite ---
+describe("Arbitron Bonsol ZK Proof Request", () => {
+  const rpc = createSolanaRpc(RPC_URL);
+  const rpcSubscriptions = createSolanaRpcSubscriptions(WS_RPC_URL);
+  let payer: KeyPairSigner;
   let configPda: Address;
-
-  let contest: Address;
-  let sudoHostContest: Address;
-
-  let participantInfoPda: Address;
-  let participantUsdcAtaPda: Address;
+  let mockMintAddress: Address; // Store the created mint address
 
   before(async () => {
-    if (!RPC_URL || !RPC_SUBSCRIPTION_URL || !ARBITRON_PROGRAM_ID) {
-      throw new Error("Url is missing in the env");
-    }
+    // Load payer keypair from file instead of generating new one
+    const fullKeypair = Uint8Array.from(
+      JSON.parse(fs.readFileSync(PAYER_KEYPAIR_PATH, "utf-8"))
+    );
+    const privateKey = fullKeypair.slice(0, 32); // Take only the private key part
+    payer = await createKeyPairSignerFromPrivateKeyBytes(privateKey);
 
-    assertIsAddress(ARBITRON_PROGRAM_ID);
-
-    owner = await generateKeyPairSigner();
-    host = await generateKeyPairSigner();
-    sudo_host = await generateKeyPairSigner();
-    user1 = await generateKeyPairSigner();
-
-    let airDropFunction = airdropFactory({
-      rpc,
-      rpcSubscriptions: rpcSubscription,
+    [configPda] = await getProgramDerivedAddress({
+      programAddress: ARBITRON_PROGRAM_ADDRESS,
+      seeds: [new TextEncoder().encode("config")],
     });
+    console.log(`Config PDA: ${configPda}`);
+    console.log(`Payer Address: ${payer.address}`);
 
-    await airDropFunction({
-      recipientAddress: owner.address,
-      lamports: lamports(2_000_000_000n),
-      commitment: "confirmed",
-    });
+    // --- Create Mock Mint ---
+    // We create the mint here so it's available for initialize
+    mockMintAddress = await createMockMint(payer, payer.address); // Payer is mint authority
 
-    await airDropFunction({
-      recipientAddress: host.address,
-      lamports: lamports(2_000_000_000n),
-      commitment: "confirmed",
-    });
+    // --- Initialize Config Account if needed ---
+    const configAccountInfo = await fetchEncodedAccount(rpc, configPda);
+    if (!configAccountInfo.exists) {
+      console.log("Config account not found. Initializing...");
 
-    await airDropFunction({
-      lamports: lamports(2_000_000_000n),
-      recipientAddress: sudo_host.address,
-      commitment: "confirmed",
-    });
-
-    await airDropFunction({
-      recipientAddress: user1.address,
-      lamports: lamports(2_000_000_000n),
-      commitment: "confirmed",
-    });
-
-    tokenMint = await createMint({
-      payer: host,
-      decimals: 6,
-      mintAuthority: host.address,
-    });
-
-    tokenMint2 = await createMint({
-      payer: host,
-      decimals: 6,
-      mintAuthority: host.address,
-    });
-
-    tokenMint3 = await createMint({
-      payer: host,
-      decimals: 6,
-      mintAuthority: host.address,
-    });
-
-    user1_ata = await createATA_MintToken({
-      mint_address: tokenMint,
-      mint_authority: host,
-      user: user1,
-    });
-
-    fee_wallet_ata = await createATA_MintToken({
-      mint_address: tokenMint,
-      mint_authority: host,
-      user: owner,
-    });
-
-    const configSeeds = [new TextEncoder().encode("config")];
-    const [configPdaAddress, configBump] = await getProgramDerivedAddress({
-      programAddress: ARBITRON_PROGRAM_ID,
-      seeds: configSeeds,
-    });
-    configPda = configPdaAddress;
-
-    console.log("Setup completed:");
-    console.log("Token Mint:", tokenMint);
-    console.log("User1 ATA:", user1_ata);
-    console.log("Fee Wallet ATA:", fee_wallet_ata);
-    console.log("Config PDA:", configPda);
-  });
-
-  // Merge them to create  a test for ZK IIntegration test
-
-  describe("initialize", () => {
-    test("Initialize Successfully", async () => {
       const initializeInput: InitializeAsyncInput = {
-        admin: owner,
+        admin: payer,
         config: configPda,
-        platformFeeWallet: fee_wallet_ata,
-        platformFeeBps: 50, // 0.5% fee
+        platformFeeWallet: payer.address, // Using payer's main wallet as fee wallet for simplicity
+        platformFeeBps: 100,
       };
 
-      const initializeIx = await getInitializeInstructionAsync(
-        initializeInput,
-        {
-          programAddress: ARBITRON_PROGRAM_ID,
-        }
-      );
+      const initializeIx = await getInitializeInstructionAsync(initializeInput);
 
-      await sendInstructions({
-        payer: owner,
-        instructions: [initializeIx],
-      });
-
-      const configAccountInfo = await rpc
-        .getAccountInfo(configPda, {
-          encoding: "jsonParsed",
-        })
-        .send();
-
-      if (!configAccountInfo || !configAccountInfo.value) {
-        assert.fail("Config account not found after initialization");
-      }
-
-      const rawData = Buffer.from(configAccountInfo.value.data[0], "base64");
-      const configData = getConfigDecoder().decode(rawData);
-
-      assert.equal(configData.admin, owner.address);
-      assert.equal(configData.platformFeeWallet, fee_wallet_ata);
-      assert.equal(configData.platformFeeBps, 50);
-
-      console.log(" Initialize instruction executed successfully");
-      console.log("Config Admin:", configData.admin);
-      console.log("Platform Fee Wallet:", configData.platformFeeWallet);
-      console.log("Platform Fee BPS:", configData.platformFeeBps);
-    });
+      // Use the sendInstructions helper
+      await sendInstructions(payer, [initializeIx]);
+      console.log(`✅ Initialize transaction sent and confirmed!`);
+    } else {
+      console.log("Config account already initialized.");
+      // Optional: Verify the existing config uses the expected mint or re-initialize if needed
+    }
   });
 
-  describe("createContest", () => {
-    test("Contest Created Successfully", async () => {
-      const contestName = "My Contest";
+  describe("ZK Proof Request Flow", () => {
+    test("should successfully store inputs and request a ZK proof", async () => {
+      // Assume contest exists and is Ended (same as before)
+      const contestName = "TestContestForZK";
+      const host = payer;
 
-      const contestSeeds = [
-        new TextEncoder().encode("contest"),
-        new TextEncoder().encode(contestName),
-        getAddressEncoder().encode(host.address),
-      ];
+      const [contestAddress] = await getProgramDerivedAddress({
+        programAddress: ARBITRON_PROGRAM_ADDRESS,
+        seeds: [
+          new TextEncoder().encode("contest"),
+          new TextEncoder().encode(contestName),
+          getAddressEncoder().encode(host.address),
+        ],
+      });
+      console.log(`Using Contest PDA: ${contestAddress}`);
 
-      const [contestPda, bump] = await getProgramDerivedAddress({
-        programAddress: ARBITRON_PROGRAM_ID,
-        seeds: contestSeeds,
+      // Derive PDAs
+      const execution_id = randomBytes(16).toString("hex");
+      console.log(`Generated Execution ID: ${execution_id}`);
+
+      const [contestInputsPda] = await getProgramDerivedAddress({
+        programAddress: ARBITRON_PROGRAM_ADDRESS,
+        seeds: [
+          new TextEncoder().encode("contest_inputs"),
+          getAddressEncoder().encode(contestAddress),
+        ],
       });
 
-      // Store contest PDA for other tests to use
-      contest = contestPda;
+      const [executionRequestAccountPda] = await getProgramDerivedAddress({
+        programAddress: BONSOL_PROGRAM_ID,
+        seeds: [
+          new TextEncoder().encode("execution"),
+          getAddressEncoder().encode(payer.address),
+          new TextEncoder().encode(execution_id),
+        ],
+      });
 
-      const createContestAsyncInput: CreateContestAsyncInput = {
-        duration: 1000 * 60 * 60 * 2, // 2 hour duration
-        entryFees: 1_00_000_000n, // 100 USDC
-        maxParticipents: 10,
-        name: contestName,
-        startTime: Math.floor(Date.now() / 1000) + 60, // Start time 1 minute from now
-        signer: host,
-        tokenMint: tokenMint,
-        contest: contestPda,
+      const [deploymentAccountPda] = await getProgramDerivedAddress({
+        programAddress: BONSOL_PROGRAM_ID,
+        seeds: [
+          new TextEncoder().encode("deployment"),
+          keccak_256(ARBITRON_IMAGE_ID),
+        ],
+      });
+
+      console.log(`Contest Inputs PDA: ${contestInputsPda}`);
+      console.log(`Execution Request PDA: ${executionRequestAccountPda}`);
+      console.log(`Deployment PDA: ${deploymentAccountPda}`);
+
+      // Prepare Dummy Payload
+      const dummyPayload = {
+        contestAddress: contestAddress,
+        participants: [{ userPublicKey: payer.address, selectedTokens: [] }],
+        finalPrices: [
+          {
+            mint: "So11111111111111111111111111111111111111112",
+            price: "150000000",
+          },
+        ],
       };
+      const payloadBytes = Buffer.from(JSON.stringify(dummyPayload));
+      const tip = 100_000n;
 
-      const getCreateContestIx = await getCreateContestInstructionAsync(
-        createContestAsyncInput,
-        {
-          programAddress: ARBITRON_PROGRAM_ID,
-        }
+      // Build Instructions
+      const storeContestInputs: StoreContestInputsAsyncInput = {
+        payer: payer,
+        contest: contestAddress,
+        contestInputs: address(contestInputsPda),
+        data: payloadBytes,
+      };
+      const storeContestIx = await getStoreContestInputsInstructionAsync(
+        storeContestInputs
       );
 
-      const { value: blockhash } = await rpc.getLatestBlockhash().send();
+      const requestEndContestProof: RequestEndContestProofAsyncInput = {
+        payer: payer,
+        contest: contestAddress,
+        contestInputs: address(contestInputsPda),
+        executionRequest: address(executionRequestAccountPda),
+        deploymentAccount: address(deploymentAccountPda),
+        bonsolProgram: BONSOL_PROGRAM_ID,
+        executionId: execution_id,
+        tip: tip,
+      };
+      const requestEndContestIx =
+        await getRequestEndContestProofInstructionAsync(requestEndContestProof);
 
-      const txMsg = pipe(
-        createTransactionMessage({
-          version: 0,
-        }),
-        (tx) => setTransactionMessageFeePayerSigner(host, tx),
-        (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
-        (tx) => appendTransactionMessageInstructions([getCreateContestIx], tx)
+      // Build, Sign, Send, and Confirm Transaction
+      console.log("📦 Building and sending ZK request transaction...");
+      // Use the sendInstructions helper
+      const signature = await sendInstructions(payer, [
+        storeContestIx,
+        requestEndContestIx,
+      ]);
+
+      console.log(
+        `✅ ZK Request Transaction Confirmed! Signature: ${signature}`
       );
-
-      assertIsTransactionMessageWithinSizeLimit(txMsg);
-
-      const signedTx = await signTransactionMessageWithSigners(txMsg);
-
-      const sendAndConfirmTransactionMethod = sendAndConfirmTransactionFactory({
-        rpc,
-        rpcSubscriptions: rpcSubscription,
-      });
-
-      await sendAndConfirmTransactionMethod(signedTx, {
-        commitment: "confirmed",
-      });
-
-      const tx_msg = await getSignatureFromTransaction(signedTx);
-
-      let accountInfo;
-      try {
-        accountInfo = await rpc
-          .getAccountInfo(contestPda, {
-            encoding: "jsonParsed",
-          })
-          .send();
-      } catch (error) {
-        console.error("Error fetching contest account info:", error);
-      }
-
-      if (!accountInfo || !accountInfo.value) {
-        throw new Error("Account info is null");
-      }
-
-      const rawData = Buffer.from(accountInfo.value.data[0], "base64");
-
-      const contestAccountInfo = getContestDecoder().decode(rawData);
-
-      assert.equal(contestAccountInfo.name, contestName);
-      assert.equal(contestAccountInfo.host, host.address);
-      assert.equal(contestAccountInfo.entryFees, 1_00_000_000n);
-      assert.equal(contestAccountInfo.maxParticipents, 10);
-      assert.equal(contestAccountInfo.participentsCount, 0);
-      assert.equal(contestAccountInfo.duration, 1000 * 60 * 60 * 2);
+      console.log(
+        `🔍 Inspect on Explorer: https://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${encodeURIComponent(
+          RPC_URL
+        )}`
+      );
     });
   });
 });

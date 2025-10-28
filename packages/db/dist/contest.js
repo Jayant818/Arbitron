@@ -1,5 +1,6 @@
 import { prisma } from "./singletonPrisma.js";
 import { ContestStatus } from "@prisma/client";
+export { ContestStatus };
 export const createContest = async (data) => {
     return await prisma.contest.create({
         data: {
@@ -8,7 +9,8 @@ export const createContest = async (data) => {
             host: data.host,
             entryFees: data.entryFee,
             maxParticipents: data.maxParticipants,
-            startTime: data.startTime,
+            scheduledStartTime: data.scheduledStartTime,
+            startTime: null, // Will be set when crank service starts the contest
             duration: data.duration,
             decimals: data.decimals,
         },
@@ -53,10 +55,29 @@ export const updateContestStatus = async (id, status, expectedCurrentStatus) => 
         return null;
     }
 };
+// Function to start a contest (update status to ONGOING and set startTime)
+export const startContest = async (id, startTime = new Date()) => {
+    try {
+        return await prisma.contest.update({
+            where: {
+                id,
+                status: ContestStatus.UPCOMING, // Only start if currently UPCOMING
+            },
+            data: {
+                status: ContestStatus.ONGOING,
+                startTime: startTime, // Set the actual start time when contest is started
+            },
+        });
+    }
+    catch (error) {
+        // If the contest is not found or not in UPCOMING status, return null
+        return null;
+    }
+};
 export const getAllUpcomingContestsWhoseStartTimeIsDue = async (currentTime) => {
     return await prisma.contest.findMany({
         where: {
-            startTime: {
+            scheduledStartTime: {
                 lte: currentTime,
             },
             status: ContestStatus.UPCOMING,
@@ -83,7 +104,12 @@ export const getAllOngoingContestsWhoseEndTimeIsDue = async (currentTime) => {
             },
         },
     });
-    return contests.filter((contest) => contest.startTime.getTime() + contest.duration * 60 * 1000 <=
-        currentTime.getTime());
+    return contests.filter((contest) => {
+        // Only check contests that have a startTime set
+        if (!contest.startTime)
+            return false;
+        return (contest.startTime.getTime() + contest.duration * 60 * 1000 <=
+            currentTime.getTime());
+    });
 };
 //# sourceMappingURL=contest.js.map

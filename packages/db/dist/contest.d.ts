@@ -1,11 +1,18 @@
 import { ContestStatus } from "@prisma/client";
+import type { Contest } from "@prisma/client";
+export { ContestStatus };
+export type ContestWithParticipantsCount = Contest & {
+    _count: {
+        participants: number;
+    };
+};
 export declare const createContest: (data: {
     id: string;
     name: string;
     host: string;
     entryFee: bigint;
     maxParticipants: number;
-    startTime: Date;
+    scheduledStartTime: Date;
     duration: number;
     decimals: number;
 }) => Promise<{
@@ -17,7 +24,8 @@ export declare const createContest: (data: {
     entryFees: bigint;
     maxParticipents: number;
     status: import("@prisma/client").$Enums.ContestStatus;
-    startTime: Date;
+    scheduledStartTime: Date;
+    startTime: Date | null;
     duration: number;
     prizePool: bigint;
     decimals: number;
@@ -31,7 +39,8 @@ export declare const getAllContest: () => Promise<{
     entryFees: bigint;
     maxParticipents: number;
     status: import("@prisma/client").$Enums.ContestStatus;
-    startTime: Date;
+    scheduledStartTime: Date;
+    startTime: Date | null;
     duration: number;
     prizePool: bigint;
     decimals: number;
@@ -45,7 +54,8 @@ export declare const getContestById: (id: string) => Promise<{
     entryFees: bigint;
     maxParticipents: number;
     status: import("@prisma/client").$Enums.ContestStatus;
-    startTime: Date;
+    scheduledStartTime: Date;
+    startTime: Date | null;
     duration: number;
     prizePool: bigint;
     decimals: number;
@@ -83,7 +93,8 @@ export declare const getContestByIdWithParticipantsAndSelectedTokens: (id: strin
     entryFees: bigint;
     maxParticipents: number;
     status: import("@prisma/client").$Enums.ContestStatus;
-    startTime: Date;
+    scheduledStartTime: Date;
+    startTime: Date | null;
     duration: number;
     prizePool: bigint;
     decimals: number;
@@ -97,7 +108,23 @@ export declare const updateContestStatus: (id: string, status: ContestStatus, ex
     entryFees: bigint;
     maxParticipents: number;
     status: import("@prisma/client").$Enums.ContestStatus;
-    startTime: Date;
+    scheduledStartTime: Date;
+    startTime: Date | null;
+    duration: number;
+    prizePool: bigint;
+    decimals: number;
+} | null>;
+export declare const startContest: (id: string, startTime?: Date) => Promise<{
+    name: string;
+    id: string;
+    createdAt: Date;
+    updatedAt: Date;
+    host: string;
+    entryFees: bigint;
+    maxParticipents: number;
+    status: import("@prisma/client").$Enums.ContestStatus;
+    scheduledStartTime: Date;
+    startTime: Date | null;
     duration: number;
     prizePool: bigint;
     decimals: number;
@@ -115,7 +142,8 @@ export declare const getAllUpcomingContestsWhoseStartTimeIsDue: (currentTime: Da
     entryFees: bigint;
     maxParticipents: number;
     status: import("@prisma/client").$Enums.ContestStatus;
-    startTime: Date;
+    scheduledStartTime: Date;
+    startTime: Date | null;
     duration: number;
     prizePool: bigint;
     decimals: number;
@@ -133,7 +161,8 @@ export declare const getAllOngoingContestsWhoseEndTimeIsDue: (currentTime: Date)
     entryFees: bigint;
     maxParticipents: number;
     status: import("@prisma/client").$Enums.ContestStatus;
-    startTime: Date;
+    scheduledStartTime: Date;
+    startTime: Date | null;
     duration: number;
     prizePool: bigint;
     decimals: number;

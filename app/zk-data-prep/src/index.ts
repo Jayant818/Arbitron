@@ -22,6 +22,7 @@ import {
   getSignatureFromTransaction,
   airdropFactory,
   lamports,
+  createKeyPairSignerFromBytes,
 } from "@solana/kit";
 
 import { randomBytes } from "crypto";
@@ -179,7 +180,7 @@ async function main() {
       const rpc = createSolanaRpc(RPC_URL);
       const rpcSubscriptions = createSolanaRpcSubscriptions(WS_RPC_URL);
 
-      const payer = await createKeyPairSignerFromPrivateKeyBytes(
+      const payer = await createKeyPairSignerFromBytes(
         Uint8Array.from(
           JSON.parse(fs.readFileSync(PAYER_KEYPAIR_PATH, "utf-8"))
         )

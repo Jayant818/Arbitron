@@ -17,6 +17,7 @@ import { address } from "@solana/kit"
 import { useSolana } from "@/components/solana-provider"
 import { useCreateContestMutation } from "@/hooks/api-hooks/useContestQuery"
 import { USDC_MINT_ADDRESS } from "@/lib/constants"
+import { UsdcBalance } from "@/components/shared/UsdcBalance"
 
 function ContestForm() {
   const [contestName, setContestName] = useState("")
@@ -314,6 +315,9 @@ function ContestForm() {
                 </p>
               </div>
 
+              {/* USDC Balance */}
+              <UsdcBalance />
+
               {/* Entry Fee */}
               <div className="space-y-2">
                 <Label htmlFor="entry-fee" className="text-sm font-medium">
@@ -353,13 +357,13 @@ function ContestForm() {
               </div>
 
               {/* Prize Distribution */}
-              <div className="space-y-2">
+              <div className="space-y-2 opacity-60">
                 <Label htmlFor="prize-distribution" className="text-sm font-medium">
                   <Trophy className="mr-2 inline h-4 w-4" />
                   Prize Distribution
                 </Label>
-                <Select value={prizeDistribution} onValueChange={setPrizeDistribution}>
-                  <SelectTrigger className="glass-input h-12 border-white/10 bg-background/50 backdrop-blur-sm">
+                <Select value={prizeDistribution} onValueChange={setPrizeDistribution} disabled>
+                  <SelectTrigger className="glass-input h-12 border-white/10 bg-background/50 backdrop-blur-sm cursor-not-allowed">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass-card border-white/10 bg-background backdrop-blur-md">
@@ -369,16 +373,19 @@ function ContestForm() {
                     <SelectItem value="top-10">Top 10 Split</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  🔒 Currently set to Winner Takes All • More options coming soon!
+                </p>
               </div>
 
               {/* Allowed Tokens */}
-              <div className="space-y-2">
+              <div className="space-y-2 opacity-60">
                 <Label htmlFor="allowed-tokens" className="text-sm font-medium">
                   <Shield className="mr-2 inline h-4 w-4" />
                   Allowed Tokens
                 </Label>
-                <Select value={allowedTokens} onValueChange={setAllowedTokens}>
-                  <SelectTrigger className="glass-input h-12 border-white/10 bg-background/50 backdrop-blur-sm">
+                <Select value={allowedTokens} onValueChange={setAllowedTokens} disabled>
+                  <SelectTrigger className="glass-input h-12 border-white/10 bg-background/50 backdrop-blur-sm cursor-not-allowed">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass-card border-white/10 bg-background backdrop-blur-md">
@@ -389,10 +396,13 @@ function ContestForm() {
                     <SelectItem value="custom">Custom Whitelist</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  🔒 Currently allows All Tokens • Token filtering coming in future updates!
+                </p>
               </div>
 
               {/* Enable Predictions */}
-              <div className="flex items-center justify-between rounded-lg border border-white/10 bg-background/30 p-4 backdrop-blur-sm">
+              {/* <div className="flex items-center justify-between rounded-lg border border-white/10 bg-background/30 p-4 backdrop-blur-sm">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <Zap className="h-4 w-4 text-primary" />
@@ -403,7 +413,7 @@ function ContestForm() {
                   <p className="text-xs text-muted-foreground">Allow spectators to bet on who will win</p>
                 </div>
                 <Switch id="predictions" checked={enablePredictions} onCheckedChange={setEnablePredictions} />
-              </div>
+              </div> */}
 
               {/* Prize Pool Preview */}
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 backdrop-blur-sm">

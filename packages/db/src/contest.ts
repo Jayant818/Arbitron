@@ -1,5 +1,15 @@
 import { prisma } from "./singletonPrisma.js";
 import { ContestStatus } from "@prisma/client";
+import type { Contest } from "@prisma/client";
+
+export { ContestStatus };
+
+// Type for Contest with participant count
+export type ContestWithParticipantsCount = Contest & {
+  _count: {
+    participants: number;
+  };
+};
 
 export const createContest = async (data: {
   id: string; // on-chain-address
@@ -7,7 +17,7 @@ export const createContest = async (data: {
   host: string;
   entryFee: bigint;
   maxParticipants: number;
-  startTime: Date;
+  scheduledStartTime: Date; // When the contest is scheduled to start
   duration: number;
   decimals: number;
 }) => {
@@ -18,7 +28,8 @@ export const createContest = async (data: {
       host: data.host,
       entryFees: data.entryFee,
       maxParticipents: data.maxParticipants,
-      startTime: data.startTime,
+      scheduledStartTime: data.scheduledStartTime,
+      startTime: null, // Will be set when crank service starts the contest
       duration: data.duration,
       decimals: data.decimals,
     },
@@ -73,12 +84,34 @@ export const updateContestStatus = async (
   }
 };
 
+// Function to start a contest (update status to ONGOING and set startTime)
+export const startContest = async (
+  id: string,
+  startTime: Date = new Date()
+) => {
+  try {
+    return await prisma.contest.update({
+      where: {
+        id,
+        status: ContestStatus.UPCOMING, // Only start if currently UPCOMING
+      },
+      data: {
+        status: ContestStatus.ONGOING,
+        startTime: startTime, // Set the actual start time when contest is started
+      },
+    });
+  } catch (error) {
+    // If the contest is not found or not in UPCOMING status, return null
+    return null;
+  }
+};
+
 export const getAllUpcomingContestsWhoseStartTimeIsDue = async (
   currentTime: Date
 ) => {
   return await prisma.contest.findMany({
     where: {
-      startTime: {
+      scheduledStartTime: {
         lte: currentTime,
       },
       status: ContestStatus.UPCOMING,
@@ -109,9 +142,13 @@ export const getAllOngoingContestsWhoseEndTimeIsDue = async (
     },
   });
 
-  return contests.filter(
-    (contest) =>
+  return contests.filter((contest) => {
+    // Only check contests that have a startTime set
+    if (!contest.startTime) return false;
+
+    return (
       contest.startTime.getTime() + contest.duration * 60 * 1000 <=
       currentTime.getTime()
-  );
+    );
+  });
 };

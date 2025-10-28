@@ -24,19 +24,20 @@ model User {
 }
 
 model Contest {
-  id              String        @id @default(uuid())
-  name            String
-  host            String
-  entryFees       BigInt
-  maxParticipents Int
-  status          ContestStatus @default(UPCOMING)
-  startTime       DateTime
-  duration        Int
-  prizePool       BigInt        @default(0)
-  decimals        Int
-  participants    Participant[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                 String        @id @default(uuid())
+  name               String
+  host               String
+  entryFees          BigInt
+  maxParticipents    Int
+  status             ContestStatus @default(UPCOMING)
+  scheduledStartTime DateTime      // When the contest is scheduled to start (set at creation)
+  startTime          DateTime?     // Actual time when contest was started on-chain by crank service (null until started)
+  duration           Int
+  prizePool          BigInt        @default(0)
+  decimals           Int
+  participants       Participant[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 }
 
 model Participant {

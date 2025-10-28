@@ -77,6 +77,7 @@ import {
   SYSTEM_PROGRAM_ADDRESS,
 } from "@solana-program/system";
 import { useCreateParticipantMutation } from "@/hooks/api-hooks/useUserQuery";
+import { UsdcBalance } from "@/components/shared/UsdcBalance";
 
 export interface ISelectedToken {
   mint: string;
@@ -1067,6 +1068,7 @@ function JoinContestPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            <UsdcBalance />
             <Card className="border-border bg-card sticky top-20">
               <CardHeader>
                 <CardTitle className="text-foreground">
