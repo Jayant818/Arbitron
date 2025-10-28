@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use anchor_lang::{prelude::*, solana_program::program::invoke};
-use bonsol_anchor_interface::{bonsol_interface, instructions::{CallbackConfig, ExecutionConfig, InputRef, execute_v1}};
+use bonsol_interface::instructions::{CallbackConfig, ExecutionConfig, InputRef, execute_v1};
 
 use crate::{Contest, ContestInput, ContestState, IMAGE_ID,error::ErrorCode};
 
@@ -93,17 +93,18 @@ pub fn request_end_contest_proof(context:Context<RequestEndContestProof>,executi
     // 3. execution_request (writable)
     // 4. deployment_account
     // 5+ any additional accounts specified in the instruction
-    let account_infos = vec![
-        context.accounts.payer.to_account_info(),
-        context.accounts.system_program.to_account_info(),
-        context.accounts.execution_request.to_account_info(),
-        context.accounts.deployment_account.to_account_info(),
-        context.accounts.contest_inputs.to_account_info(), // Private input PDA
-        context.accounts.bonsol_program.to_account_info(),
-    ];
+    // let account_infos = vec![
+    //     context.accounts.payer.to_account_info(),
+    //     context.accounts.system_program.to_account_info(),
+    //     context.accounts.execution_request.to_account_info(),
+    //     context.accounts.deployment_account.to_account_info(),
+    //     context.accounts.contest_inputs.to_account_info(), // Private input PDA
+    //     context.accounts.bonsol_program.to_account_info(),
+    // ];
 
-    invoke(&ix, &account_infos)?;
+    // invoke(&ix, &account_infos)?;
 
+    invoke(&ix, &context.accounts.to_account_infos())?;
     // Set the execution account on the contest state
     // This is CRITICAL for your callback handler to find this execution
     let contest = &mut context.accounts.contest;

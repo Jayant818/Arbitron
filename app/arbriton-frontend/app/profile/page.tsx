@@ -23,7 +23,23 @@ const iconMap: { [key: string]: React.ElementType } = {
 };
 
 export default function ProfilePage() {
+    // Call ALL hooks at the top level, before any conditional returns
     const { selectedAccount, isConnected } = useSolana();
+    const { data: userStats, isLoading: loading } = useUser();
+    const { mutate: updateUser } = useUpdateUser();
+    
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editedUsername, setEditedUsername] = useState("");
+    const [editedEmail, setEditedEmail] = useState("");
+
+    useEffect(() => {
+        if (userStats) {
+            setEditedUsername(userStats.username || "");
+            setEditedEmail(userStats.email || "");
+        }
+    }, [userStats]);
+
+    // NOW do conditional checks and early returns AFTER all hooks
     if (!isConnected || !selectedAccount) {
         return (
           <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
@@ -36,19 +52,6 @@ export default function ProfilePage() {
           </div>
         )
       }
-
-    const { data: userStats, isLoading: loading } = useUser();
-    const { mutate: updateUser } = useUpdateUser();
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editedUsername, setEditedUsername] = useState("");
-    const [editedEmail, setEditedEmail] = useState("");
-
-    useEffect(() => {
-        if (userStats) {
-            setEditedUsername(userStats.username || "");
-            setEditedEmail(userStats.email || "");
-        }
-    }, [userStats]);
 
     const handleUpdateUser = async () => {
         if (selectedAccount && selectedAccount.address) {

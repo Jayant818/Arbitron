@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use bonsol_anchor_interface::callback::handle_callback;
+use bonsol_interface::callback::handle_callback;
 use crate::{Contest, IMAGE_ID, error::ErrorCode, ContestState}; // Import ContestState
 
 #[derive(Accounts)]

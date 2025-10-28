@@ -8,16 +8,16 @@ const serializeBigInt = (obj: any): any => {
   if (obj === null || obj === undefined) {
     return obj;
   }
-  
-  if (typeof obj === 'bigint') {
+
+  if (typeof obj === "bigint") {
     return obj.toString();
   }
-  
+
   if (Array.isArray(obj)) {
     return obj.map(serializeBigInt);
   }
-  
-  if (typeof obj === 'object') {
+
+  if (typeof obj === "object") {
     const serialized: any = {};
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) {
@@ -26,7 +26,7 @@ const serializeBigInt = (obj: any): any => {
     }
     return serialized;
   }
-  
+
   return obj;
 };
 
@@ -75,7 +75,7 @@ userRouter.get("/:walletAddress", async (req, res) => {
 
     const user = await findOrCreateUser(walletAddress);
 
-    return res.status(200).json(user);
+    return res.status(200).json(serializeBigInt(user));
   } catch (error) {
     console.error("Error in get user:", error);
     return res.status(500).send("Internal Server Error");
@@ -92,7 +92,7 @@ userRouter.get("/:walletAddress/contests", async (req, res) => {
 
     const userData: any = await findOrCreateUser(walletAddress);
 
-    return res.status(200).json({
+    const response = {
       contests: userData.recentContests || [],
       stats: {
         contestsPlayed: userData.contestsPlayed || 0,
@@ -100,7 +100,9 @@ userRouter.get("/:walletAddress/contests", async (req, res) => {
         totalEarnings: userData.totalEarnings || 0,
         xp: userData.xp || 0,
       },
-    });
+    };
+
+    return res.status(200).json(serializeBigInt(response));
   } catch (error) {
     console.error("Error in get user contest history:", error);
     return res.status(500).send("Internal Server Error");
@@ -119,12 +121,16 @@ userRouter.post("/join-contest", async (req, res) => {
 
     const user = await findOrCreateUser(userPublickey);
 
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
     const participant = await createParticipant(contestId, user.id, tokens);
 
-    return res.status(201).json({ participant });
-  } catch (error) {
+    return res.status(201).json(serializeBigInt({ participant }));
+  } catch (error: any) {
     console.error("Error in join-contest:", error);
-    if (error.message.includes("Invalid mint address")) {
+    if (error.message && error.message.includes("Invalid mint address")) {
       return res.status(400).send(error.message);
     }
     return res.status(500).send("Internal Server Error");

@@ -265,7 +265,7 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
- "bonsol-anchor-interface",
+ "bonsol-interface",
 ]
 
 [[package]]
@@ -355,18 +355,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
  "generic-array",
-]
-
-[[package]]
-name = "bonsol-anchor-interface"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdcf5c3ff19e3105c3126248889422046493572a2e624a68dba018a507bb3e1c"
-dependencies = [
- "anchor-lang",
- "bonsol-interface",
- "bonsol-schema",
- "paste",
 ]
 
 [[package]]
@@ -1067,12 +1055,6 @@ dependencies = [
  "smallvec",
  "windows-targets",
 ]
-
-[[package]]
-name = "paste"
-version = "1.0.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "pbkdf2"
