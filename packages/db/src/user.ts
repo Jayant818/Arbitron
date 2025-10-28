@@ -1,27 +1,15 @@
 import { prisma } from "./singletonPrisma.js";
 
-
-export const updateUser = async (publicKey: string, username: string, email: string) => {
-    const user = await prisma.user.update({
-        where: { publicKey },
-        data: { username, email },
-    });
-    return user;
-};
-
-import { prisma } from "./singletonPrisma.js";
-import { Connection, PublicKey } from "@solana/web3.js";
-import { fetchMaybeContest } from "../../../dist/js-client/accounts/contest";
-import { address } from "@solana/kit";
-
-const solanaConnection = new Connection(process.env.RPC_URL || "https://api.devnet.solana.com", "confirmed");
-
-export const updateUser = async (publicKey: string, username: string, email: string) => {
-    const user = await prisma.user.update({
-        where: { publicKey },
-        data: { username, email },
-    });
-    return user;
+export const updateUser = async (
+  publicKey: string,
+  username: string,
+  email: string
+) => {
+  const user = await prisma.user.update({
+    where: { publicKey },
+    data: { username, email },
+  });
+  return user;
 };
 
 export const findOrCreateUser = async (publicKey: string) => {
@@ -61,54 +49,71 @@ export const findOrCreateUser = async (publicKey: string) => {
   const nextLevelXp = 1000;
 
   if (contestsPlayed > 0) {
-    const recentContests = await Promise.all(user.participatedIn.map(async (p) => {
-      const contestAddress = address(p.contest.id);
-      const onChainContest = await fetchMaybeContest(solanaConnection, contestAddress);
+    const recentContests = await Promise.all(
+      user.participatedIn.map(async (p) => {
+        let contestRank = null;
+        let pnl = 0;
+        let prize = 0;
+        let status = "Lost";
 
-      let contestRank = null;
-      let pnl = 0;
-      let prize = 0;
-      let status = "Lost";
+        try {
+          // For now, we'll use the DB contest data
+          // TODO: Fetch from on-chain when we properly handle the RPC types
+          const contestFromDb = p.contest;
 
-      if (onChainContest.exists && onChainContest.data.winner) {
-        if (onChainContest.data.winner.toString() === user.publicKey) {
-          wins++;
-          totalEarnings += Number(onChainContest.data.prizePool);
-          contestRank = 1;
-          prize = Number(onChainContest.data.prizePool);
-          status = "Won";
-        } else {
-          contestRank = 2; // Placeholder for loser
+          // Check if user is winner by checking participatedIn winners
+          // This is a placeholder - you'll need to properly check on-chain winner
+          const isWinner = false; // TODO: Check on-chain winner
+
+          if (isWinner) {
+            wins++;
+            // Calculate prize after 2.5% fee deduction
+            // TODO: Get actual prize pool from vault
+            const estimatedPrizePool = 10; // Placeholder
+            const feePercentage = 0.025; // 2.5%
+            const netPrize = estimatedPrizePool * (1 - feePercentage);
+            totalEarnings += netPrize;
+            contestRank = 1;
+            prize = netPrize;
+            status = "Won";
+          } else {
+            contestRank = 2; // Placeholder for loser
+          }
+        } catch (error) {
+          console.error("Error fetching contest data:", error);
         }
-      }
 
-      // TODO: Get actual PNL
+        return {
+          id: p.contest.id,
+          name: p.contest.name,
+          date: p.contest.startTime,
+          rank: contestRank,
+          pnl,
+          prize,
+          status,
+        };
+      })
+    );
 
-      return {
-        id: p.contest.id,
-        name: p.contest.name,
-        date: p.contest.startTime,
-        rank: contestRank,
-        pnl,
-        prize,
-        status,
-      };
-    }));
+    // XP calculation: wins * 100
+    xp = wins * 100;
+    // Total XP possible: games_played * 100
+    const totalPossibleXp = contestsPlayed * 100;
 
-    xp = 500; // TODO: Calculate XP
-    rank = 1; // TODO: Calculate overall rank
+    rank = 1; // TODO: Calculate overall rank based on leaderboard
 
-    const winRate = (wins / contestsPlayed) * 100;
+    const winRate =
+      contestsPlayed > 0 ? Math.round((wins / contestsPlayed) * 100) : 0;
 
     return {
       ...user,
       avatar: user.username ? user.username.charAt(0).toUpperCase() : "A",
       rank,
       xp,
-      nextLevelXp,
+      nextLevelXp: totalPossibleXp,
       contestsPlayed,
       winRate,
-      totalEarnings,
+      totalEarnings: Math.round(totalEarnings * 100) / 100, // Round to 2 decimal places
       recentContests,
       nfts: [], // TODO: Replace with actual NFTs
       badges: [], // TODO: Replace with actual badges

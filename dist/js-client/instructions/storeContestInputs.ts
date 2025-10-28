@@ -85,18 +85,18 @@ export type StoreContestInputsInstruction<
 
 export type StoreContestInputsInstructionData = {
   discriminator: ReadonlyUint8Array;
-  data: ReadonlyUint8Array;
+  firstChunk: ReadonlyUint8Array;
 };
 
 export type StoreContestInputsInstructionDataArgs = {
-  data: ReadonlyUint8Array;
+  firstChunk: ReadonlyUint8Array;
 };
 
 export function getStoreContestInputsInstructionDataEncoder(): Encoder<StoreContestInputsInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ['discriminator', fixEncoderSize(getBytesEncoder(), 8)],
-      ['data', addEncoderSizePrefix(getBytesEncoder(), getU32Encoder())],
+      ['firstChunk', addEncoderSizePrefix(getBytesEncoder(), getU32Encoder())],
     ]),
     (value) => ({ ...value, discriminator: STORE_CONTEST_INPUTS_DISCRIMINATOR })
   );
@@ -105,7 +105,7 @@ export function getStoreContestInputsInstructionDataEncoder(): Encoder<StoreCont
 export function getStoreContestInputsInstructionDataDecoder(): Decoder<StoreContestInputsInstructionData> {
   return getStructDecoder([
     ['discriminator', fixDecoderSize(getBytesDecoder(), 8)],
-    ['data', addDecoderSizePrefix(getBytesDecoder(), getU32Decoder())],
+    ['firstChunk', addDecoderSizePrefix(getBytesDecoder(), getU32Decoder())],
   ]);
 }
 
@@ -129,7 +129,7 @@ export type StoreContestInputsAsyncInput<
   contest: Address<TAccountContest>;
   contestInputs?: Address<TAccountContestInputs>;
   systemProgram?: Address<TAccountSystemProgram>;
-  data: StoreContestInputsInstructionDataArgs['data'];
+  firstChunk: StoreContestInputsInstructionDataArgs['firstChunk'];
 };
 
 export async function getStoreContestInputsInstructionAsync<
@@ -223,7 +223,7 @@ export type StoreContestInputsInput<
   contest: Address<TAccountContest>;
   contestInputs: Address<TAccountContestInputs>;
   systemProgram?: Address<TAccountSystemProgram>;
-  data: StoreContestInputsInstructionDataArgs['data'];
+  firstChunk: StoreContestInputsInstructionDataArgs['firstChunk'];
 };
 
 export function getStoreContestInputsInstruction<

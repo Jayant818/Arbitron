@@ -104,4 +104,7 @@ pub enum ErrorCode {
     #[msg("Can't call execute")]
     CantCallExecute,
 
+    #[msg("Offset is out of range")]
+    OffsetOutOfRange
+
 }

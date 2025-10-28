@@ -82,6 +82,8 @@ export const ARBITRON_ERROR__VAULT_EMPTY = 0x178f; // 6031
 export const ARBITRON_ERROR__INPUT_DATA_TOO_LARGE = 0x1790; // 6032
 /** CantCallExecute: Can't call execute */
 export const ARBITRON_ERROR__CANT_CALL_EXECUTE = 0x1791; // 6033
+/** OffsetOutOfRange: Offset is out of range */
+export const ARBITRON_ERROR__OFFSET_OUT_OF_RANGE = 0x1792; // 6034
 
 export type ArbitronError =
   | typeof ARBITRON_ERROR__ALREADY_CLAIMED
@@ -113,6 +115,7 @@ export type ArbitronError =
   | typeof ARBITRON_ERROR__MIN_CONTEST_PARTICIPANTS_ERROR
   | typeof ARBITRON_ERROR__NO_PRIZE_AVAILABLE
   | typeof ARBITRON_ERROR__NOT_WINNER
+  | typeof ARBITRON_ERROR__OFFSET_OUT_OF_RANGE
   | typeof ARBITRON_ERROR__OVERFLOW
   | typeof ARBITRON_ERROR__UNAUTHORIZED_ACTION
   | typeof ARBITRON_ERROR__UNAUTHORIZED_HOST
@@ -151,6 +154,7 @@ if (process.env.NODE_ENV !== 'production') {
     [ARBITRON_ERROR__MIN_CONTEST_PARTICIPANTS_ERROR]: `Minimum participants not reached`,
     [ARBITRON_ERROR__NO_PRIZE_AVAILABLE]: `No Prize Available`,
     [ARBITRON_ERROR__NOT_WINNER]: `The Provided user is not winner`,
+    [ARBITRON_ERROR__OFFSET_OUT_OF_RANGE]: `Offset is out of range`,
     [ARBITRON_ERROR__OVERFLOW]: `Overflow Occurred`,
     [ARBITRON_ERROR__UNAUTHORIZED_ACTION]: `Unauthorized action`,
     [ARBITRON_ERROR__UNAUTHORIZED_HOST]: `Unauthorized host`,

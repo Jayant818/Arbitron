@@ -6,6 +6,8 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from './appendContestInputs';
+export * from './claimPrize';
 export * from './createContest';
 export * from './createPortfolio';
 export * from './initialize';

@@ -45,3 +45,15 @@ export const findOrCreateUser = async (publicKey: string) => {
     throw new APIError("Failed to find or create user", 500, error);
   }
 };
+
+export const GetUserContestHistory = async (walletAddress: string) => {
+    try {
+        const res = await axios.get(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/user/${walletAddress}/contests`
+        );
+        return res.data;
+    } catch (error) {
+        console.error("Error in get user contest history:", error);
+        throw new APIError("Failed to get user contest history", 500, error);
+    }
+};

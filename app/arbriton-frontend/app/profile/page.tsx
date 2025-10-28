@@ -143,12 +143,15 @@ export default function ProfilePage() {
                                 </div>
                                 <div className="mb-4">
                                     <div className="flex items-center justify-between text-sm mb-2">
-                                        <span className="text-muted-foreground">Level Progress</span>
+                                        <span className="text-muted-foreground">XP Progress</span>
                                         <span className="font-medium text-foreground">
                                             {xp} / {nextLevelXp} XP
                                         </span>
                                     </div>
                                     <Progress value={xpProgress} className="h-3" />
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                        Win contests to earn XP! Each win = 100 XP
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="text-center p-3 rounded-lg bg-secondary/30">
@@ -168,86 +171,17 @@ export default function ProfilePage() {
                         </div>
                     </CardContent>
                 </Card>
-                <Tabs defaultValue="nfts" className="w-full">
+                <Tabs defaultValue="history" className="w-full">
                     <TabsList className="grid w-full max-w-md grid-cols-3 mb-8">
-                        <TabsTrigger value="nfts">NFTs</TabsTrigger>
-                        <TabsTrigger value="badges">Badges</TabsTrigger>
                         <TabsTrigger value="history">History</TabsTrigger>
+                        <TabsTrigger value="nfts" disabled>NFTs</TabsTrigger>
+                        <TabsTrigger value="badges" disabled>Badges</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="nfts">
-                        {nfts.length > 0 ? (
-                            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                                {nfts.map((nft: Nft, i: number) => {
-                                    const Icon = iconMap[nft.icon];
-                                    return (
-                                        <Card
-                                            key={nft.id}
-                                            className="group border-border bg-card hover-glow transition-smooth overflow-hidden animate-slide-up"
-                                            style={{ animationDelay: `${i * 100}ms` }}
-                                        >
-                                            <CardContent className="p-6">
-                                                <div
-                                                    className={`relative w-full aspect-square rounded-xl bg-gradient-to-br ${nft.color} flex items-center justify-center mb-4 group-hover:scale-105 transition-transform`}
-                                                >
-                                                    {Icon && <Icon className="h-16 w-16 text-white" />}
-                                                    <div className="absolute inset-0 rounded-xl border-2 border-white/20" />
-                                                </div>
-                                                <h3 className="font-semibold text-foreground mb-1">{nft.name}</h3>
-                                                <Badge variant="outline" className="text-xs">
-                                                    {nft.rarity}
-                                                </Badge>
-                                            </CardContent>
-                                        </Card>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div className="text-center py-12 text-muted-foreground">
-                                No NFTs earned yet.
-                            </div>
-                        )}
-                    </TabsContent>
-                    <TabsContent value="badges">
-                        {badges.length > 0 ? (
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                {badges.map((badge: BadgeType, i: number) => (
-                                    <Card
-                                        key={badge.id}
-                                        className={`border-border transition-smooth animate-slide-up ${badge.unlocked ? "bg-card hover-glow" : "bg-secondary/30 opacity-60"
-                                            }`}
-                                        style={{ animationDelay: `${i * 100}ms` }}
-                                    >
-                                        <CardContent className="p-6">
-                                            <div className="flex items-start gap-4">
-                                                <div
-                                                    className={`flex items-center justify-center w-12 h-12 rounded-full ${badge.unlocked ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
-                                                        }`}
-                                                >
-                                                    <Award className="h-6 w-6" />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h3 className="font-semibold text-foreground mb-1">{badge.name}</h3>
-                                                    <p className="text-sm text-muted-foreground">{badge.description}</p>
-                                                    {badge.unlocked && (
-                                                        <Badge className="mt-2 bg-success text-success-foreground text-xs">Unlocked</Badge>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-12 text-muted-foreground">
-                                No badges earned yet.
-                            </div>
-                        )}
-                    </TabsContent>
                     <TabsContent value="history">
                         {recentContests.length > 0 ? (
                             <Card className="border-border bg-card">
                                 <CardHeader>
-                                    <CardTitle className="text-foreground">Recent Contests</CardTitle>
+                                    <CardTitle className="text-foreground">Contest History</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-4">
@@ -272,7 +206,7 @@ export default function ProfilePage() {
                                                         {contest.status}
                                                     </Badge>
                                                     {contest.prize > 0 && (
-                                                        <div className="text-sm font-semibold text-primary">{contest.prize} SOL</div>
+                                                        <div className="text-sm font-semibold text-primary">{contest.prize.toFixed(2)} SOL</div>
                                                     )}
                                                 </div>
                                             </div>
@@ -282,9 +216,19 @@ export default function ProfilePage() {
                             </Card>
                         ) : (
                             <div className="text-center py-12 text-muted-foreground">
-                                No recent contests to show.
+                                No contests joined yet. Join your first contest to start building your history!
                             </div>
                         )}
+                    </TabsContent>
+                    <TabsContent value="nfts">
+                        <div className="text-center py-12 text-muted-foreground">
+                            NFT rewards coming soon! Win contests to earn exclusive NFTs.
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="badges">
+                        <div className="text-center py-12 text-muted-foreground">
+                            Achievement badges coming soon! Complete challenges to unlock badges.
+                        </div>
                     </TabsContent>
                 </Tabs>
             </div>

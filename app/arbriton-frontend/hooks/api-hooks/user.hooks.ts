@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { GetUser, UpdateUser } from "@/api-functions/user.api";
+import {
+  GetUser,
+  UpdateUser,
+  GetUserContestHistory,
+} from "@/api-functions/user.api";
 import { useSolana } from "@/components/solana-provider";
 
 export const useUser = () => {
@@ -9,6 +13,17 @@ export const useUser = () => {
   return useQuery({
     queryKey: ["user", walletAddress],
     queryFn: () => GetUser(walletAddress!),
+    enabled: !!walletAddress,
+  });
+};
+
+export const useUserContestHistory = () => {
+  const { selectedAccount } = useSolana();
+  const walletAddress = selectedAccount?.address;
+
+  return useQuery({
+    queryKey: ["userContestHistory", walletAddress],
+    queryFn: () => GetUserContestHistory(walletAddress!),
     enabled: !!walletAddress,
   });
 };

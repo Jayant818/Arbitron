@@ -1,38 +1,112 @@
 "use client"
 
-import { Navbar } from "@/components/navbar"
 import { PortfolioChart } from "@/components/portfolio-chart"
 import { Leaderboard } from "@/components/leaderboard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Clock, TrendingUp, TrendingDown, Users, Trophy, DollarSign } from "lucide-react"
-import { useEffect, useState, useMemo } from "react"
-import { useGetContestByIdQuery } from "@/hooks/api-hooks/useContestQuery"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Clock, TrendingUp, TrendingDown, Users, Trophy, DollarSign, CheckCircle, Award, XCircle } from "lucide-react"
+import { useEffect, useState, useMemo, useRef } from "react"
 import { useGetParticipantsByContestIdQuery } from "@/hooks/api-hooks/useUserQuery"
 import { useSolana } from "@/components/solana-provider"
 import { SignalingManager } from "@/lib/SinglingManager"
-import { time } from "console"
+import { useRouter } from "next/navigation"
+import { address, createSolanaRpc, createSolanaRpcSubscriptions, generateKeyPairSigner, getAddressFromPublicKey, pipe, getProgramDerivedAddress, getAddressEncoder } from "@solana/kit"
+import { fetchContest } from "../../../../dist/js-client/accounts/contest"
+import { ContestState } from "../../../../dist/js-client/types/contestState"
+import { fetchConfig } from "../../../../dist/js-client/accounts/config"
+import { findAssociatedTokenPda, TOKEN_PROGRAM_ADDRESS } from "@solana-program/token"
+import { USDC_MINT_ADDRESS } from "@/lib/constants"
+import { createTransactionMessage, setTransactionMessageFeePayerSigner, setTransactionMessageLifetimeUsingBlockhash, signAndSendTransactionMessageWithSigners, appendTransactionMessageInstructions, getBase58Decoder } from "@solana/kit"
+import { ARBITRON_PROGRAM_ADDRESS } from "../../../../dist/js-client/programs"
+import { useWalletAccountTransactionSendingSigner } from "@solana/react"
+import { 
+  getClaimPrizeInstructionAsync,
+  ClaimPrizeAsyncInput
+} from "../../../../dist/js-client/index";
+import confetti from "canvas-confetti"
 
 interface ContestArenaPageProps {
   contestId: string;
 }
 
+// Helper function to extract value from Option type
+function getOptionValue<T>(option: any): T | null {
+  if (!option || option.__option === "None") {
+    return null;
+  }
+  return option.__option === "Some" ? option.value : option;
+}
+
+interface ContestData {
+  name: string;
+  duration: bigint;
+  startTime: bigint;
+  host: string;
+  entryFees: bigint;
+  maxParticipents: number;
+  participentsCount: number;
+  status: ContestState;
+  prizePoolVaultUsdc: string;
+  winner: string | null;
+  winnerPnl: bigint | null;
+  isPrizeClaimed: boolean;
+}
+
 export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  const { selectedAccount } = useSolana();
+  const [showEndDialog, setShowEndDialog] = useState(false);
+  const [showWinnerDialog, setShowWinnerDialog] = useState(false);
+  const previousTimeRef = useRef<number | null>(null);
+  const hasShownEndDialogRef = useRef(false); // Track if we've shown the end dialog
+  const [contestDetails, setContestDetails] = useState<ContestData | null>(null);
+  const [isContestLoading, setIsContestLoading] = useState(true);
+  const [isClaimingPrize, setIsClaimingPrize] = useState(false);
+  const { selectedAccount, rpc, chain } = useSolana();
+  const signer = selectedAccount ? useWalletAccountTransactionSendingSigner(selectedAccount, chain) : null;
   const [livePrices, setLivePrices] = useState<Record<string, string>>({}); // mint -> scaledPrice
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [pnlHistory, setPnlHistory] = useState<any[]>([]);
+  const router = useRouter();
 
-  // Fetch contest details
-  const { data: contestDetails, isLoading: isContestLoading } = useGetContestByIdQuery({
-    id: contestId,
-    customConfig: {
-      enabled: !!contestId,
-      refetchInterval: 30000, // Refetch every 30 seconds
-    },
-  });
+  // Fetch contest details from on-chain using RPC
+  useEffect(() => {
+    const fetchContestDetails = async () => {
+      try {
+        setIsContestLoading(true);
+        const contest = await fetchContest(rpc, address(contestId));
+        console.log("Fetched contest from on-chain:", contest);
+        
+        setContestDetails({
+          name: contest.data.name,
+          duration: contest.data.duration,
+          startTime: contest.data.startTime,
+          host: contest.data.host,
+          entryFees: contest.data.entryFees,
+          maxParticipents: Number(contest.data.maxParticipents),
+          participentsCount: Number(contest.data.participentsCount),
+          status: contest.data.status,
+          prizePoolVaultUsdc: contest.data.prizePoolVaultUsdc,
+          winner: getOptionValue<string>(contest.data.winner),
+          winnerPnl: getOptionValue<bigint>(contest.data.winnerPnl),
+          isPrizeClaimed: contest.data.isPrizeClaimed,
+        });
+      } catch (error) {
+        console.error("Error fetching contest from on-chain:", error);
+      } finally {
+        setIsContestLoading(false);
+      }
+    };
+
+    fetchContestDetails();
+    
+    // Refetch every 10 seconds to check for status updates
+    const interval = setInterval(fetchContestDetails, 10000);
+    
+    return () => clearInterval(interval);
+  }, [contestId, rpc]);
 
 
   // Fetch participants and their selected tokens
@@ -160,10 +234,24 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
 
     const calculateTimeLeft = () => {
       const now = Date.now();
-      // startTime is in Unix seconds, convert to milliseconds
-      const startTime = contestDetails.startTime * 1000;
-      const endTime = startTime + (contestDetails.duration * 1000); // duration is in seconds
+      // startTime is in Unix seconds (i64), convert to milliseconds
+      const startTime = Number(contestDetails.startTime) * 1000;
+      const duration = Number(contestDetails.duration);
+      const endTime = startTime + (duration * 1000); // duration is in seconds
       const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+      
+      // Store previous time for comparison
+      const prevTime = previousTimeRef.current;
+      previousTimeRef.current = remaining;
+      
+      // Show popup when contest ends (timer transitions from >0 to 0)
+      // Only show once using the ref flag
+      if (remaining === 0 && prevTime !== null && prevTime > 0 && !hasShownEndDialogRef.current) {
+        console.log("Contest timer reached zero! Showing end dialog.");
+        setShowEndDialog(true);
+        hasShownEndDialogRef.current = true;
+      }
+      
       setTimeLeft(remaining);
     };
 
@@ -171,6 +259,13 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
     const timer = setInterval(calculateTimeLeft, 1000);
     return () => clearInterval(timer);
   }, [contestDetails]);
+
+  // Check for winner announcement
+  useEffect(() => {
+    if (contestDetails?.winner && contestDetails.status === ContestState.Completed && !showWinnerDialog) {
+      setShowWinnerDialog(true);
+    }
+  }, [contestDetails?.winner, contestDetails?.status, showWinnerDialog]);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -183,17 +278,149 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
   };
 
   const progress = contestDetails && timeLeft !== null
-    ? ((contestDetails.duration - timeLeft) / contestDetails.duration) * 100
+    ? ((Number(contestDetails.duration) - timeLeft) / Number(contestDetails.duration)) * 100
     : 0;
 
   const getContestStatus = () => {
     if (!contestDetails) return "loading";
-    if (contestDetails.status === 1) return "live";
-    if (contestDetails.status === 2) return "completed";
+    if (contestDetails.status === ContestState.Ongoing) return "live";
+    if (contestDetails.status === ContestState.Completed) return "completed";
     return "upcoming";
   };
 
   const contestStatus = getContestStatus();
+
+  const isWinner = contestDetails?.winner && selectedAccount?.address === contestDetails.winner;
+  const canClaimPrize = isWinner && !contestDetails.isPrizeClaimed;
+
+  // Confetti animation
+  const triggerConfetti = () => {
+    const duration = 5 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+    function randomInRange(min: number, max: number) {
+      return Math.random() * (max - min) + min;
+    }
+
+    const interval: any = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+      });
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+      });
+    }, 250);
+  };
+
+  const handleClaimPrize = async () => {
+    if (!canClaimPrize || !selectedAccount || !signer) return;
+    
+    setIsClaimingPrize(true);
+    try {
+      console.log("Starting prize claim for contest:", contestId);
+      
+      // Fetch config account to get platform fee wallet
+      const [configPda] = await getProgramDerivedAddress({
+        programAddress: ARBITRON_PROGRAM_ADDRESS,
+        seeds: [new TextEncoder().encode("config")],
+      });
+      
+      const config = await fetchConfig(rpc, configPda);
+      console.log("Fetched config:", config);
+      
+      // Get contest vault PDA
+      const [contestVaultPda] = await getProgramDerivedAddress({
+        programAddress: ARBITRON_PROGRAM_ADDRESS,
+        seeds: [
+          new TextEncoder().encode("contest_vault"),
+          getAddressEncoder().encode(address(contestId)),
+        ],
+      });
+      
+      // Get winner's USDC token account using findAssociatedTokenPda
+      const [winnerUsdcAccount] = await findAssociatedTokenPda({
+        mint: USDC_MINT_ADDRESS,
+        owner: address(selectedAccount.address),
+        tokenProgram: TOKEN_PROGRAM_ADDRESS,
+      });
+      
+      console.log("Building claim prize instruction with accounts:", {
+        winner: selectedAccount.address,
+        config: configPda,
+        contest: contestId,
+        contestVault: contestVaultPda,
+        winnerUsdcAccount: winnerUsdcAccount,
+        platformFeeWallet: config.data.platformFeeWallet,
+        tokenMint: USDC_MINT_ADDRESS,
+      });
+      
+      // Build the claim prize instruction
+      const claimPrizeIx = await getClaimPrizeInstructionAsync({
+        winner: signer,
+        contest: address(contestId),
+        contestVault: contestVaultPda,
+        winnerUsdcAccount: winnerUsdcAccount,
+        platformFeeWallet: config.data.platformFeeWallet,
+        tokenMint: USDC_MINT_ADDRESS,
+      });
+      
+      // Get recent blockhash
+      const { value: blockhash } = await rpc.getLatestBlockhash().send();
+      
+      // Create transaction message
+      const tx = pipe(
+        createTransactionMessage({ version: 0 }),
+        (tx) => setTransactionMessageFeePayerSigner(signer, tx),
+        (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+        (tx) => appendTransactionMessageInstructions([claimPrizeIx], tx)
+      );
+      
+      // Sign and send transaction
+      const signatureBytes = await signAndSendTransactionMessageWithSigners(tx);
+      const signature = getBase58Decoder().decode(signatureBytes);
+      
+      console.log("✅ Prize claimed successfully! Signature:", signature);
+      
+      // Trigger confetti celebration!
+      triggerConfetti();
+      
+      // Refresh contest details to show updated state
+      const updatedContest = await fetchContest(rpc, address(contestId));
+      setContestDetails({
+        name: updatedContest.data.name,
+        duration: updatedContest.data.duration,
+        startTime: updatedContest.data.startTime,
+        host: updatedContest.data.host,
+        entryFees: updatedContest.data.entryFees,
+        maxParticipents: Number(updatedContest.data.maxParticipents),
+        participentsCount: Number(updatedContest.data.participentsCount),
+        status: updatedContest.data.status,
+        prizePoolVaultUsdc: updatedContest.data.prizePoolVaultUsdc,
+        winner: getOptionValue<string>(updatedContest.data.winner),
+        winnerPnl: getOptionValue<bigint>(updatedContest.data.winnerPnl),
+        isPrizeClaimed: updatedContest.data.isPrizeClaimed,
+      });
+      
+    } catch (error: any) {
+      console.error("Error claiming prize:", error);
+      alert(`Failed to claim prize: ${error.message || "Unknown error"}`);
+    } finally {
+      setIsClaimingPrize(false);
+    }
+  };
 
   if (isContestLoading || !contestDetails) {
     return (
@@ -206,7 +433,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
     );
   }
 
-  const entryFee = Number(contestDetails.entryFee) / Math.pow(10, contestDetails.decimals);
+  const entryFee = Number(contestDetails.entryFees) / 1_000_000; // USDC has 6 decimals
 
   // Helper to format price from scaled integer
   const formatPrice = (scaledPrice: string | number | bigint) => {
@@ -249,7 +476,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
                 <span>Participants</span>
               </div>
               <div className="text-2xl font-bold text-foreground">
-                {contestDetails.currentPlayers || 0}/{contestDetails.maxPlayers}
+                {contestDetails.participentsCount || 0}/{contestDetails.maxParticipents}
               </div>
             </CardContent>
           </Card>
@@ -261,17 +488,81 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
                 <span>Duration</span>
               </div>
               <div className="text-2xl font-bold text-foreground">
-                {Math.floor(contestDetails.duration / 60)}m
+                {Math.floor(Number(contestDetails.duration) / 60)}m
               </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* Winner Banner */}
+        {contestDetails.winner && contestStatus === "completed" && (
+          <div className={`mb-4 rounded-lg border p-4 animate-slide-down ${
+            isWinner 
+              ? "border-green-500/50 bg-green-500/10" 
+              : "border-amber-500/50 bg-amber-500/10"
+          }`}>
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                {isWinner ? (
+                  <>
+                    <Award className="h-6 w-6 text-green-500" />
+                    <div>
+                      <span className="font-semibold text-green-500 text-lg">
+                        🎉 Congratulations! You Won! 🎉
+                      </span>
+                      <p className="text-sm text-muted-foreground">
+                        Winner P&L: {contestDetails.winnerPnl ? `${(Number(contestDetails.winnerPnl) / 100).toFixed(2)}%` : "N/A"}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-6 w-6 text-amber-500" />
+                    <div>
+                      <span className="font-semibold text-amber-500 text-lg">
+                        Contest Completed
+                      </span>
+                      <p className="text-sm text-muted-foreground">
+                        Winner: {contestDetails.winner.slice(0, 4)}...{contestDetails.winner.slice(-4)} | 
+                        P&L: {contestDetails.winnerPnl ? `${(Number(contestDetails.winnerPnl) / 100).toFixed(2)}%` : "N/A"}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+              {canClaimPrize && (
+                <Button
+                  onClick={handleClaimPrize}
+                  disabled={isClaimingPrize}
+                  className="bg-green-500 hover:bg-green-600 text-white"
+                >
+                  {isClaimingPrize ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2"></div>
+                      Claiming...
+                    </>
+                  ) : (
+                    <>
+                      <Trophy className="h-4 w-4 mr-2" />
+                      Claim Prize
+                    </>
+                  )}
+                </Button>
+              )}
+              {contestDetails.isPrizeClaimed && isWinner && (
+                <Badge className="bg-green-500 text-white">
+                  Prize Claimed ✓
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-foreground">{contestDetails.title}</h1>
+              <h1 className="text-3xl font-bold text-foreground">{contestDetails.name}</h1>
               <Badge className={`${
                 contestStatus === "live" 
                   ? "bg-success text-success-foreground animate-pulse" 
@@ -283,7 +574,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
               </Badge>
             </div>
             <p className="text-muted-foreground">
-              Started {new Date(contestDetails.startTime * 1000).toLocaleString()}
+              Started {new Date(Number(contestDetails.startTime) * 1000).toLocaleString()}
             </p>
           </div>
 
@@ -482,6 +773,154 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Contest Ended Dialog */}
+      <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
+        <DialogContent className="sm:max-w-md border-border bg-black bg-opacity-100">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className={`h-16 w-16 rounded-full ${isWinner ? 'bg-green-500/20' : 'bg-amber-500/20'} flex items-center justify-center`}>
+                {isWinner ? (
+                  <Trophy className="h-10 w-10 text-green-500" />
+                ) : (
+                  <XCircle className="h-10 w-10 text-amber-500" />
+                )}
+              </div>
+            </div>
+            <DialogTitle className="text-center text-2xl font-bold text-foreground">
+              {isWinner ? "🎉 Congratulations! You Won! 🎉" : "Contest Has Ended"}
+            </DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground pt-2">
+              {isWinner 
+                ? "You are the winner of this contest! Claim your prize below to receive your USDC rewards."
+                : contestDetails?.winner 
+                  ? `The contest has ended. Winner: ${contestDetails.winner.slice(0, 4)}...${contestDetails.winner.slice(-4)}`
+                  : "The contest has officially concluded. Results are being processed using zero-knowledge proofs."}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-3">
+            {isWinner ? (
+              <>
+                <div className="rounded-lg border border-green-500/50 bg-green-500/10 p-4">
+                  <h4 className="text-sm font-semibold text-green-500 mb-2">Your Performance</h4>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-center justify-between">
+                      <span>P&L:</span>
+                      <span className="font-semibold text-green-500">
+                        {contestDetails?.winnerPnl ? `${(Number(contestDetails.winnerPnl) / 100).toFixed(2)}%` : "Calculating..."}
+                      </span>
+                    </li>
+                    <li className="flex items-center justify-between">
+                      <span>Prize Status:</span>
+                      <span className={`font-semibold ${contestDetails?.isPrizeClaimed ? 'text-green-500' : 'text-amber-500'}`}>
+                        {contestDetails?.isPrizeClaimed ? "Claimed ✓" : "Ready to Claim"}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+                
+                {canClaimPrize && (
+                  <Button
+                    onClick={handleClaimPrize}
+                    disabled={isClaimingPrize}
+                    className="w-full bg-green-500 hover:bg-green-600 text-white"
+                    size="lg"
+                  >
+                    {isClaimingPrize ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2"></div>
+                        Claiming Prize...
+                      </>
+                    ) : (
+                      <>
+                        <Trophy className="h-4 w-4 mr-2" />
+                        Claim Your Prize
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                {contestDetails?.isPrizeClaimed && (
+                  <div className="text-center py-3 rounded-lg bg-green-500/10 border border-green-500/50">
+                    <CheckCircle className="h-6 w-6 text-green-500 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-green-500">Prize Successfully Claimed!</p>
+                    <p className="text-xs text-muted-foreground mt-1">Check your wallet for USDC</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
+                  <h4 className="text-sm font-semibold text-amber-500 mb-2">Contest Results</h4>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    {contestDetails?.winner ? (
+                      <>
+                        <li className="flex items-center justify-between">
+                          <span>Winner:</span>
+                          <span className="font-mono text-foreground">
+                            {contestDetails.winner.slice(0, 6)}...{contestDetails.winner.slice(-4)}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between">
+                          <span>Winning P&L:</span>
+                          <span className="font-semibold text-green-500">
+                            {contestDetails.winnerPnl ? `${(Number(contestDetails.winnerPnl) / 100).toFixed(2)}%` : "N/A"}
+                          </span>
+                        </li>
+                      </>
+                    ) : (
+                      <li className="text-center py-2">
+                        <span>Results are being processed...</span>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+                
+                <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                  <h4 className="text-sm font-semibold text-foreground mb-2">What happens next?</h4>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>ZK proofs are being generated to verify all trades</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>Final rankings and scores are being calculated</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>Results will be announced shortly</span>
+                    </li>
+                  </ul>
+                </div>
+              </>
+            )}
+            
+            <div className="text-center text-xs text-muted-foreground">
+              {isWinner 
+                ? "Thank you for participating! 🎊"
+                : "Better luck next time! Join another contest to improve your skills."}
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              onClick={() => router.push('/contests')}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              View Other Contests
+            </Button>
+            <Button
+              onClick={() => setShowEndDialog(false)}
+              className="w-full sm:w-auto bg-primary hover:bg-primary/90"
+            >
+              {isWinner ? "Stay & Celebrate" : "Stay Here"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

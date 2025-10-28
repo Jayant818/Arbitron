@@ -16,28 +16,36 @@ import {
   pipe,
   createSolanaRpc,
   createSolanaRpcSubscriptions,
-  createKeyPairSignerFromPrivateKeyBytes,
   signTransactionMessageWithSigners,
   sendAndConfirmTransactionFactory,
   getSignatureFromTransaction,
   airdropFactory,
   lamports,
   createKeyPairSignerFromBytes,
+  KeyPairSigner,
+  Instruction,
+  devnet,
 } from "@solana/kit";
-
+import { keccak_256 } from "@noble/hashes/sha3";
 import { randomBytes } from "crypto";
 import fs from "fs";
+
+// Import BOTH instruction builders
 import {
   getStoreContestInputsInstructionAsync,
   StoreContestInputsAsyncInput,
 } from "../../../dist/js-client/instructions/storeContestInputs";
+// --- NEW: Import the append instruction (assuming you generated it) ---
+import {
+  getAppendContestInputsInstructionAsync, // You'll need to generate this
+  AppendContestInputsAsyncInput, // You'll need to generate this
+} from "../../../dist/js-client/instructions/appendContestInputs"; // Adjust path
 import {
   getRequestEndContestProofInstructionAsync,
   RequestEndContestProofAsyncInput,
 } from "../../../dist/js-client/instructions/requestEndContestProof";
-// You need this to hash the image ID for the deployment account PDA
-import { keccak_256 } from "@noble/hashes/sha3";
 
+// --- Constants ---
 const BONSOL_PROGRAM_ID = address(
   "BoNsHRcyLLNdtnoDf8hiCNZpyehMC4FDMxs6NTxFi3ew"
 );
@@ -46,24 +54,25 @@ const ARBITRON_IMAGE_ID =
 const RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8899";
 const WS_RPC_URL = process.env.WS_RPC_URL || "ws://127.0.0.1:8900";
 const PAYER_KEYPAIR_PATH =
-  process.env.PAYER_KEYPAIR_PATH || "/path/to/your/wallet.json";
+  process.env.PAYER_KEYPAIR_PATH || "./host-arbitron-wallet.json"; // Adjusted relative path
 
-// --- QUEUES ---
+// --- Transaction Constants ---
+const TRANSACTION_OVERHEAD = 200; // Estimated bytes for signatures, accounts, etc. Adjust as needed.
+const MAX_CHUNK_SIZE = 1232 - TRANSACTION_OVERHEAD; // Max data per append tx
 const END_CONTEST_QUEUE = "ended-contests";
 
-// Interface for Jupiter API response (existing)
+// --- Helper Functions (getJupiterPrices, getContestPDA - No changes needed) ---
 interface IPriceUpdate {
   usdPrice: number;
   blockId: number;
 }
-
 async function getJupiterPrices(
   tokenMints: Set<string>
 ): Promise<Map<string, bigint>> {
+  /* ... (same as before) ... */
   const mints = Array.from(tokenMints);
   const data: Record<string, IPriceUpdate> = {};
   const finalPrices = new Map<string, bigint>();
-
   try {
     for (let i = 0; i < mints.length; i = i + 50) {
       const res = await axios.get<Record<string, IPriceUpdate>>(
@@ -92,11 +101,11 @@ async function getJupiterPrices(
     throw error;
   }
 }
-
 async function getContestPDA(
   contestName: string,
   host: Address
 ): Promise<Address> {
+  /* ... (same as before) ... */
   const [contestPDA] = await getProgramDerivedAddress({
     programAddress: address(ARBITRON_PROGRAM_ADDRESS),
     seeds: [
@@ -108,36 +117,47 @@ async function getContestPDA(
   return contestPDA;
 }
 
+async function sendAndConfirmSingleInstruction(
+  instruction: Instruction,
+  payer: KeyPairSigner,
+  rpc: any,
+  rpcSubscriptions: any
+): Promise<string> {
+  const { value: blockhash } = await rpc.getLatestBlockhash().send();
+  const tx = pipe(
+    createTransactionMessage({ version: 0 }),
+    (tx) => setTransactionMessageFeePayerSigner(payer, tx),
+    (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+    (tx) => appendTransactionMessageInstructions([instruction], tx)
+  );
+  assertIsTransactionMessageWithinSizeLimit(tx); // Should pass if chunk size is right
+  const signedTx = await signTransactionMessageWithSigners(tx);
+  const sendAndConfirmTransaction = sendAndConfirmTransactionFactory({
+    rpc,
+    rpcSubscriptions,
+  });
+  const signature = await getSignatureFromTransaction(signedTx);
+  console.log(`[Worker]:   Sending Tx... Signature: ${signature}`);
+  await sendAndConfirmTransaction(signedTx, { commitment: "confirmed" });
+  console.log(`[Worker]:   Tx Confirmed!`);
+  return signature;
+}
+
 async function main() {
   console.log("[Worker]: zk-tx-submitter worker started...");
 
-  console.log("[Worker]: zk-tx-submitter worker started...");
-
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
-  console.log("[Worker]: zk-tx-submitter worker started...");
+  const rpc = createSolanaRpc(devnet(RPC_URL));
+  const rpcSubscriptions = createSolanaRpcSubscriptions(devnet(WS_RPC_URL));
+  const payer = await createKeyPairSignerFromBytes(
+    Uint8Array.from(JSON.parse(fs.readFileSync(PAYER_KEYPAIR_PATH, "utf-8")))
+  );
 
   while (true) {
     const contestId = await redis.brPop(END_CONTEST_QUEUE, 0);
-
-    if (!contestId) {
-      continue;
-    }
-
-    console.log("[Worker]: Received contest ID to process:", contestId.element);
+    if (!contestId) continue;
+    console.log(
+      `[Worker]: Received contest ID to process: ${contestId.element}`
+    );
 
     try {
       const contest = await getContestByIdWithParticipantsAndSelectedTokens(
@@ -149,27 +169,17 @@ async function main() {
         );
         continue;
       }
-
       const uniqueSelectedTokens = new Set<string>();
-      contest.participants.forEach((participant) => {
-        participant.SelectedTokens.forEach((token) => {
-          uniqueSelectedTokens.add(token.mint);
-        });
+      contest.participants.forEach((p) => {
+        p.SelectedTokens.forEach((t) => uniqueSelectedTokens.add(t.mint));
       });
-
-      console.log(
-        "[Worker]: Unique selected tokens found:",
-        uniqueSelectedTokens.size
-      );
-
       const finalPricesMap = await getJupiterPrices(uniqueSelectedTokens);
-      console.log("[Worker]: Fetched final prices from Jupiter.");
-
       const contestPDA = await getContestPDA(
         contest.name,
         address(contest.host)
       );
 
+      // --- 2. Payload Creation ---
       const jobPayload = {
         contestAddress: contestPDA as string,
         participants: contest.participants.map((p) => ({
@@ -188,42 +198,12 @@ async function main() {
           })
         ),
       };
-
-      // 3. --- On-Chain Transaction Submission ---
-
-      console.log("[Worker]: Preparing on-chain instructions...");
-
+      const payloadBytes = Buffer.from(JSON.stringify(jobPayload));
+      const tip = 100_000n;
       const execution_id = randomBytes(16).toString("hex");
       const contestAddress = address(contestPDA);
 
-      const rpc = createSolanaRpc(RPC_URL);
-      const rpcSubscriptions = createSolanaRpcSubscriptions(WS_RPC_URL);
-
-      const payer = await createKeyPairSignerFromBytes(
-        Uint8Array.from(
-          JSON.parse(fs.readFileSync(PAYER_KEYPAIR_PATH, "utf-8"))
-        )
-      );
-
-      const airdropFunction = await airdropFactory({
-        rpc,
-        rpcSubscriptions,
-      });
-
-      try {
-        await airdropFunction({
-          commitment: "confirmed",
-          lamports: lamports(1_000_000_000n), // 1 SOL
-          recipientAddress: payer.address,
-        });
-        console.log("[Worker]: Airdrop successful.");
-      } catch (e) {
-        console.log(
-          "[Worker]: Airdrop failed (likely rate-limited or on mainnet)."
-        );
-      }
-
-      // Find PDAs
+      // --- 3. Derive PDAs ---
       const [contestInputsPda] = await getProgramDerivedAddress({
         programAddress: ARBITRON_PROGRAM_ADDRESS,
         seeds: [
@@ -231,10 +211,6 @@ async function main() {
           getAddressEncoder().encode(contestAddress),
         ],
       });
-
-      // --- NEW: Derive the missing Bonsol PDAs ---
-
-      // 1. Derive the Execution Request PDA
       const [executionRequestAccountPda] = await getProgramDerivedAddress({
         programAddress: BONSOL_PROGRAM_ID,
         seeds: [
@@ -243,44 +219,77 @@ async function main() {
           new TextEncoder().encode(execution_id),
         ],
       });
-
-      // 2. Derive the Deployment Account PDA
       const [deploymentAccountPda] = await getProgramDerivedAddress({
         programAddress: BONSOL_PROGRAM_ID,
         seeds: [
           new TextEncoder().encode("deployment"),
-          keccak_256(ARBITRON_IMAGE_ID), // Hash the Image ID
+          keccak_256(ARBITRON_IMAGE_ID),
         ],
       });
-
       console.log(`[Worker]: Contest Inputs PDA: ${contestInputsPda}`);
+
+      // --- 4. Send Data in Chunks ---
       console.log(
-        `[Worker]: Execution Request PDA: ${executionRequestAccountPda}`
+        `[Worker]: Preparing to send ${payloadBytes.length} bytes of data in chunks...`
       );
-      console.log(`[Worker]: Deployment PDA: ${deploymentAccountPda}`);
 
-      // Serialize payload for the chain
-      const payloadBytes = Buffer.from(JSON.stringify(jobPayload));
-      const tip = 1000_000n; // 0.001 SOL tip for the prover
-
-      // 4. --- Build & Send Transaction (using @solana/kit) ---
-      console.log("📦 Building and sending ZK request transaction...");
-
-      const setContestInputIxInput: StoreContestInputsAsyncInput = {
+      // Send Initial Chunk (using storeContestInputs for init)
+      const firstChunk = payloadBytes.subarray(
+        0,
+        Math.min(MAX_CHUNK_SIZE, payloadBytes.length)
+      );
+      console.log(
+        `[Worker]: Sending first chunk (${firstChunk.length} bytes)...`
+      );
+      const storeIxInput: StoreContestInputsAsyncInput = {
         contest: contestAddress,
         contestInputs: address(contestInputsPda),
         payer: payer,
-        data: payloadBytes,
+        firstChunk: firstChunk,
       };
-
-      const storeContestInputIx = await getStoreContestInputsInstructionAsync(
-        setContestInputIxInput
+      const storeIx = await getStoreContestInputsInstructionAsync(storeIxInput);
+      await sendAndConfirmSingleInstruction(
+        storeIx,
+        payer,
+        rpc,
+        rpcSubscriptions
       );
 
-      // --- CORRECTED: Pass the derived PDAs here ---
-      const requestEndContestProof: RequestEndContestProofAsyncInput = {
+      // Send Remaining Chunks (using appendContestInputs)
+      let offset = firstChunk.length;
+      while (offset < payloadBytes.length) {
+        const end = Math.min(offset + MAX_CHUNK_SIZE, payloadBytes.length);
+        const chunk = payloadBytes.subarray(offset, end);
+        console.log(
+          `[Worker]: Sending chunk at offset ${offset} (${chunk.length} bytes)...`
+        );
+
+        const appendIxInput: AppendContestInputsAsyncInput = {
+          contest: contestAddress, // Needed for PDA derivation in instruction builder
+          contestInputs: address(contestInputsPda),
+          payer: payer,
+          offset: offset, // Pass the offset
+          chunk: chunk, // Pass the data chunk
+        };
+        const appendIx = await getAppendContestInputsInstructionAsync(
+          appendIxInput
+        );
+        await sendAndConfirmSingleInstruction(
+          appendIx,
+          payer,
+          rpc,
+          rpcSubscriptions
+        );
+
+        offset += chunk.length;
+      }
+      console.log(`[Worker]: ✅ All data chunks sent successfully.`);
+
+      // --- 5. Transaction FINAL: Request Proof ---
+      console.log(`[Worker]: Building final transaction: Request Proof...`);
+      const requestProofInput: RequestEndContestProofAsyncInput = {
         contest: contestAddress,
-        contestInputs: address(contestInputsPda),
+        contestInputs: address(contestInputsPda), // Reference the PDA
         payer: payer,
         tip: tip,
         bonsolProgram: BONSOL_PROGRAM_ID,
@@ -288,64 +297,34 @@ async function main() {
         deploymentAccount: address(deploymentAccountPda),
         executionRequest: address(executionRequestAccountPda),
       };
-
-      const requestEndContestProofIx =
-        await getRequestEndContestProofInstructionAsync(requestEndContestProof);
-
-      const { value: blockhash } = await rpc.getLatestBlockhash().send();
-
-      const tx = pipe(
-        createTransactionMessage({ version: 0 }),
-        (tx) => setTransactionMessageFeePayerSigner(payer, tx),
-        (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
-        (tx) =>
-          appendTransactionMessageInstructions(
-            [storeContestInputIx, requestEndContestProofIx],
-            tx
-          )
+      const requestProofIx = await getRequestEndContestProofInstructionAsync(
+        requestProofInput
       );
 
-      assertIsTransactionMessageWithinSizeLimit(tx);
-
-      const signedTx = await signTransactionMessageWithSigners(tx, [payer]); // Pass the signer here
-
-      const sendAndConfirmTransaction = await sendAndConfirmTransactionFactory({
+      await sendAndConfirmSingleInstruction(
+        requestProofIx,
+        payer,
         rpc,
-        rpcSubscriptions,
-      });
-
-      const signature = await getSignatureFromTransaction(signedTx);
-      console.log(`[Worker]: Sending transaction... Signature: ${signature}`);
-
-      try {
-        await sendAndConfirmTransaction(signedTx, {
-          commitment: "confirmed",
-        });
-      } catch (error) {
-        console.error(
-          `[Worker]: Failed to send and confirm transaction:`,
-          error
-        );
-        // Re-throw or continue to finally block
-        throw error;
-      }
-
-      console.log(
-        `[Worker]: Successfully requested ZK proof for contest ${contestId.element}.`
+        rpcSubscriptions
       );
-      console.log(`[Worker]: Transaction Confirmed! Signature: ${signature}`);
+      console.log(
+        `[Worker]: ✅ Final transaction confirmed! ZK proof requested.`
+      );
+      console.log(
+        `[Worker]: Successfully processed contest ${contestId.element}.`
+      );
     } catch (error) {
       console.error(
         `[Worker]: Failed to process contest ${contestId.element}:`,
         error
       );
-      // Optional: Pushing back to the queue for retry
+      // Optional: Add retry logic or push back to queue if needed
       // await redis.lPush(END_CONTEST_QUEUE, contestId.element);
     }
   }
 }
 
 main().catch((err) => {
-  console.log("Error", err);
+  console.log("[Worker]: Error in main loop:", err);
   process.exit(1);
 });

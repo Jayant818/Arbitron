@@ -28,13 +28,13 @@ pub struct StoreContestInput<'info>{
 
 pub fn store_contest_inputs(
     ctx: Context<StoreContestInput>,
-    data: Vec<u8>,
+    first_chunk: Vec<u8>,
 ) -> Result<()> {
-    require!(data.len() <= ContestInput::MAX_DATA_LEN, ErrorCode::InputDataTooLarge);
+    require!(first_chunk.len() <= ContestInput::MAX_DATA_LEN, ErrorCode::InputDataTooLarge);
 
     let contest_inputs = &mut ctx.accounts.contest_inputs;
     contest_inputs.contest = ctx.accounts.contest.key();
-    contest_inputs.data = data;
+    contest_inputs.data = first_chunk;
     contest_inputs.bump = ctx.bumps.contest_inputs;
 
     Ok(())

@@ -14,6 +14,8 @@ import {
   type ReadonlyUint8Array,
 } from '@solana/kit';
 import {
+  type ParsedAppendContestInputsInstruction,
+  type ParsedClaimPrizeInstruction,
   type ParsedCreateContestInstruction,
   type ParsedCreatePortfolioInstruction,
   type ParsedInitializeInstruction,
@@ -113,6 +115,8 @@ export function identifyArbitronAccount(
 }
 
 export enum ArbitronInstruction {
+  AppendContestInputs,
+  ClaimPrize,
   CreateContest,
   CreatePortfolio,
   Initialize,
@@ -128,6 +132,28 @@ export function identifyArbitronInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array
 ): ArbitronInstruction {
   const data = 'data' in instruction ? instruction.data : instruction;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([150, 226, 116, 162, 252, 114, 23, 29])
+      ),
+      0
+    )
+  ) {
+    return ArbitronInstruction.AppendContestInputs;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([157, 233, 139, 121, 246, 62, 234, 235])
+      ),
+      0
+    )
+  ) {
+    return ArbitronInstruction.ClaimPrize;
+  }
   if (
     containsBytes(
       data,
@@ -235,6 +261,12 @@ export function identifyArbitronInstruction(
 export type ParsedArbitronInstruction<
   TProgram extends string = 'GVP9mBCdGTTfiBmMWf1h5pqyXxorFeBmUvBbC7aUiTXS',
 > =
+  | ({
+      instructionType: ArbitronInstruction.AppendContestInputs;
+    } & ParsedAppendContestInputsInstruction<TProgram>)
+  | ({
+      instructionType: ArbitronInstruction.ClaimPrize;
+    } & ParsedClaimPrizeInstruction<TProgram>)
   | ({
       instructionType: ArbitronInstruction.CreateContest;
     } & ParsedCreateContestInstruction<TProgram>)

@@ -20,6 +20,17 @@ export interface Contest {
   pnl: number;
   prize: number;
   date: string;
+  status?: string;
+}
+
+export interface UserContestHistory {
+  contests: Contest[];
+  stats: {
+    contestsPlayed: number;
+    winRate: number;
+    totalEarnings: number;
+    xp: number;
+  };
 }
 
 export interface User {

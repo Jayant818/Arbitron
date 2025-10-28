@@ -57,9 +57,9 @@ pub mod arbitron {
 
     pub fn store_contest_inputs(
         ctx: Context<StoreContestInput>,
-        data: Vec<u8>,
+        first_chunk: Vec<u8>,
     ) -> Result<()> {
-        handlers::store_contest_inputs(ctx, data)?;
+        handlers::store_contest_inputs(ctx, first_chunk)?;
         Ok(())
     }
 
@@ -69,6 +69,17 @@ pub mod arbitron {
             Ok(())
         }
 
+    pub fn claim_prize(ctx: Context<ClaimPrize>) -> Result<()> {
+        handlers::claim_prize(ctx)?;
+        Ok(())
+    }
+
+    pub fn append_contest_inputs(context:Context<AppendContestInputs>,offset:u32,chunk:Vec<u8>)->Result<()>{
+
+        handlers::append_contest_inputs(context, offset, chunk)?;
+
+        Ok(())
+    }
 
 
 }
