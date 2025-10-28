@@ -64,9 +64,9 @@ pub fn request_end_contest_proof(context:Context<RequestEndContestProof>,executi
         &context.accounts.payer.key(),
         IMAGE_ID, // Your Arbitron PNL ZK Guest Image ID
         &execution_id,
-        // Passing a private reference to the PDA instead of public data.
+        // Passing a public reference to the PDA with contest inputs data.
         // Bonsol will read the data from this account.
-        vec![InputRef::private(context.accounts.contest_inputs.key().as_ref())],
+        vec![InputRef::public(context.accounts.contest_inputs.key().as_ref())],
         tip,
         slot + 100000000, 
         ExecutionConfig {
@@ -102,9 +102,17 @@ pub fn request_end_contest_proof(context:Context<RequestEndContestProof>,executi
     //     context.accounts.bonsol_program.to_account_info(),
     // ];
 
-    // invoke(&ix, &account_infos)?;
+    let mut account_infos = vec![
+        context.accounts.payer.to_account_info(),      // 0: payer (w)
+        context.accounts.system_program.to_account_info(),  // 1: system_program
+        context.accounts.execution_request.to_account_info(),  // 2: execution_request (w)
+        context.accounts.deployment_account.to_account_info(), // 3: deployment_account (r)
+        context.accounts.contest_inputs.to_account_info(),     // 4: public input account (r)
+    ];
 
-    invoke(&ix, &context.accounts.to_account_infos())?;
+    invoke(&ix, &account_infos)?;
+
+    // invoke(&ix, &context.accounts.to_account_infos())?;
     // Set the execution account on the contest state
     // This is CRITICAL for your callback handler to find this execution
     let contest = &mut context.accounts.contest;
