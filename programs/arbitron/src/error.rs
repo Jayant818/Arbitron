@@ -105,6 +105,8 @@ pub enum ErrorCode {
     CantCallExecute,
 
     #[msg("Offset is out of range")]
-    OffsetOutOfRange
+    OffsetOutOfRange,
 
+    #[msg("Bonsol Callback called unintensionally")]
+    CallbackCalledUnintensionally
 }
