@@ -33,6 +33,13 @@ pub struct RequestEndContestProof<'info>{
     /// CHECK: Checked by Bonsol
     pub deployment_account: AccountInfo<'info>,
 
+    /// CHECK: Our own program
+    #[account(
+        executable,
+        address = crate::ID
+    )]
+    pub arbitron_program: AccountInfo<'info>,
+
     /// CHECK: Bonsol Program
     #[account(
         executable,
@@ -102,15 +109,11 @@ pub fn request_end_contest_proof(context:Context<RequestEndContestProof>,executi
     //     context.accounts.bonsol_program.to_account_info(),
     // ];
 
-    let mut account_infos = vec![
-        context.accounts.payer.to_account_info(),      // 0: payer (w)
-        context.accounts.system_program.to_account_info(),  // 1: system_program
-        context.accounts.execution_request.to_account_info(),  // 2: execution_request (w)
-        context.accounts.deployment_account.to_account_info(), // 3: deployment_account (r)
-        context.accounts.contest_inputs.to_account_info(),     // 4: public input account (r)
-    ];
-
-    invoke(&ix, &account_infos)?;
+    // Bonsol's execute_v1 expects accounts via to_account_infos()
+    // This automatically includes all accounts in the correct order
+    msg!("Invoking Bonsol execute_v1");
+    invoke(&ix, &context.accounts.to_account_infos())?;
+    msg!("Bonsol execute_v1 invoked successfully");
 
     // invoke(&ix, &context.accounts.to_account_infos())?;
     // Set the execution account on the contest state

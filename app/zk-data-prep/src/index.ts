@@ -2,78 +2,43 @@ import "dotenv/config";
 import { redis } from "@arbitron/shared-redis";
 import { getContestByIdWithParticipantsAndSelectedTokens } from "@arbitron/db";
 import axios from "axios";
-import { ARBITRON_PROGRAM_ADDRESS } from "../../../dist/js-client/index";
-import {
-  address,
-  Address,
-  getAddressEncoder,
-  getProgramDerivedAddress,
-  createTransactionMessage,
-  setTransactionMessageFeePayerSigner,
-  setTransactionMessageLifetimeUsingBlockhash,
-  appendTransactionMessageInstructions,
-  assertIsTransactionMessageWithinSizeLimit,
-  pipe,
-  createSolanaRpc,
-  createSolanaRpcSubscriptions,
-  signTransactionMessageWithSigners,
-  sendAndConfirmTransactionFactory,
-  getSignatureFromTransaction,
-  airdropFactory,
-  lamports,
-  createKeyPairSignerFromBytes,
-  KeyPairSigner,
-  Instruction,
-  devnet,
-} from "@solana/kit";
+import * as anchor from "@coral-xyz/anchor";
+import { Program, AnchorProvider, Wallet } from "@coral-xyz/anchor";
+import { Connection, Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 import { keccak_256 } from "@noble/hashes/sha3";
 import { randomBytes } from "crypto";
 import fs from "fs";
+import BN from "bn.js";
 
-// Import BOTH instruction builders
-import {
-  getStoreContestInputsInstructionAsync,
-  StoreContestInputsAsyncInput,
-} from "../../../dist/js-client/instructions/storeContestInputs";
-// --- NEW: Import the append instruction (assuming you generated it) ---
-import {
-  getAppendContestInputsInstructionAsync, // You'll need to generate this
-  AppendContestInputsAsyncInput, // You'll need to generate this
-} from "../../../dist/js-client/instructions/appendContestInputs"; // Adjust path
-import {
-  getRequestEndContestProofInstructionAsync,
-  RequestEndContestProofAsyncInput,
-} from "../../../dist/js-client/instructions/requestEndContestProof";
-import { SYSTEM_PROGRAM_ADDRESS } from "@solana-program/system";
+// Import the IDL
+import idl from "../../../target/idl/arbitron.json";
+import type { Arbitron } from "../../../target/types/arbitron";
 
 // --- Constants ---
-const BONSOL_PROGRAM_ID = address(
+const BONSOL_PROGRAM_ID = new PublicKey(
   "BoNsHRcyLLNdtnoDf8hiCNZpyehMC4FDMxs6NTxFi3ew"
 );
 const ARBITRON_IMAGE_ID =
   "c3a3dc0e28f164c1925013f2e35e2daecc6c38762a5080f47956050117462ce8";
 const RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8899";
-const WS_RPC_URL = process.env.WS_RPC_URL || "ws://127.0.0.1:8900";
 const PAYER_KEYPAIR_PATH =
-  process.env.PAYER_KEYPAIR_PATH || "./host-arbitron-wallet.json"; // Adjusted relative path
-
-// --- Transaction Constants ---
-const TRANSACTION_OVERHEAD = 400; // Estimated bytes for signatures, accounts, etc. Adjust as needed.
-const MAX_CHUNK_SIZE = 1232 - TRANSACTION_OVERHEAD; // Max data per append tx
+  process.env.PAYER_KEYPAIR_PATH || "./host-arbitron-wallet.json";
+const MAX_CHUNK_SIZE = 832; // Conservative chunk size
 const END_CONTEST_QUEUE = "ended-contests";
 
-// --- Helper Functions (getJupiterPrices, getContestPDA - No changes needed) ---
+// --- Helper Functions ---
 interface IPriceUpdate {
   usdPrice: number;
   blockId: number;
 }
+
 async function getJupiterPrices(
   tokenMints: Set<string>
 ): Promise<Map<string, bigint>> {
-  /* ... (same as before) ... */
   const mints = Array.from(tokenMints);
   const data: Record<string, IPriceUpdate> = {};
   const finalPrices = new Map<string, bigint>();
+
   try {
     for (let i = 0; i < mints.length; i = i + 50) {
       const res = await axios.get<Record<string, IPriceUpdate>>(
@@ -83,11 +48,13 @@ async function getJupiterPrices(
       );
       Object.assign(data, res.data);
     }
+
     for (const mint in data) {
       const priceUpdate = data[mint];
       const scaledPrice = BigInt(Math.round(priceUpdate.usdPrice * 1_000_000));
       finalPrices.set(mint, scaledPrice);
     }
+
     for (const mint of mints) {
       if (!finalPrices.has(mint)) {
         console.warn(
@@ -96,56 +63,58 @@ async function getJupiterPrices(
         finalPrices.set(mint, BigInt(0));
       }
     }
+
     return finalPrices;
   } catch (error) {
     console.error("[Worker]: Failed to fetch Jupiter prices:", error);
     throw error;
   }
 }
-async function getContestPDA(
+
+function getContestPDA(
   contestName: string,
-  host: Address
-): Promise<Address> {
-  /* ... (same as before) ... */
-  const [contestPDA] = await getProgramDerivedAddress({
-    programAddress: address(ARBITRON_PROGRAM_ADDRESS),
-    seeds: [
-      new TextEncoder().encode("contest"),
-      new TextEncoder().encode(contestName),
-      getAddressEncoder().encode(host),
-    ],
-  });
-  return contestPDA;
+  host: PublicKey,
+  programId: PublicKey
+): PublicKey {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("contest"), Buffer.from(contestName), host.toBuffer()],
+    programId
+  );
+  return pda;
 }
 
-async function sendAndConfirmSingleInstruction(
-  instruction: Instruction,
-  payer: KeyPairSigner,
-  rpc: any,
-  rpcSubscriptions: any
-): Promise<string> {
-  const { value: blockhash } = await rpc.getLatestBlockhash().send();
-  const tx = pipe(
-    createTransactionMessage({ version: 0 }),
-    (tx) => setTransactionMessageFeePayerSigner(payer, tx),
-    (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
-    (tx) => appendTransactionMessageInstructions([instruction], tx)
+function getContestInputsPDA(
+  contest: PublicKey,
+  programId: PublicKey
+): PublicKey {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("contest_inputs"), contest.toBuffer()],
+    programId
   );
-  assertIsTransactionMessageWithinSizeLimit(tx); // Should pass if chunk size is right
-  const signedTx = await signTransactionMessageWithSigners(tx);
-  const sendAndConfirmTransaction = sendAndConfirmTransactionFactory({
-    rpc,
-    rpcSubscriptions,
-  });
-  const signature = await getSignatureFromTransaction(signedTx);
-  console.log(`[Worker]:   Sending Tx... Signature: ${signature}`);
-  await sendAndConfirmTransaction(signedTx, { commitment: "confirmed" });
-  console.log(`[Worker]:   Tx Confirmed!`);
-  return signature;
+  return pda;
+}
+
+function getExecutionRequestPDA(
+  payer: PublicKey,
+  executionId: string
+): PublicKey {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("execution"), payer.toBuffer(), Buffer.from(executionId)],
+    BONSOL_PROGRAM_ID
+  );
+  return pda;
+}
+
+function getDeploymentPDA(): PublicKey {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("deployment"), Buffer.from(keccak_256(ARBITRON_IMAGE_ID))],
+    BONSOL_PROGRAM_ID
+  );
+  return pda;
 }
 
 async function main() {
-  console.log("[Worker]: 🚀 zk-data-prep worker starting...");
+  console.log("[Worker]: 🚀 zk-data-prep worker starting (Anchor version)...");
 
   // Test Redis connection
   try {
@@ -153,7 +122,6 @@ async function main() {
     await redis.ping();
     console.log("[Worker]: ✅ Redis connection successful");
 
-    // Check queue length
     const queueLength = await redis.lLen(END_CONTEST_QUEUE);
     console.log(
       `[Worker]: Current queue "${END_CONTEST_QUEUE}" length: ${queueLength}`
@@ -163,15 +131,27 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("[Worker]: Initializing RPC connections...");
-  const rpc = createSolanaRpc(devnet(RPC_URL));
-  const rpcSubscriptions = createSolanaRpcSubscriptions(devnet(WS_RPC_URL));
+  // Setup Anchor
+  console.log("[Worker]: Initializing Anchor provider...");
+  const connection = new Connection(RPC_URL, "confirmed");
 
   console.log("[Worker]: Loading payer keypair from:", PAYER_KEYPAIR_PATH);
-  const payer = await createKeyPairSignerFromBytes(
+  const payerKeypair = Keypair.fromSecretKey(
     Uint8Array.from(JSON.parse(fs.readFileSync(PAYER_KEYPAIR_PATH, "utf-8")))
   );
-  console.log("[Worker]: Payer wallet loaded:", payer.address);
+  console.log(
+    "[Worker]: Payer wallet loaded:",
+    payerKeypair.publicKey.toString()
+  );
+
+  const wallet = new Wallet(payerKeypair);
+  const provider = new AnchorProvider(connection, wallet, {
+    commitment: "confirmed",
+  });
+  anchor.setProvider(provider);
+
+  const program = new Program(idl as Arbitron, provider);
+  console.log("[Worker]: Program ID:", program.programId.toString());
 
   console.log(`[Worker]: ✅ All systems ready!`);
   console.log(`[Worker]: 👂 Listening on Redis queue: "${END_CONTEST_QUEUE}"`);
@@ -183,11 +163,13 @@ async function main() {
     );
     const contestId = await redis.brPop(END_CONTEST_QUEUE, 0);
     if (!contestId) continue;
+
     console.log(
       `[Worker]: Received contest ID to process: ${contestId.element}`
     );
 
     try {
+      // Fetch contest data
       const contest = await getContestByIdWithParticipantsAndSelectedTokens(
         contestId.element
       );
@@ -197,19 +179,33 @@ async function main() {
         );
         continue;
       }
+
+      // Get unique tokens and fetch prices
       const uniqueSelectedTokens = new Set<string>();
       contest.participants.forEach((p) => {
         p.SelectedTokens.forEach((t) => uniqueSelectedTokens.add(t.mint));
       });
       const finalPricesMap = await getJupiterPrices(uniqueSelectedTokens);
-      const contestPDA = await getContestPDA(
+
+      // Derive PDAs
+      const contestPDA = getContestPDA(
         contest.name,
-        address(contest.host)
+        new PublicKey(contest.host),
+        program.programId
+      );
+      const contestInputsPDA = getContestInputsPDA(
+        contestPDA,
+        program.programId
       );
 
-      // --- 2. Payload Creation ---
+      console.log(`[Worker]: Contest PDA: ${contestPDA.toString()}`);
+      console.log(
+        `[Worker]: Contest Inputs PDA: ${contestInputsPDA.toString()}`
+      );
+
+      // Create payload
       const jobPayload = {
-        contestAddress: contestPDA as string,
+        contestAddress: contestPDA.toString(),
         participants: contest.participants.map((p) => ({
           userPublicKey: p.user.publicKey,
           selectedTokens: p.SelectedTokens.map((t) => ({
@@ -227,41 +223,11 @@ async function main() {
         ),
       };
       const payloadBytes = Buffer.from(JSON.stringify(jobPayload));
-      const tip = 100_000n;
-      const execution_id = randomBytes(16).toString("hex");
-      const contestAddress = address(contestPDA);
-
-      // --- 3. Derive PDAs ---
-      const [contestInputsPda] = await getProgramDerivedAddress({
-        programAddress: ARBITRON_PROGRAM_ADDRESS,
-        seeds: [
-          new TextEncoder().encode("contest_inputs"),
-          getAddressEncoder().encode(contestAddress),
-        ],
-      });
-      const [executionRequestAccountPda] = await getProgramDerivedAddress({
-        programAddress: BONSOL_PROGRAM_ID,
-        seeds: [
-          new TextEncoder().encode("execution"),
-          getAddressEncoder().encode(payer.address),
-          new TextEncoder().encode(execution_id),
-        ],
-      });
-      const [deploymentAccountPda] = await getProgramDerivedAddress({
-        programAddress: BONSOL_PROGRAM_ID,
-        seeds: [
-          new TextEncoder().encode("deployment"),
-          keccak_256(ARBITRON_IMAGE_ID),
-        ],
-      });
-      console.log(`[Worker]: Contest Inputs PDA: ${contestInputsPda}`);
-
-      // --- 4. Send Data in Chunks ---
       console.log(
         `[Worker]: Preparing to send ${payloadBytes.length} bytes of data in chunks...`
       );
 
-      // Send Initial Chunk (using storeContestInputs for init)
+      // --- Send First Chunk (storeContestInputs) ---
       const firstChunk = payloadBytes.subarray(
         0,
         Math.min(MAX_CHUNK_SIZE, payloadBytes.length)
@@ -269,21 +235,22 @@ async function main() {
       console.log(
         `[Worker]: Sending first chunk (${firstChunk.length} bytes)...`
       );
-      const storeIxInput: StoreContestInputsAsyncInput = {
-        contest: contestAddress,
-        contestInputs: address(contestInputsPda),
-        payer: payer,
-        firstChunk: firstChunk,
-      };
-      const storeIx = await getStoreContestInputsInstructionAsync(storeIxInput);
-      await sendAndConfirmSingleInstruction(
-        storeIx,
-        payer,
-        rpc,
-        rpcSubscriptions
-      );
 
-      // Send Remaining Chunks (using appendContestInputs)
+      const storeIx = await program.methods
+        .storeContestInputs(Buffer.from(firstChunk))
+        .accounts({
+          contest: contestPDA,
+          contestInputs: contestInputsPDA,
+          payer: payerKeypair.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+
+      const storeTx = new anchor.web3.Transaction().add(storeIx);
+      const storeSig = await provider.sendAndConfirm(storeTx);
+      console.log(`[Worker]:   Tx Confirmed! Signature: ${storeSig}`);
+
+      // --- Send Remaining Chunks (appendContestInputs) ---
       let offset = firstChunk.length;
       while (offset < payloadBytes.length) {
         const end = Math.min(offset + MAX_CHUNK_SIZE, payloadBytes.length);
@@ -292,52 +259,59 @@ async function main() {
           `[Worker]: Sending chunk at offset ${offset} (${chunk.length} bytes)...`
         );
 
-        const appendIxInput: AppendContestInputsAsyncInput = {
-          contest: contestAddress, // Needed for PDA derivation in instruction builder
-          contestInputs: address(contestInputsPda),
-          payer: payer,
-          offset: offset, // Pass the offset
-          chunk: chunk, // Pass the data chunk
-        };
-        const appendIx = await getAppendContestInputsInstructionAsync(
-          appendIxInput
-        );
-        await sendAndConfirmSingleInstruction(
-          appendIx,
-          payer,
-          rpc,
-          rpcSubscriptions
-        );
+        const appendIx = await program.methods
+          .appendContestInputs(offset, Buffer.from(chunk))
+          .accounts({
+            contest: contestPDA,
+            contestInputs: contestInputsPDA,
+            payer: payerKeypair.publicKey,
+          })
+          .instruction();
+
+        const appendTx = new anchor.web3.Transaction().add(appendIx);
+        const appendSig = await provider.sendAndConfirm(appendTx);
+        console.log(`[Worker]:   Tx Confirmed! Signature: ${appendSig}`);
 
         offset += chunk.length;
       }
       console.log(`[Worker]: ✅ All data chunks sent successfully.`);
 
-      // --- 5. Transaction FINAL: Request Proof ---
+      // --- Request Proof ---
       console.log(`[Worker]: Building final transaction: Request Proof...`);
-      const requestProofInput: RequestEndContestProofAsyncInput = {
-        contest: contestAddress,
-        contestInputs: address(contestInputsPda), // Reference the PDA
-        payer: payer,
-        tip: tip,
-        bonsolProgram: BONSOL_PROGRAM_ID,
-        executionId: execution_id,
-        deploymentAccount: address(deploymentAccountPda),
-        executionRequest: address(executionRequestAccountPda),
-        systemProgram: SYSTEM_PROGRAM_ADDRESS,
-      };
-      const requestProofIx = await getRequestEndContestProofInstructionAsync(
-        requestProofInput
+      const executionId = randomBytes(16).toString("hex");
+
+      const tip = new BN(100_000);
+
+      const executionRequestPDA = getExecutionRequestPDA(
+        payerKeypair.publicKey,
+        executionId
       );
 
-      await sendAndConfirmSingleInstruction(
-        requestProofIx,
-        payer,
-        rpc,
-        rpcSubscriptions
-      );
+      const deploymentPDA = getDeploymentPDA();
+
       console.log(
-        `[Worker]: ✅ Final transaction confirmed! ZK proof requested.`
+        `[Worker]: Execution Request PDA: ${executionRequestPDA.toString()}`
+      );
+      console.log(`[Worker]: Deployment PDA: ${deploymentPDA.toString()}`);
+
+      const requestProofIx = await program.methods
+        .requestEndContestProof(executionId, tip)
+        .accounts({
+          payer: payerKeypair.publicKey,
+          contest: contestPDA,
+          contestInputs: contestInputsPDA,
+          executionRequest: executionRequestPDA,
+          deploymentAccount: deploymentPDA,
+          arbitronProgram: program.programId,
+          bonsolProgram: BONSOL_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+
+      const proofTx = new anchor.web3.Transaction().add(requestProofIx);
+      const proofSig = await provider.sendAndConfirm(proofTx);
+      console.log(
+        `[Worker]: ✅ Final transaction confirmed! Signature: ${proofSig}`
       );
       console.log(
         `[Worker]: Successfully processed contest ${contestId.element}.`
@@ -347,8 +321,15 @@ async function main() {
         `[Worker]: Failed to process contest ${contestId.element}:`,
         error
       );
-      // Optional: Add retry logic or push back to queue if needed
-      // await redis.lPush(END_CONTEST_QUEUE, contestId.element);
+      if (error instanceof anchor.AnchorError) {
+        console.error(
+          `[Worker]: Anchor Error Code: ${error.error.errorCode.code}`
+        );
+        console.error(
+          `[Worker]: Anchor Error Message: ${error.error.errorMessage}`
+        );
+        console.error(`[Worker]: Program Logs:`, error.logs);
+      }
     }
   }
 }

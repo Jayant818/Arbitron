@@ -64,6 +64,9 @@ export type RequestEndContestProofInstruction<
   TAccountContestInputs extends string | AccountMeta<string> = string,
   TAccountExecutionRequest extends string | AccountMeta<string> = string,
   TAccountDeploymentAccount extends string | AccountMeta<string> = string,
+  TAccountArbitronProgram extends
+    | string
+    | AccountMeta<string> = 'GVP9mBCdGTTfiBmMWf1h5pqyXxorFeBmUvBbC7aUiTXS',
   TAccountBonsolProgram extends
     | string
     | AccountMeta<string> = 'BoNsHRcyLLNdtnoDf8hiCNZpyehMC4FDMxs6NTxFi3ew',
@@ -91,6 +94,9 @@ export type RequestEndContestProofInstruction<
       TAccountDeploymentAccount extends string
         ? ReadonlyAccount<TAccountDeploymentAccount>
         : TAccountDeploymentAccount,
+      TAccountArbitronProgram extends string
+        ? ReadonlyAccount<TAccountArbitronProgram>
+        : TAccountArbitronProgram,
       TAccountBonsolProgram extends string
         ? ReadonlyAccount<TAccountBonsolProgram>
         : TAccountBonsolProgram,
@@ -150,6 +156,7 @@ export type RequestEndContestProofAsyncInput<
   TAccountContestInputs extends string = string,
   TAccountExecutionRequest extends string = string,
   TAccountDeploymentAccount extends string = string,
+  TAccountArbitronProgram extends string = string,
   TAccountBonsolProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
@@ -158,6 +165,7 @@ export type RequestEndContestProofAsyncInput<
   contestInputs?: Address<TAccountContestInputs>;
   executionRequest: Address<TAccountExecutionRequest>;
   deploymentAccount: Address<TAccountDeploymentAccount>;
+  arbitronProgram?: Address<TAccountArbitronProgram>;
   bonsolProgram?: Address<TAccountBonsolProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   executionId: RequestEndContestProofInstructionDataArgs['executionId'];
@@ -170,6 +178,7 @@ export async function getRequestEndContestProofInstructionAsync<
   TAccountContestInputs extends string,
   TAccountExecutionRequest extends string,
   TAccountDeploymentAccount extends string,
+  TAccountArbitronProgram extends string,
   TAccountBonsolProgram extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof ARBITRON_PROGRAM_ADDRESS,
@@ -180,6 +189,7 @@ export async function getRequestEndContestProofInstructionAsync<
     TAccountContestInputs,
     TAccountExecutionRequest,
     TAccountDeploymentAccount,
+    TAccountArbitronProgram,
     TAccountBonsolProgram,
     TAccountSystemProgram
   >,
@@ -192,6 +202,7 @@ export async function getRequestEndContestProofInstructionAsync<
     TAccountContestInputs,
     TAccountExecutionRequest,
     TAccountDeploymentAccount,
+    TAccountArbitronProgram,
     TAccountBonsolProgram,
     TAccountSystemProgram
   >
@@ -210,6 +221,10 @@ export async function getRequestEndContestProofInstructionAsync<
     },
     deploymentAccount: {
       value: input.deploymentAccount ?? null,
+      isWritable: false,
+    },
+    arbitronProgram: {
+      value: input.arbitronProgram ?? null,
       isWritable: false,
     },
     bonsolProgram: { value: input.bonsolProgram ?? null, isWritable: false },
@@ -237,6 +252,10 @@ export async function getRequestEndContestProofInstructionAsync<
       ],
     });
   }
+  if (!accounts.arbitronProgram.value) {
+    accounts.arbitronProgram.value =
+      'GVP9mBCdGTTfiBmMWf1h5pqyXxorFeBmUvBbC7aUiTXS' as Address<'GVP9mBCdGTTfiBmMWf1h5pqyXxorFeBmUvBbC7aUiTXS'>;
+  }
   if (!accounts.bonsolProgram.value) {
     accounts.bonsolProgram.value =
       'BoNsHRcyLLNdtnoDf8hiCNZpyehMC4FDMxs6NTxFi3ew' as Address<'BoNsHRcyLLNdtnoDf8hiCNZpyehMC4FDMxs6NTxFi3ew'>;
@@ -254,6 +273,7 @@ export async function getRequestEndContestProofInstructionAsync<
       getAccountMeta(accounts.contestInputs),
       getAccountMeta(accounts.executionRequest),
       getAccountMeta(accounts.deploymentAccount),
+      getAccountMeta(accounts.arbitronProgram),
       getAccountMeta(accounts.bonsolProgram),
       getAccountMeta(accounts.systemProgram),
     ],
@@ -268,6 +288,7 @@ export async function getRequestEndContestProofInstructionAsync<
     TAccountContestInputs,
     TAccountExecutionRequest,
     TAccountDeploymentAccount,
+    TAccountArbitronProgram,
     TAccountBonsolProgram,
     TAccountSystemProgram
   >);
@@ -279,6 +300,7 @@ export type RequestEndContestProofInput<
   TAccountContestInputs extends string = string,
   TAccountExecutionRequest extends string = string,
   TAccountDeploymentAccount extends string = string,
+  TAccountArbitronProgram extends string = string,
   TAccountBonsolProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
@@ -287,6 +309,7 @@ export type RequestEndContestProofInput<
   contestInputs: Address<TAccountContestInputs>;
   executionRequest: Address<TAccountExecutionRequest>;
   deploymentAccount: Address<TAccountDeploymentAccount>;
+  arbitronProgram?: Address<TAccountArbitronProgram>;
   bonsolProgram?: Address<TAccountBonsolProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   executionId: RequestEndContestProofInstructionDataArgs['executionId'];
@@ -299,6 +322,7 @@ export function getRequestEndContestProofInstruction<
   TAccountContestInputs extends string,
   TAccountExecutionRequest extends string,
   TAccountDeploymentAccount extends string,
+  TAccountArbitronProgram extends string,
   TAccountBonsolProgram extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof ARBITRON_PROGRAM_ADDRESS,
@@ -309,6 +333,7 @@ export function getRequestEndContestProofInstruction<
     TAccountContestInputs,
     TAccountExecutionRequest,
     TAccountDeploymentAccount,
+    TAccountArbitronProgram,
     TAccountBonsolProgram,
     TAccountSystemProgram
   >,
@@ -320,6 +345,7 @@ export function getRequestEndContestProofInstruction<
   TAccountContestInputs,
   TAccountExecutionRequest,
   TAccountDeploymentAccount,
+  TAccountArbitronProgram,
   TAccountBonsolProgram,
   TAccountSystemProgram
 > {
@@ -339,6 +365,10 @@ export function getRequestEndContestProofInstruction<
       value: input.deploymentAccount ?? null,
       isWritable: false,
     },
+    arbitronProgram: {
+      value: input.arbitronProgram ?? null,
+      isWritable: false,
+    },
     bonsolProgram: { value: input.bonsolProgram ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
@@ -351,6 +381,10 @@ export function getRequestEndContestProofInstruction<
   const args = { ...input };
 
   // Resolve default values.
+  if (!accounts.arbitronProgram.value) {
+    accounts.arbitronProgram.value =
+      'GVP9mBCdGTTfiBmMWf1h5pqyXxorFeBmUvBbC7aUiTXS' as Address<'GVP9mBCdGTTfiBmMWf1h5pqyXxorFeBmUvBbC7aUiTXS'>;
+  }
   if (!accounts.bonsolProgram.value) {
     accounts.bonsolProgram.value =
       'BoNsHRcyLLNdtnoDf8hiCNZpyehMC4FDMxs6NTxFi3ew' as Address<'BoNsHRcyLLNdtnoDf8hiCNZpyehMC4FDMxs6NTxFi3ew'>;
@@ -368,6 +402,7 @@ export function getRequestEndContestProofInstruction<
       getAccountMeta(accounts.contestInputs),
       getAccountMeta(accounts.executionRequest),
       getAccountMeta(accounts.deploymentAccount),
+      getAccountMeta(accounts.arbitronProgram),
       getAccountMeta(accounts.bonsolProgram),
       getAccountMeta(accounts.systemProgram),
     ],
@@ -382,6 +417,7 @@ export function getRequestEndContestProofInstruction<
     TAccountContestInputs,
     TAccountExecutionRequest,
     TAccountDeploymentAccount,
+    TAccountArbitronProgram,
     TAccountBonsolProgram,
     TAccountSystemProgram
   >);
@@ -398,8 +434,9 @@ export type ParsedRequestEndContestProofInstruction<
     contestInputs: TAccountMetas[2];
     executionRequest: TAccountMetas[3];
     deploymentAccount: TAccountMetas[4];
-    bonsolProgram: TAccountMetas[5];
-    systemProgram: TAccountMetas[6];
+    arbitronProgram: TAccountMetas[5];
+    bonsolProgram: TAccountMetas[6];
+    systemProgram: TAccountMetas[7];
   };
   data: RequestEndContestProofInstructionData;
 };
@@ -412,7 +449,7 @@ export function parseRequestEndContestProofInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>
 ): ParsedRequestEndContestProofInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 7) {
+  if (instruction.accounts.length < 8) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -430,6 +467,7 @@ export function parseRequestEndContestProofInstruction<
       contestInputs: getNextAccount(),
       executionRequest: getNextAccount(),
       deploymentAccount: getNextAccount(),
+      arbitronProgram: getNextAccount(),
       bonsolProgram: getNextAccount(),
       systemProgram: getNextAccount(),
     },
