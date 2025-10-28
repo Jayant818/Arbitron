@@ -160,7 +160,8 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
 
     const calculateTimeLeft = () => {
       const now = Date.now();
-      const startTime = new Date(contestDetails.startTime).getTime();
+      // startTime is in Unix seconds, convert to milliseconds
+      const startTime = contestDetails.startTime * 1000;
       const endTime = startTime + (contestDetails.duration * 1000); // duration is in seconds
       const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
       setTimeLeft(remaining);
@@ -257,7 +258,6 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                 <Clock className="h-4 w-4" />
-                { JSON.stringify(contestDetails)}
                 <span>Duration</span>
               </div>
               <div className="text-2xl font-bold text-foreground">
@@ -283,7 +283,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
               </Badge>
             </div>
             <p className="text-muted-foreground">
-              Started {new Date(contestDetails.startTime).toLocaleString()}
+              Started {new Date(contestDetails.startTime * 1000).toLocaleString()}
             </p>
           </div>
 

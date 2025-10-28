@@ -15,6 +15,7 @@ import {
   createContest,
   getParticipantsByContestId,
   updateContestStatus,
+  getContestById,
 } from "@arbitron/db";
 import { ContestStatus } from "@prisma/client";
 
@@ -31,7 +32,7 @@ ContestRouter.post("/", async (req, res) => {
     const newContest = await createContest({
       ...contestData,
       entryFee: BigInt(contestData.entryFee),
-      scheduledStartTime: new Date(contestData.startTime),
+      scheduledStartTime: new Date(contestData.scheduledStartTime),
     });
 
     // Convert BigInt to string for JSON serialization
@@ -102,7 +103,13 @@ ContestRouter.get("/all", async (req, res) => {
 ContestRouter.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Fetch on-chain contest data
     const contest = await fetchContest(rpc, address(id));
+
+    // Fetch DB data to get scheduledStartTime
+    const dbContest = await getContestById(id);
+
     const contestResult = {
       id: contest.address,
       title: contest.data.name,
@@ -112,7 +119,10 @@ ContestRouter.get("/:id", async (req, res) => {
       duration: Number(contest.data.duration),
       status: contest.data.status,
       host: contest.data.host,
-      startTime: Number(contest.data.startTime),
+      startTime: Number(contest.data.startTime), // Actual start time from on-chain (when crank started it)
+      scheduledStartTime: dbContest?.scheduledStartTime
+        ? Math.floor(dbContest.scheduledStartTime.getTime() / 1000)
+        : null, // Scheduled start time from DB (when contest should start)
       prizePoolAccount: contest.data.prizePoolVaultUsdc,
       decimals: 6,
     };
@@ -154,6 +164,12 @@ ContestRouter.put("/:id/status", async (req, res) => {
     }
 
     const updatedContest = await updateContestStatus(id, status);
+
+    if (!updatedContest) {
+      return res
+        .status(404)
+        .json({ message: "Contest not found or status update failed" });
+    }
 
     const response = {
       ...updatedContest,

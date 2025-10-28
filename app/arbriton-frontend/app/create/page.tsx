@@ -163,7 +163,7 @@ function ContestForm() {
           host: selectedAccount!.address,
           entryFee: entryFee.toString(), // Convert BigInt to string for JSON
           maxParticipants: maxParticipants[0],
-          startTime: new Date(startTimeUnix * 1000), // Convert Unix timestamp to Date object
+          scheduledStartTime: new Date(startTimeUnix * 1000), // Scheduled start time (when contest should start)
           duration: Number(duration),
           decimals: 6, // Or get this dynamically if needed
       };

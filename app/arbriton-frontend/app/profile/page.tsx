@@ -254,15 +254,13 @@ export default function ProfilePage() {
                                         {recentContests.map((contest: Contest, i: number) => (
                                             <div
                                                 key={contest.id}
-                                                className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary transition-smooth animate-slide-up"
+                                                className={`flex items-center justify-between p-4 rounded-lg ${contest.status === 'Won' ? 'bg-success/10' : 'bg-secondary/30'} hover:bg-secondary transition-smooth animate-slide-up`}
                                                 style={{ animationDelay: `${i * 100}ms` }}
                                             >
                                                 <div className="flex items-center gap-4">
                                                     <div
-                                                        className={`flex items-center justify-center w-10 h-10 rounded-full font-bold ${contest.rank <= 3 ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
-                                                            }`}
-                                                    >
-                                                        #{contest.rank}
+                                                        className={`flex items-center justify-center w-10 h-10 rounded-full font-bold ${contest.status === 'Won' ? 'bg-success text-success-foreground' : 'bg-muted text-foreground'}`}>
+                                                        {contest.status === 'Won' ? <Trophy className="h-5 w-5" /> : <Award className="h-5 w-5" />}
                                                     </div>
                                                     <div>
                                                         <div className="font-medium text-foreground">{contest.name}</div>
@@ -270,8 +268,8 @@ export default function ProfilePage() {
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <Badge variant="outline" className="border-success/50 bg-success/10 text-success mb-1">
-                                                        +{contest.pnl}%
+                                                    <Badge variant="outline" className={`${contest.status === 'Won' ? 'border-success/50 bg-success/10 text-success' : 'border-destructive/50 bg-destructive/10 text-destructive'} mb-1`}>
+                                                        {contest.status}
                                                     </Badge>
                                                     {contest.prize > 0 && (
                                                         <div className="text-sm font-semibold text-primary">{contest.prize} SOL</div>

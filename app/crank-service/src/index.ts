@@ -186,7 +186,7 @@ async function main() {
 
   // --- Cron Job to Queue ENDED Contests ---
   // Runs every minute (as in your snippet)
-  cron.schedule("* * * * *", async () => {
+  cron.schedule("* * * * * *", async () => {
     console.log("[Crank - End]: Checking for contests to end...");
     let contestsToEnd: Awaited<
       ReturnType<typeof getAllOngoingContestsWhoseEndTimeIsDue>

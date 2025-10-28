@@ -111,6 +111,25 @@ async function getContestPDA(
 async function main() {
   console.log("[Worker]: zk-tx-submitter worker started...");
 
+  console.log("[Worker]: zk-tx-submitter worker started...");
+
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+  console.log("[Worker]: zk-tx-submitter worker started...");
+
   while (true) {
     const contestId = await redis.brPop(END_CONTEST_QUEUE, 0);
 

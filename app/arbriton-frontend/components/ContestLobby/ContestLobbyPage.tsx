@@ -137,7 +137,8 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
     const calculateTimeLeft = () => {
       if (!contestDetails) return 0;
       const now = Math.floor(Date.now() / 1000);
-      const timeLeft = contestDetails.startTime - now;
+      // Use scheduledStartTime for countdown in lobby (when contest should start)
+      const timeLeft = contestDetails.scheduledStartTime - now;
       return Math.max(0, timeLeft);
     };
   

@@ -12,7 +12,8 @@ export interface IContest {
   prizePoolAccount: string;
   status: number;
   title: string;
-  startTime: number;
+  scheduledStartTime: number; // When contest is scheduled to start (set at creation, from DB)
+  startTime: number; // Actual start time in Unix timestamp (set by crank when contest starts on-chain)
 }
 
 export interface ICreateContest {
@@ -21,7 +22,7 @@ export interface ICreateContest {
   host: string;
   entryFee: string; // BigInt to string for JSON
   maxParticipants: number;
-  startTime: Date;
+  scheduledStartTime: Date; // When contest should start
   duration: number;
   decimals: number;
 }
@@ -75,15 +76,18 @@ export const getAllParticipantsForContest = async (contestId: string) => {
   }
 };
 
-export const updateContestStatus = async (contestId: string, status: string) => {
-    try {
-      const res = await axios.put(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/contest/${contestId}/status`,
-        { status }
-      );
-      return res.data;
-    } catch (error: any) {
-      console.error("Error updating contest status:", error);
-      throw new APIError("Failed to update contest status", 500, error);
-    }
-  };
+export const updateContestStatus = async (
+  contestId: string,
+  status: string
+) => {
+  try {
+    const res = await axios.put(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/contest/${contestId}/status`,
+      { status }
+    );
+    return res.data;
+  } catch (error: any) {
+    console.error("Error updating contest status:", error);
+    throw new APIError("Failed to update contest status", 500, error);
+  }
+};

@@ -68,6 +68,7 @@ export const findOrCreateUser = async (publicKey: string) => {
       let contestRank = null;
       let pnl = 0;
       let prize = 0;
+      let status = "Lost";
 
       if (onChainContest.exists && onChainContest.data.winner) {
         if (onChainContest.data.winner.toString() === user.publicKey) {
@@ -75,6 +76,9 @@ export const findOrCreateUser = async (publicKey: string) => {
           totalEarnings += Number(onChainContest.data.prizePool);
           contestRank = 1;
           prize = Number(onChainContest.data.prizePool);
+          status = "Won";
+        } else {
+          contestRank = 2; // Placeholder for loser
         }
       }
 
@@ -87,6 +91,7 @@ export const findOrCreateUser = async (publicKey: string) => {
         rank: contestRank,
         pnl,
         prize,
+        status,
       };
     }));
 
