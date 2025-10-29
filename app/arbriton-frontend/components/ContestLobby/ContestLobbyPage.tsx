@@ -65,9 +65,6 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
     const { id: contestId } = useParams();
     const router = useRouter();
     const { selectedAccount,chain,rpc } = useSolana();
-    const [currentQuiz, setCurrentQuiz] = useState(0)
-    const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
-    const [score, setScore] = useState(0)
     const [isStarting, setIsStarting] = useState(false);
     const [randomFact, setRandomFact] = useState("");
      
@@ -278,7 +275,7 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-6">
-              <Card className="border-primary/50 bg-gradient-to-br from-primary/10 to-accent/10 overflow-hidden relative">
+              <Card className=" bg-background overflow-hidden relative">
                 {/* Morphing SVG background */}
                 {/* <svg className="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
                   <defs>
@@ -389,7 +386,7 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
               </Card> */}
   
               {/* Solana Fun Fact */}
-              <Card className="border-primary/20 bg-gradient-to-br from-primary/10 via-accent/10 to-background relative overflow-hidden">
+              <Card className="border-primary/20 bg-gradient-to-br from-primary/10 via-accent/10 to-background relative overflow-hidden gap-1!">
                 {/* Decorative background elements */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl" />
@@ -404,7 +401,7 @@ export default function ContestLobbyPage({ accountAddress }: { accountAddress:  
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="relative">
-                  <div className="flex items-center justify-center min-h-[120px] px-6 py-4">
+                  <div className="flex items-center justify-center min-h-[100px] px-6 ">
                     <div className="relative">
                       {/* Decorative quote marks */}
                       <div className="absolute -top-4 -left-4 text-5xl text-primary/10 font-serif leading-none">"</div>

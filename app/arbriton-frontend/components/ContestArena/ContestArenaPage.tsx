@@ -902,11 +902,6 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
               </>
             )}
             
-            <div className="text-center text-xs text-muted-foreground">
-              {isWinner 
-                ? "Thank you for participating! 🎊"
-                : "Better luck next time! Join another contest to improve your skills."}
-            </div>
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2">

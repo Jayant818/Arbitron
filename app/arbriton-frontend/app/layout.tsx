@@ -30,8 +30,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`font-sans ${spaceGrotesk.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en" className="dark bg-background">
+      <body className={`font-sans ${spaceGrotesk.variable} ${geistMono.variable} antialiased bg-background min-h-screen`}>
         <Suspense fallback={null}>
           <AppProvider>
             <Navbar/>

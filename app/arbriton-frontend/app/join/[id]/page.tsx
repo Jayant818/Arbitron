@@ -1325,78 +1325,78 @@ function JoinContestPage() {
 
                 {/* Rules */}
                 <div className="space-y-3">
-                  <div className="text-sm font-semibold text-foreground">
+                  <div className="text-sm font-semibold text-white">
                     Selection Rules
                   </div>
-                  <div className="space-y-2 text-xs text-muted-foreground">
+                  <div className="space-y-2 text-xs text-white">
                     <div className="flex items-start gap-2">
-                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0"></div>
+                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-white flex-shrink-0"></div>
                       <span>
                         You need to reach at least{" "}
-                        <span className="font-semibold text-primary">
-                          50% of the entry fee
+                        <span className="font-semibold ">
+                          20% of the entry fee
                         </span>{" "}
                         to join
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-amber-400 flex-shrink-0"></div>
+                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-white flex-shrink-0"></div>
                       <span>
                         Select one{" "}
-                        <span className="font-semibold text-amber-400">
+                        <span className="font-semibold ">
                           Power Token (⚡)
                         </span>{" "}
                         - its P&L will be tracked at{" "}
-                        <span className="font-semibold text-amber-400">
+                        <span className="font-semibold ">
                           2x during the contest
                         </span>
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-orange-400 flex-shrink-0"></div>
+                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg- flex-shrink-0"></div>
                       <span>
                         Maximum{" "}
-                        <span className="font-semibold text-orange-400">
+                        <span className="font-semibold ">
                           1 Native
                         </span>{" "}
                         token (ETH, SOL, BNB, etc.)
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-blue-400 flex-shrink-0"></div>
+                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-white flex-shrink-0"></div>
                       <span>
                         Maximum{" "}
-                        <span className="font-semibold text-blue-400">
+                        <span className="font-semibold ">
                           2 Stable
                         </span>{" "}
                         tokens total (USDC, USDC, DAI, etc.)
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-purple-400 flex-shrink-0"></div>
+                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-white flex-shrink-0"></div>
                       <span>
                         Unlimited{" "}
-                        <span className="font-semibold text-purple-400">
+                        <span className="font-semibold ">
                           Meme
                         </span>{" "}
                         tokens (DOGE, SHIB, PEPE, etc.)
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-green-400 flex-shrink-0"></div>
+                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-white flex-shrink-0"></div>
                       <span>
                         Unlimited{" "}
-                        <span className="font-semibold text-green-400">
+                        <span className="font-semibold ">
                           Alt
                         </span>{" "}
                         tokens (other tokens)
                       </span>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0"></div>
+                    <div className="flex items-start gap-2"> 
+                      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-white flex-shrink-0"></div>
                       <span>
                         Each token can be selected up to{" "}
-                        <span className="font-semibold text-accent">
+                        <span className="font-semibold ">
                           3 times
                         </span>
                       </span>
