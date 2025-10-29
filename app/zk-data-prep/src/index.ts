@@ -32,6 +32,8 @@ interface IPriceUpdate {
   blockId: number;
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function getJupiterPrices(
   tokenMints: Set<string>
 ): Promise<Map<string, bigint>> {
@@ -205,7 +207,6 @@ async function main() {
 
       // Create payload
       const jobPayload = {
-        // contestAddress: contestPDA.toString(),
         participants: contest.participants.map((p) => ({
           userPublicKey: p.user.publicKey,
           selectedTokens: p.SelectedTokens.map((t) => ({
@@ -275,6 +276,12 @@ async function main() {
         offset += chunk.length;
       }
       console.log(`[Worker]: ✅ All data chunks sent successfully.`);
+
+      // --- ADD THIS DELAY ---
+      console.log(`[Worker]: Waiting 10 seconds for RPC nodes to sync...`);
+      await sleep(10000); // 10-second delay
+      console.log(`[Worker]: Resuming proof request.`);
+      // --- END OF ADDED DELAY ---
 
       // --- Request Proof ---
       console.log(`[Worker]: Building final transaction: Request Proof...`);

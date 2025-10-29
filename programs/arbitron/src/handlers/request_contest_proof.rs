@@ -86,7 +86,7 @@ pub fn request_end_contest_proof(context:Context<RequestEndContestProof>,executi
         IMAGE_ID, // Your Arbitron PNL ZK Guest Image ID
         &execution_id,
         // Pass the actual data from contest_inputs account
-        vec![InputRef::public(contest_inputs_data)],
+        vec![InputRef::public_account(context.accounts.contest_inputs.key().as_ref())],
         tip,
         slot + 100000000, 
         ExecutionConfig {
