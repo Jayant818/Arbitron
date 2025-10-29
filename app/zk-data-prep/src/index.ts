@@ -205,7 +205,7 @@ async function main() {
 
       // Create payload
       const jobPayload = {
-        contestAddress: contestPDA.toString(),
+        // contestAddress: contestPDA.toString(),
         participants: contest.participants.map((p) => ({
           userPublicKey: p.user.publicKey,
           selectedTokens: p.SelectedTokens.map((t) => ({

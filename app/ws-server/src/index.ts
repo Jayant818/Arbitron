@@ -2,7 +2,7 @@ import { WebSocketServer } from "ws";
 import { PlayerManager } from "./PlayerManager.js";
 import { SubscriptionManager } from "./SubscriptionManager.js";
 
-const wss = new WebSocketServer({ port: 8080 });
+const wss = new WebSocketServer({ port: 8081 });
 
 // Initialize the Redis subscriber for price updates
 SubscriptionManager.getInstance().initPriceSubscriber();
@@ -13,4 +13,4 @@ wss.on("connection", (ws) => {
   PlayerManager.getInstance().addUser(ws);
 });
 
-console.log("WebSocket server started on port 8080");
+console.log("WebSocket server started on port 8081");
