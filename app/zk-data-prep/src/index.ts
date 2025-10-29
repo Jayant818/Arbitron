@@ -19,7 +19,7 @@ const BONSOL_PROGRAM_ID = new PublicKey(
   "BoNsHRcyLLNdtnoDf8hiCNZpyehMC4FDMxs6NTxFi3ew"
 );
 const ARBITRON_IMAGE_ID =
-  "c3a3dc0e28f164c1925013f2e35e2daecc6c38762a5080f47956050117462ce8";
+  "679cc01fe324f755ed1df22e46df03ed84f40101c46e9cd452ec306b88951749";
 const RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8899";
 const PAYER_KEYPAIR_PATH =
   process.env.PAYER_KEYPAIR_PATH || "./host-arbitron-wallet.json";

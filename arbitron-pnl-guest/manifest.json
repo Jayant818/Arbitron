@@ -1,10 +1,10 @@
 {
   "name": "arbitron-pnl-guest",
   "binaryPath": "/home/jayant/Desktop/Projects/arbitron/arbitron-pnl-guest/target/riscv32im-risc0-zkvm-elf/docker/arbitron-pnl-guest.bin",
-  "imageId": "c3a3dc0e28f164c1925013f2e35e2daecc6c38762a5080f47956050117462ce8",
+  "imageId": "679cc01fe324f755ed1df22e46df03ed84f40101c46e9cd452ec306b88951749",
   "inputOrder": [
     "Public"
   ],
-  "signature": "4Tpqaytqqf5REsqUnVMe3cxDk8Lz5bVaSne9P4K4oCRzYabR19gdHK9SCNPziL39WkdiRmBAx8dERCor4qwzXQwM",
-  "size": 234988
+  "signature": "53mzHXBErTc5sx67eiFzYGkySX1cUF7WQm79wgij8vL8GvP3MTzrcr8yQAKizAsqvjmvNiZRRnmhSvj5jjJjtPrP",
+  "size": 336752
 }

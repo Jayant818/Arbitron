@@ -7,10 +7,24 @@ import { Button } from "@/components/ui/button"
 import { TrendingUp, Zap, Shield, Trophy, Sparkles } from "lucide-react"
 import { useGetAllContestsQuery } from "@/hooks/api-hooks/useContestQuery"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function HomePage() {
 
   const { data: contests, isLoading: isLoadingContests } = useGetAllContestsQuery();
+
+  const router = useRouter();
+
+  const handleBrowseContestsClick = () => {
+    router.push("/contests");
+  }
+
+  const handleHowItWorksClick = () => {
+    const bentoSection = document.getElementById("how-it-works");
+    if (bentoSection) {
+      bentoSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -35,7 +49,8 @@ export default function HomePage() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <Button
-                size="lg"
+              size="lg"
+              onClick={handleBrowseContestsClick}
                 className="group relative overflow-hidden cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 transition-smooth px-8 py-6 text-lg font-semibold "
               >
                 <span className="relative z-10 flex items-center gap-2">
@@ -47,6 +62,7 @@ export default function HomePage() {
               <Button
                 size="lg"
                 variant="outline"
+                onClick={handleHowItWorksClick}
                 className="glass glass-hover cursor-pointer transition-smooth px-8 py-6 text-lg font-semibold text-white bg-transparent"
               >
                 How It Works
@@ -83,7 +99,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-24 px-4 md:px-8 lg:px-32">
+      <section id="how-it-works" className="py-24 px-4 md:px-8 lg:px-32 scroll-mt-20">
         <div className="container mx-auto">
           <div className="grid gap-8 grid-cols-1 md:grid-cols-2">
             {/* Row 1: Problem & Vision */}

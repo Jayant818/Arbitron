@@ -130,7 +130,7 @@ fn main() {
     env::log(&format!("Extracting JSON from bytes {} to {}", json_start, json_end));
     
     // Deserialize JSON to ContestInputs
-    let inputs: ContestInputs = match serde_json::from_slice(json_data) {
+    let inputs: ContestInputs = match serde_json::from_slice::<ContestInputs>(json_data) {
         Ok(data) => {
             env::log(&format!("✅ Successfully parsed {} participants", data.participants.len()));
             data
