@@ -92,7 +92,7 @@ pub fn request_end_contest_proof(context:Context<RequestEndContestProof>,executi
         None,
         vec![Pubkey::from_str("66ipxbdjkKizkwcPdNjCrkZKj72kU7fm8DRRVgAGfeQu").unwrap()], // Or your required oracle/signer accounts
     )
-    .map_err(|_| ErrorCode::CantCallExecute)?; // Add CantCallExecute to your ErrorCode
+    .map_err(|_| ErrorCode::CantCallExecute)?;
 
     // Bonsol's execute_v1 instruction needs these accounts in order:
     // 1. payer (signer, writable)

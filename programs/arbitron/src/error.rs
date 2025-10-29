@@ -108,5 +108,11 @@ pub enum ErrorCode {
     OffsetOutOfRange,
 
     #[msg("Bonsol Callback called unintensionally")]
-    CallbackCalledUnintensionally
+    CallbackCalledUnintensionally,
+
+    #[msg("Invalid callback owner - must be Bonsol program")]
+    InvalidCallbackOwner,
+
+    #[msg("Proof request already pending")]
+    ProofRequestPending,
 }
