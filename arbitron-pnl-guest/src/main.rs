@@ -13,7 +13,8 @@ pub struct Token {
     #[serde(rename = "isPowerToken")]
     pub is_power_token: bool,
     
-    pub quantity: u8,  // JSON sends u8 quantity
+    #[serde(deserialize_with = "deserialize_u64_from_string")]
+    pub quantity: u64,  // Changed from u8 to u64 to match on-chain program
     
     #[serde(rename = "entryPrice")]
     #[serde(deserialize_with = "deserialize_u64_from_string")]
@@ -86,7 +87,9 @@ pub struct _WinnerDetails {
 fn main() {
     // Read raw input data from Bonsol
     // When InputRef::public(account_key) is used, Bonsol reads the account data
-    let input_data: Vec<u8> = env::read();
+    let mut input_data = Vec::<u8>::new();
+    env::read_slice(&mut input_data);
+
     
     env::log("=== DEBUG: Raw Input Analysis ===");
     env::log(&format!("Total input length: {} bytes", input_data.len()));

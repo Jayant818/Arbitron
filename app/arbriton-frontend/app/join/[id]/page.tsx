@@ -1128,39 +1128,39 @@ function JoinContestPage() {
                         const counts = getCategoryCounts(selectedTokens);
                         return (
                           <>
-                            <div className="flex items-center justify-between rounded-md border border-orange-500/30 bg-orange-500/5 px-2 py-1">
-                              <span className="text-orange-400">Native</span>
+                            <div className="flex items-center justify-between rounded-md border border-orange-500/30  px-2 py-1">
+                              <span className="">Native</span>
                               <span
                                 className={`font-bold ${
                                   counts.native > 1
                                     ? "text-destructive"
-                                    : "text-orange-400"
+                                    : "text-white"
                                 }`}
                               >
                                 {counts.native}/1
                               </span>
                             </div>
-                            <div className="flex items-center justify-between rounded-md border border-blue-500/30 bg-blue-500/5 px-2 py-1">
-                              <span className="text-blue-400">Stable</span>
+                            <div className="flex items-center justify-between rounded-md border border-blue-500/30  px-2 py-1">
+                              <span className="">Stable</span>
                               <span
                                 className={`font-bold ${
                                   counts.stable > 2
                                     ? "text-destructive"
-                                    : "text-blue-400"
+                                    : "text-white"
                                 }`}
                               >
                                 {counts.stable}/2
                               </span>
                             </div>
-                            <div className="flex items-center justify-between rounded-md border border-purple-500/30 bg-purple-500/5 px-2 py-1">
-                              <span className="text-purple-400">Meme</span>
-                              <span className="font-bold text-purple-400">
+                            <div className="flex items-center justify-between rounded-md border border-purple-500/30  px-2 py-1">
+                              <span className="">Meme</span>
+                              <span className="font-bold ">
                                 {counts.meme}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between rounded-md border border-green-500/30 bg-green-500/5 px-2 py-1">
-                              <span className="text-green-400">Alt</span>
-                              <span className="font-bold text-green-400">
+                            <div className="flex items-center justify-between rounded-md border border-green-500/30  px-2 py-1">
+                              <span className="">Alt</span>
+                              <span className="font-bold ">
                                 {counts.alt}
                               </span>
                             </div>
@@ -1188,12 +1188,12 @@ function JoinContestPage() {
 
                     {/* Power Token Info */}
                     {!powerTokenId && (
-                      <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2">
-                        <span className="text-amber-400 text-sm">⚡</span>
-                        <div className="text-xs text-amber-400/80">
+                      <div className="flex items-start gap-2 rounded-lg border border-amber-500/30  p-2">
+                        <span className=" text-sm">⚡</span>
+                        <div className="text-xs ">
                           Click ⚡ to set a Power Token - its P&L will be
                           tracked at{" "}
-                          <span className="font-semibold text-amber-400">
+                          <span className="font-semibold ">
                             2x during the contest
                           </span>
                           !
@@ -1203,13 +1203,13 @@ function JoinContestPage() {
 
                     {/* Warning when budget threshold met but no power token */}
                     {!powerTokenId && budgetUsed >= MINIMUM_THRESHOLD && (
-                      <div className="flex items-start gap-2 rounded-lg border border-amber-500 bg-amber-500/20 p-3 animate-pulse">
+                      <div className="flex items-start gap-2 rounded-lg border  border-amber-500/30 p-3 ">
                         <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
                         <div>
-                          <div className="text-sm font-semibold text-amber-400">
+                          <div className="text-sm font-semibold ">
                             Power Token Required!
                           </div>
-                          <div className="text-xs text-amber-400/90 mt-1">
+                          <div className="text-xs  mt-1">
                             You must select a Power Token (⚡) before joining the contest.
                             Click the ⚡ button next to any token below.
                           </div>

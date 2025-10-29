@@ -61,7 +61,7 @@ const BONSOL_PROGRAM_ID = address(
   "BoNsHRcyLLNdtnoDf8hiCNZpyehMC4FDMxs6NTxFi3ew"
 );
 const ARBITRON_IMAGE_ID =
-  "679cc01fe324f755ed1df22e46df03ed84f40101c46e9cd452ec306b88951749";
+  "99335b36ecc5af75e07959a6cee135735aa21cd77ade7bfbd78779f5ae0af05a";
 const RPC_URL =
   "https://devnet.helius-rpc.com/?api-key=a6b64cf0-fa26-47ba-82a9-b876ec658ac9";
 const WS_RPC_URL =

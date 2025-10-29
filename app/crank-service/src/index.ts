@@ -106,7 +106,7 @@ async function main() {
   console.log(`[Crank]: Crank wallet loaded: ${crankSigner.address}`);
 
   // --- Cron Job to START Contests ---
-  cron.schedule("* * * * * *", async () => {
+  cron.schedule("*/2 * * * * *", async () => {
     // console.log("[Crank - Start]: Checking for contests to start...");
     let contests: ContestWithParticipantsCount[] = [];
     try {

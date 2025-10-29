@@ -1,0 +1,61 @@
+.puzzle-loader {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  animation: puzzle-spin 2s linear infinite;
+}
+.puzzle-piece {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-color: #4f46e5;
+  border: 2px solid #fff;
+}
+.puzzle-piece:nth-child(1) {
+  top: 0;
+  left: 0;
+  animation: piece-1 2s ease-in-out infinite;
+}
+.puzzle-piece:nth-child(2) {
+  top: 0;
+  right: 0;
+  animation: piece-2 2s ease-in-out infinite;
+}
+.puzzle-piece:nth-child(3) {
+  bottom: 0;
+  left: 0;
+  animation: piece-3 2s ease-in-out infinite;
+}
+.puzzle-piece:nth-child(4) {
+  bottom: 0;
+  right: 0;
+  animation: piece-4 2s ease-in-out infinite;
+}
+@keyframes puzzle-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes piece-1 {
+  0%, 100% { top: 0; left: 0; }
+  25% { top: 0; left: 40px; }
+  50% { top: 40px; left: 40px; }
+  75% { top: 40px; left: 0; }
+}
+@keyframes piece-2 {
+  0%, 100% { top: 0; right: 0; }
+  25% { top: 40px; right: 0; }
+  50% { top: 40px; right: 40px; }
+  75% { top: 0; right: 40px; }
+}
+@keyframes piece-3 {
+  0%, 100% { bottom: 0; left: 0; }
+  25% { bottom: 40px; left: 0; }
+  50% { bottom: 40px; left: 40px; }
+  75% { bottom: 0; left: 40px; }
+}
+@keyframes piece-4 {
+  0%, 100% { bottom: 0; right: 0; }
+  25% { bottom: 0; right: 40px; }
+  50% { bottom: 40px; right: 40px; }
+  75% { bottom: 40px; right: 0; }
+}

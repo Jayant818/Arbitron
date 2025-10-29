@@ -84,11 +84,20 @@ export const ARBITRON_ERROR__INPUT_DATA_TOO_LARGE = 0x1790; // 6032
 export const ARBITRON_ERROR__CANT_CALL_EXECUTE = 0x1791; // 6033
 /** OffsetOutOfRange: Offset is out of range */
 export const ARBITRON_ERROR__OFFSET_OUT_OF_RANGE = 0x1792; // 6034
+/** CallbackCalledUnintensionally: Bonsol Callback called unintensionally */
+export const ARBITRON_ERROR__CALLBACK_CALLED_UNINTENSIONALLY = 0x1793; // 6035
+/** InvalidCallbackOwner: Invalid callback owner - must be Bonsol program */
+export const ARBITRON_ERROR__INVALID_CALLBACK_OWNER = 0x1794; // 6036
+/** ProofRequestPending: Proof request already pending */
+export const ARBITRON_ERROR__PROOF_REQUEST_PENDING = 0x1795; // 6037
+/** NoInputData: No input data found in contest inputs account */
+export const ARBITRON_ERROR__NO_INPUT_DATA = 0x1796; // 6038
 
 export type ArbitronError =
   | typeof ARBITRON_ERROR__ALREADY_CLAIMED
   | typeof ARBITRON_ERROR__ALREADY_IN_CONTEST
   | typeof ARBITRON_ERROR__ALREADY_JOINED
+  | typeof ARBITRON_ERROR__CALLBACK_CALLED_UNINTENSIONALLY
   | typeof ARBITRON_ERROR__CANT_CALL_EXECUTE
   | typeof ARBITRON_ERROR__CONTEST_ALREADY_EXISTS
   | typeof ARBITRON_ERROR__CONTEST_FULL
@@ -96,6 +105,7 @@ export type ArbitronError =
   | typeof ARBITRON_ERROR__CONTEST_NOT_UPCOMING
   | typeof ARBITRON_ERROR__CUSTOM_ERROR
   | typeof ARBITRON_ERROR__INPUT_DATA_TOO_LARGE
+  | typeof ARBITRON_ERROR__INVALID_CALLBACK_OWNER
   | typeof ARBITRON_ERROR__INVALID_CONTEST_STATE
   | typeof ARBITRON_ERROR__INVALID_DURATION
   | typeof ARBITRON_ERROR__INVALID_ENTRY_FEES
@@ -113,10 +123,12 @@ export type ArbitronError =
   | typeof ARBITRON_ERROR__INVALID_TOKEN_ACCOUNT_OWNER
   | typeof ARBITRON_ERROR__MAX_NAME_LENGTH_EXCEDDED
   | typeof ARBITRON_ERROR__MIN_CONTEST_PARTICIPANTS_ERROR
+  | typeof ARBITRON_ERROR__NO_INPUT_DATA
   | typeof ARBITRON_ERROR__NO_PRIZE_AVAILABLE
   | typeof ARBITRON_ERROR__NOT_WINNER
   | typeof ARBITRON_ERROR__OFFSET_OUT_OF_RANGE
   | typeof ARBITRON_ERROR__OVERFLOW
+  | typeof ARBITRON_ERROR__PROOF_REQUEST_PENDING
   | typeof ARBITRON_ERROR__UNAUTHORIZED_ACTION
   | typeof ARBITRON_ERROR__UNAUTHORIZED_HOST
   | typeof ARBITRON_ERROR__VAULT_EMPTY
@@ -128,6 +140,7 @@ if (process.env.NODE_ENV !== 'production') {
     [ARBITRON_ERROR__ALREADY_CLAIMED]: `Prize has already been claimed or vault is empty.`,
     [ARBITRON_ERROR__ALREADY_IN_CONTEST]: `Already Participated in another contest`,
     [ARBITRON_ERROR__ALREADY_JOINED]: `Already joined the contest`,
+    [ARBITRON_ERROR__CALLBACK_CALLED_UNINTENSIONALLY]: `Bonsol Callback called unintensionally`,
     [ARBITRON_ERROR__CANT_CALL_EXECUTE]: `Can't call execute`,
     [ARBITRON_ERROR__CONTEST_ALREADY_EXISTS]: `Contest already exists`,
     [ARBITRON_ERROR__CONTEST_FULL]: `Contest is full`,
@@ -135,6 +148,7 @@ if (process.env.NODE_ENV !== 'production') {
     [ARBITRON_ERROR__CONTEST_NOT_UPCOMING]: `Contest is not in upcoming state`,
     [ARBITRON_ERROR__CUSTOM_ERROR]: `Custom error message`,
     [ARBITRON_ERROR__INPUT_DATA_TOO_LARGE]: `Input data in too large`,
+    [ARBITRON_ERROR__INVALID_CALLBACK_OWNER]: `Invalid callback owner - must be Bonsol program`,
     [ARBITRON_ERROR__INVALID_CONTEST_STATE]: `Invalid contest state`,
     [ARBITRON_ERROR__INVALID_DURATION]: `Invalid duration`,
     [ARBITRON_ERROR__INVALID_ENTRY_FEES]: `Invalid entry fees amount`,
@@ -152,10 +166,12 @@ if (process.env.NODE_ENV !== 'production') {
     [ARBITRON_ERROR__INVALID_TOKEN_ACCOUNT_OWNER]: `Invalid token account owner`,
     [ARBITRON_ERROR__MAX_NAME_LENGTH_EXCEDDED]: `Name max length Excedded`,
     [ARBITRON_ERROR__MIN_CONTEST_PARTICIPANTS_ERROR]: `Minimum participants not reached`,
+    [ARBITRON_ERROR__NO_INPUT_DATA]: `No input data found in contest inputs account`,
     [ARBITRON_ERROR__NO_PRIZE_AVAILABLE]: `No Prize Available`,
     [ARBITRON_ERROR__NOT_WINNER]: `The Provided user is not winner`,
     [ARBITRON_ERROR__OFFSET_OUT_OF_RANGE]: `Offset is out of range`,
     [ARBITRON_ERROR__OVERFLOW]: `Overflow Occurred`,
+    [ARBITRON_ERROR__PROOF_REQUEST_PENDING]: `Proof request already pending`,
     [ARBITRON_ERROR__UNAUTHORIZED_ACTION]: `Unauthorized action`,
     [ARBITRON_ERROR__UNAUTHORIZED_HOST]: `Unauthorized host`,
     [ARBITRON_ERROR__VAULT_EMPTY]: `The vault is Empty`,

@@ -27,6 +27,7 @@ import {
   ClaimPrizeAsyncInput
 } from "../../../../dist/js-client/index";
 import confetti from "canvas-confetti"
+import styles from './ContestArenaPage.module.css';
 
 interface ContestArenaPageProps {
   contestId: string;
@@ -59,6 +60,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
+  const [showResult, setShowResult] = useState(false);
   const previousTimeRef = useRef<number | null>(null);
   const hasShownEndDialogRef = useRef(false); // Track if we've shown the end dialog
   const [contestDetails, setContestDetails] = useState<ContestData | null>(null);
@@ -268,6 +270,9 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
   // Check for winner announcement
   useEffect(() => {
     if (contestDetails?.winner && contestDetails.status === ContestState.Completed && !showWinnerDialog) {
+      setTimeout(() => {
+        setShowResult(true);
+      }, 3000);
       setShowWinnerDialog(true);
     }
   }, [contestDetails?.winner, contestDetails?.status, showWinnerDialog]);
@@ -781,146 +786,83 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
 
       {/* Contest Ended Dialog */}
       <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
-        <DialogContent className="sm:max-w-md border-border bg-black! bg-opacity-100">
-          <DialogHeader>
-            <div className="flex items-center justify-center mb-4">
-              <div className={`h-16 w-16 rounded-full ${isWinner ? 'bg-green-500/20' : 'bg-amber-500/20'} flex items-center justify-center`}>
-                {isWinner ? (
-                  <Trophy className="h-10 w-10 text-green-500" />
-                ) : (
-                  <XCircle className="h-10 w-10 text-amber-500" />
-                )}
-              </div>
-            </div>
-            <DialogTitle className="text-center text-2xl font-bold text-foreground">
-              {isWinner ? "🎉 Congratulations! You Won! 🎉" : "Contest Has Ended"}
-            </DialogTitle>
-            <DialogDescription className="text-center text-muted-foreground pt-2">
-              {isWinner 
-                ? "You are the winner of this contest! Claim your prize below to receive your USDC rewards."
-                : contestDetails?.winner 
-                  ? `The contest has ended. Winner: ${contestDetails.winner.slice(0, 4)}...${contestDetails.winner.slice(-4)}`
-                  : "The contest has officially concluded. Results are being processed using zero-knowledge proofs."}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4 space-y-3">
-            {isWinner ? (
-              <>
-                <div className="rounded-lg border border-green-500/50 bg-green-500/10 p-4">
-                  <h4 className="text-sm font-semibold text-green-500 mb-2">Your Performance</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-center justify-between">
-                      <span>P&L:</span>
-                      <span className="font-semibold text-green-500">
-                        {contestDetails?.winnerPnl ? `${(Number(contestDetails.winnerPnl) / 100).toFixed(2)}%` : "Calculating..."}
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between">
-                      <span>Prize Status:</span>
-                      <span className={`font-semibold ${contestDetails?.isPrizeClaimed ? 'text-green-500' : 'text-amber-500'}`}>
-                        {contestDetails?.isPrizeClaimed ? "Claimed ✓" : "Ready to Claim"}
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-                
-                {canClaimPrize && (
-                  <Button
-                    onClick={handleClaimPrize}
-                    disabled={isClaimingPrize}
-                    className="w-full bg-green-500 hover:bg-green-600 text-white"
-                    size="lg"
-                  >
-                    {isClaimingPrize ? (
-                      <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2"></div>
-                        Claiming Prize...
-                      </>
-                    ) : (
-                      <>
-                        <Trophy className="h-4 w-4 mr-2" />
-                        Claim Your Prize
-                      </>
-                    )}
-                  </Button>
-                )}
-                
-                {contestDetails?.isPrizeClaimed && (
-                  <div className="text-center py-3 rounded-lg bg-green-500/10 border border-green-500/50">
-                    <CheckCircle className="h-6 w-6 text-green-500 mx-auto mb-2" />
-                    <p className="text-sm font-semibold text-green-500">Prize Successfully Claimed!</p>
-                    <p className="text-xs text-muted-foreground mt-1">Check your wallet for USDC</p>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
-                  <h4 className="text-sm font-semibold text-amber-500 mb-2">Contest Results</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    {contestDetails?.winner ? (
-                      <>
-                        <li className="flex items-center justify-between">
-                          <span>Winner:</span>
-                          <span className="font-mono text-foreground">
-                            {contestDetails.winner.slice(0, 6)}...{contestDetails.winner.slice(-4)}
-                          </span>
-                        </li>
-                        <li className="flex items-center justify-between">
-                          <span>Winning P&L:</span>
-                          <span className="font-semibold text-green-500">
-                            {contestDetails.winnerPnl ? `${(Number(contestDetails.winnerPnl) / 100).toFixed(2)}%` : "N/A"}
-                          </span>
-                        </li>
-                      </>
-                    ) : (
-                      <li className="text-center py-2">
-                        <span>Results are being processed...</span>
-                      </li>
-                    )}
-                  </ul>
-                </div>
-                
-                <div className="rounded-lg border border-border bg-secondary/30 p-4">
-                  <h4 className="text-sm font-semibold text-foreground mb-2">What happens next?</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span>ZK proofs are being generated to verify all trades</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span>Final rankings and scores are being calculated</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span>Results will be announced shortly</span>
-                    </li>
-                  </ul>
-                </div>
-              </>
-            )}
-            
-          </div>
+      <DialogContent className="sm:max-w-md border-border bg-background text-foreground">
+        <DialogHeader>
+          <DialogTitle className="text-center text-2xl font-bold tracking-wider">
+            CONTEST ENDED
+          </DialogTitle>
+        </DialogHeader>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+        {!showResult ? (
+          <div className="py-6 text-center">
+            <p className="text-muted-foreground mb-6">
+              Results are being processed using ZK proof.
+            </p>
+            <div className={styles.puzzleLoader}>
+              <div className={styles.puzzlePiece}></div>
+              <div className={styles.puzzlePiece}></div>
+              <div className={styles.puzzlePiece}></div>
+              <div className={styles.puzzlePiece}></div>
+            </div>
+          </div>
+        ) : isWinner ? (
+          <div className="py-6 text-center">
+            <Trophy className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold text-green-500 mb-2">
+              You Won!
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              Click the button below to claim your prize.
+            </p>
             <Button
-              onClick={() => router.push('/contests')}
-              variant="outline"
-              className="w-full sm:w-auto"
+              onClick={handleClaimPrize}
+              disabled={isClaimingPrize}
+              className="w-full bg-green-500 hover:bg-green-600 text-white"
+              size="lg"
             >
-              View Other Contests
+              {isClaimingPrize ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2"></div>
+                  Claiming Prize...
+                </>
+              ) : (
+                <>
+                  <Trophy className="h-4 w-4 mr-2" />
+                  Claim Your Prize
+                </>
+              )}
             </Button>
-            <Button
-              onClick={() => setShowEndDialog(false)}
-              className="w-full sm:w-auto bg-primary hover:bg-primary/90"
-            >
-              {isWinner ? "Stay & Celebrate" : "Stay Here"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        ) : (
+          <div className="py-6 text-center">
+            <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold text-red-500 mb-2">
+              You Lose
+            </h3>
+            <p className="text-muted-foreground">
+              Better luck next time!
+            </p>
+          </div>
+        )}
+
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button
+            onClick={() => router.push('/contests')}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            View Other Contests
+          </Button>
+          <Button
+            onClick={() => setShowEndDialog(false)}
+            className="w-full sm:w-auto bg-primary hover:bg-primary/90"
+          >
+            Stay Here
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    
     </div>
   )
 }

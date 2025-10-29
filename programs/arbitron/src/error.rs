@@ -115,4 +115,7 @@ pub enum ErrorCode {
 
     #[msg("Proof request already pending")]
     ProofRequestPending,
+
+    #[msg("No input data found in contest inputs account")]
+    NoInputData,
 }

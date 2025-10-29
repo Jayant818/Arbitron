@@ -28,7 +28,7 @@ import {
 } from '../instructions';
 
 export const ARBITRON_PROGRAM_ADDRESS =
-  'GVP9mBCdGTTfiBmMWf1h5pqyXxorFeBmUvBbC7aUiTXS' as Address<'GVP9mBCdGTTfiBmMWf1h5pqyXxorFeBmUvBbC7aUiTXS'>;
+  'Az76hMma5fAxYTM1u1XM3bveHpN9q3UgUXpNhMNdpHaA' as Address<'Az76hMma5fAxYTM1u1XM3bveHpN9q3UgUXpNhMNdpHaA'>;
 
 export enum ArbitronAccount {
   Config,
@@ -259,7 +259,7 @@ export function identifyArbitronInstruction(
 }
 
 export type ParsedArbitronInstruction<
-  TProgram extends string = 'GVP9mBCdGTTfiBmMWf1h5pqyXxorFeBmUvBbC7aUiTXS',
+  TProgram extends string = 'Az76hMma5fAxYTM1u1XM3bveHpN9q3UgUXpNhMNdpHaA',
 > =
   | ({
       instructionType: ArbitronInstruction.AppendContestInputs;

@@ -66,14 +66,26 @@ pub fn request_end_contest_proof(context:Context<RequestEndContestProof>,executi
         196
     ];
 
+    // Verify the contest_inputs account has data
+    require!(
+        context.accounts.contest_inputs.data.len() > 0,
+        ErrorCode::NoInputData
+    );
+    
+    msg!("Contest inputs account: {}", context.accounts.contest_inputs.key());
+    msg!("Contest inputs data length: {} bytes", context.accounts.contest_inputs.data.len());
+
+    // Use InputRef::public_account() to pass the account pubkey
+    // The Bonsol prover will automatically fetch the full account data from Solana RPC
+    // This is simpler and supports larger data sizes without transaction limits
      let ix = execute_v1(
         &context.accounts.payer.key(),
         &context.accounts.payer.key(),
         IMAGE_ID, // Your Arbitron PNL ZK Guest Image ID
         &execution_id,
-        // Passing a public reference to the PDA with contest inputs data.
-        // Bonsol will read the data from this account.
-        vec![InputRef::public(context.accounts.contest_inputs.key().as_ref())],
+        // Pass the contest_inputs PDA public key
+        // Prover will call get_account_data() to fetch the full account data
+        vec![InputRef::public_account(context.accounts.contest_inputs.key().as_ref())],
         tip,
         slot + 100000000, 
         ExecutionConfig {
@@ -111,9 +123,24 @@ pub fn request_end_contest_proof(context:Context<RequestEndContestProof>,executi
 
     // Bonsol's execute_v1 expects accounts via to_account_infos()
     // This automatically includes all accounts in the correct order
-    msg!("Invoking Bonsol execute_v1");
-    invoke(&ix, &context.accounts.to_account_infos())?;
-    msg!("Bonsol execute_v1 invoked successfully");
+    // msg!("Invoking Bonsol execute_v1");
+    // invoke(&ix, &context.accounts.to_account_infos())?;
+    // msg!("Bonsol execute_v1 invoked successfully");
+
+    let account_infos = vec![
+    context.accounts.payer.to_account_info(),            // 1. payer (signer, writable)
+    context.accounts.system_program.to_account_info(),   // 2. system_program
+    context.accounts.execution_request.to_account_info(),// 3. execution_request (writable)
+    context.accounts.deployment_account.to_account_info(),// 4. deployment_account
+    // 5+. additional accounts Bonsol should be able to access (private/public input account)
+    context.accounts.contest_inputs.to_account_info(),   // contest_inputs (your public input PDA)
+    context.accounts.bonsol_program.to_account_info(),   // Bonsol program (executable)
+    context.accounts.arbitron_program.to_account_info(), // your program (callback program)
+    // add any extra accounts you passed in ExecutionConfig::extra_accounts if needed
+];
+
+    // Now invoke with the explicitly ordered account_infos
+    invoke(&ix, &account_infos)?;
 
     // invoke(&ix, &context.accounts.to_account_infos())?;
     // Set the execution account on the contest state
