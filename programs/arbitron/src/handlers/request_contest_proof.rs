@@ -75,17 +75,18 @@ pub fn request_end_contest_proof(context:Context<RequestEndContestProof>,executi
     msg!("Contest inputs account: {}", context.accounts.contest_inputs.key());
     msg!("Contest inputs data length: {} bytes", context.accounts.contest_inputs.data.len());
 
-    // Use InputRef::public_account() to pass the account pubkey
-    // The Bonsol prover will automatically fetch the full account data from Solana RPC
-    // This is simpler and supports larger data sizes without transaction limits
-     let ix = execute_v1(
+    // Get the actual data from the contest_inputs account
+    let contest_inputs_data = context.accounts.contest_inputs.data.as_slice();
+    msg!("Sending contest inputs data directly: {} bytes", contest_inputs_data.len());
+
+    // Pass the actual data directly instead of the account pubkey
+    let ix = execute_v1(
         &context.accounts.payer.key(),
         &context.accounts.payer.key(),
         IMAGE_ID, // Your Arbitron PNL ZK Guest Image ID
         &execution_id,
-        // Pass the contest_inputs PDA public key
-        // Prover will call get_account_data() to fetch the full account data
-        vec![InputRef::public_account(context.accounts.contest_inputs.key().as_ref())],
+        // Pass the actual data from contest_inputs account
+        vec![InputRef::public(contest_inputs_data)],
         tip,
         slot + 100000000, 
         ExecutionConfig {

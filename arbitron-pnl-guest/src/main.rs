@@ -14,7 +14,7 @@ pub struct Token {
     pub is_power_token: bool,
     
     #[serde(deserialize_with = "deserialize_u64_from_string")]
-    pub quantity: u64,  // Changed from u8 to u64 to match on-chain program
+    pub quantity: u64,  
     
     #[serde(rename = "entryPrice")]
     #[serde(deserialize_with = "deserialize_u64_from_string")]

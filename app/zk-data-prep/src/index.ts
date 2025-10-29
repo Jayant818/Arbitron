@@ -280,7 +280,7 @@ async function main() {
       console.log(`[Worker]: Building final transaction: Request Proof...`);
       const executionId = randomBytes(16).toString("hex");
 
-      const tip = new BN(100_000);
+      const tip = new BN(100_000_0);
 
       const executionRequestPDA = getExecutionRequestPDA(
         payerKeypair.publicKey,
