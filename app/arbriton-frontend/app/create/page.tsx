@@ -421,13 +421,13 @@ function ContestForm() {
               <Button
                 onClick={handleCreateContest}
                 disabled={!contestName || !entryFee || isCreating || !signer}
-                className="group relative h-14 w-full overflow-hidden bg-primary text-lg font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                className="group relative h-14 w-full overflow-hidden bg-primary text-lg font-semibold text-primary-foreground hover:bg-primary/90 cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   <Sparkles className="h-5 w-5" />
                   {isCreating ? "Creating Contest..." : !signer ? "Connect Wallet First" : "Create Contest"}
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-0 transition-opacity group-hover:opacity-100" />
+                {/* <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-0 transition-opacity group-hover:opacity-100" /> */}
               </Button>
 
               <p className="text-center text-xs text-muted-foreground">

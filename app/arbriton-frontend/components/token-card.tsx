@@ -37,7 +37,7 @@ export function TokenCard({ symbol, name, price, change24h, category, selected, 
   return (
     <Card
       onClick={handleClick}
-      className={`group relative overflow-hidden border transition-all duration-300 ${
+      className={`group relative overflow-hidden border transition-all duration-300  ${
         disabled && !selected
           ? "cursor-not-allowed opacity-50 border-border bg-card"
           : selected

@@ -68,7 +68,7 @@ function WalletMenuItem({
 
   return (
     <button
-      className="flex w-full items-center justify-between px-2 py-1.5 text-sm outline-none hover:bg-accent focus:bg-accent disabled:pointer-events-none disabled:opacity-50"
+      className="flex w-full items-center justify-between px-2 py-1.5 text-sm outline-none hover:bg-accent focus:bg-accent disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
       onClick={handleConnect}
       disabled={isConnecting}
     >
@@ -120,7 +120,7 @@ export function WalletConnectButton() {
   return (
     <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
       <DropdownMenuTrigger asChild>
-        <div  className="min-w-[140px] flex items-center justify-between ">
+        <div  className="min-w-[140px] flex items-center justify-between cursor-pointer ">
           {isConnected && selectedWallet && selectedAccount ? (
             <>
               <div className="flex items-center gap-2">

@@ -174,38 +174,25 @@ function JoinContestPage() {
 
         console.log("Participants Info", participentInfo);
 
-        if (participentInfo.exists) {
-          // User has already joined this contest - redirect to contest lobby
-          console.log("✅ User already joined this contest:", participentInfo.data);
-          console.log("📊 Score:", participentInfo.data.score, "| Rank:", participentInfo.data.rank);
-          router.push(`/lobby/${id}`);
-      } else {
-          // User hasn't joined yet - let them proceed to join page
-          console.log("ℹ️ User hasn't joined this contest yet. Showing join page.");
-      }
-
-
-
-        // console.log("✅ User is authorized participant");
-
         // // 2. Check contest status
-        // const contestInfo = await fetchMaybeContest(rpc, address(id as string));
+        const contestInfo = await fetchMaybeContest(rpc, address(id as string));
 
-        // if (contestInfo.exists) {
-        //   const status = contestInfo.data.status;
-        //   console.log("📊 Contest status:", status);
+        if (contestInfo.exists) {
+          const status = contestInfo.data.status;
+          console.log("📊 Contest status:", status);
 
-        //   // ContestState enum: 0 = Upcoming, 1 = Ongoing, 2 = Completed
-        //   if (status === ContestState.ONGOING) {
-        //     // Ongoing
-        //     // Contest is active - redirect to arena
-        //     console.log("🎮 Contest is ongoing - redirecting to arena");
-        //     router.push(`/contest/${id}`);
-        //     return;
-        //   } else if (status === ContestState.COMPLETED) {
-
-        //   } 
-        // }
+          // ContestState enum: 0 = Upcoming, 1 = Ongoing, 2 = Completed
+          if (status === ContestState.ONGOING || status === ContestState.COMPLETED) {
+            // Ongoing
+            // Contest is active - redirect to arena
+            console.log("🎮 Contest is ongoing - redirecting to arena");
+            router.push(`/contest/${id}`);
+            return;
+          } else if (status === ContestState.UPCOMING && participentInfo.exists) {
+            router.push(`/lobby/${id}`);
+            return
+          }   
+        }
 
       } catch (error) {
         console.log("ℹ️ User hasn't joined this contest. Ready to join.");
@@ -838,7 +825,8 @@ function JoinContestPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/70 z-10 pointer-events-none" />
+
               <Input
                 placeholder="Search tokens by name or symbol..."
                 value={tokenSearch}
@@ -850,7 +838,7 @@ function JoinContestPage() {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList>
+              <TabsList className="mb-2 px-2">
                 <TabsTrigger value="all">All</TabsTrigger>
                 {/* <TabsTrigger value={TokenCategory.NEW_LISTED}>
                   New Listed
@@ -1409,7 +1397,7 @@ function JoinContestPage() {
                   onClick={(e: any) => {
                     handleJoinContest();
                   }}
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-smooth group relative overflow-hidden"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-smooth group relative cursor-pointer overflow-hidden h-12"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
                     {isJoining ? (

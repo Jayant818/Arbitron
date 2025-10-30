@@ -83,7 +83,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
         if (isInitialFetch) {
           setIsContestLoading(true);
         }
-        const contest = await fetchContest(rpc, address(contestId));
+        const contest = await fetchContest(rpc as any, address(contestId));
         console.log("Fetched contest from on-chain:", contest);
         
         setContestDetails({
@@ -267,16 +267,6 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
     return () => clearInterval(timer);
   }, [contestDetails]);
 
-  // Check for winner announcement
-  useEffect(() => {
-    if (contestDetails?.winner && contestDetails.status === ContestState.Completed && !showWinnerDialog) {
-      setTimeout(() => {
-        setShowResult(true);
-      }, 3000);
-      setShowWinnerDialog(true);
-    }
-  }, [contestDetails?.winner, contestDetails?.status, showWinnerDialog]);
-
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
@@ -335,6 +325,34 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
     }, 250);
   };
 
+  // Check for winner announcement
+  useEffect(() => {
+    if (contestDetails?.winner && contestDetails.status === ContestState.Completed && !showWinnerDialog) {
+      setTimeout(() => {
+        setShowResult(true);
+        // Trigger confetti for winner announcement
+        if (isWinner) {
+          triggerConfetti();
+        }
+      }, 3000);
+      setShowWinnerDialog(true);
+    }
+  }, [contestDetails?.winner, contestDetails?.status, showWinnerDialog, isWinner]);
+
+  // Check for winner announcement
+  useEffect(() => {
+    if (contestDetails?.winner && contestDetails.status === ContestState.Completed && !showWinnerDialog) {
+      setTimeout(() => {
+        setShowResult(true);
+        // Trigger confetti for winner announcement
+        if (isWinner) {
+          triggerConfetti();
+        }
+      }, 3000);
+      setShowWinnerDialog(true);
+    }
+  }, [contestDetails?.winner, contestDetails?.status, showWinnerDialog, isWinner]);
+
   const handleClaimPrize = async () => {
     if (!canClaimPrize || !selectedAccount || !signer) return;
     
@@ -351,7 +369,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
       console.log("Config PDA:", configPda);
       
       // Fetch config to get platform fee wallet info
-      const config = await fetchConfig(rpc as unknown as Parameters<typeof fetchConfig>[0], configPda);
+      const config = await fetchConfig(rpc as any, configPda);
       console.log("Fetched config:", config);
       
       // Get contest vault PDA - use the CORRECT seeds: "prize_pool_usdc" + contest.key()
@@ -416,7 +434,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
       triggerConfetti();
       
       // Refresh contest details to show updated state
-      const updatedContest = await fetchContest(rpc as unknown as any, address(contestId));
+      const updatedContest = await fetchContest(rpc as any, address(contestId));
       setContestDetails({
         name: updatedContest.data.name,
         duration: updatedContest.data.duration,
@@ -518,18 +536,26 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
 
         {/* Winner Banner */}
         {contestDetails.winner && contestStatus === "completed" && (
-          <div className={`mb-4 rounded-lg border p-4 animate-slide-down ${
+          <div className={`mb-4 rounded-lg border p-4 animate-slide-down relative overflow-hidden ${
             isWinner 
-              ? "border-green-500/50 bg-green-500/10" 
-              : "border-amber-500/50 bg-amber-500/10"
+              ? "border-primary/50 " 
+              : "border-amber-500/50 "
           }`}>
-            <div className="flex items-center justify-between flex-wrap gap-4">
+            {/* Background glow effect for winner */}
+            {isWinner && (
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-yellow-400/5 animate-pulse" />
+            )}
+            
+            <div className="relative z-10 flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-3">
                 {isWinner ? (
                   <>
-                    <Award className="h-6 w-6 text-green-500" />
+                    <div className="relative">
+                      <div className="absolute inset-0  rounded-full bg-primary/30"></div>
+                      <Award className="relative h-6 w-6 text-primary" />
+                    </div>
                     <div>
-                      <span className="font-semibold text-green-500 text-lg">
+                      <span className="font-bold text-xl bg-gradient-to-r from-primary to-yellow-400 bg-clip-text text-transparent">
                         🎉 Congratulations! You Won! 🎉
                       </span>
                       <p className="text-sm text-muted-foreground">
@@ -541,7 +567,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
                   <>
                     <XCircle className="h-6 w-6 text-amber-500" />
                     <div>
-                      <span className="font-semibold text-amber-500 text-lg">
+                      <span className="font-semibold  text-lg">
                         Contest Completed
                       </span>
                       <p className="text-sm text-muted-foreground">
@@ -556,23 +582,26 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
                 <Button
                   onClick={handleClaimPrize}
                   disabled={isClaimingPrize}
-                  className="bg-green-500 hover:bg-green-600 text-white"
+                  size="lg"
+                  className="bg-gradient-to-r from-primary to-yellow-400 hover:from-primary/90 hover:to-yellow-400/90 text-black font-bold shadow-lg hover:shadow-primary/25 transition-all duration-300 hover:scale-105"
                 >
                   {isClaimingPrize ? (
                     <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2"></div>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black mr-2"></div>
                       Claiming...
                     </>
                   ) : (
                     <>
                       <Trophy className="h-4 w-4 mr-2" />
                       Claim Prize
+                      <span className="ml-2 text-lg">💰</span>
                     </>
                   )}
                 </Button>
               )}
               {contestDetails.isPrizeClaimed && isWinner && (
-                <Badge className="bg-green-500 text-white">
+                <Badge className="bg-gradient-to-r from-primary to-yellow-400 text-black font-semibold shadow-lg">
+                  <CheckCircle className="h-3 w-3 mr-1" />
                   Prize Claimed ✓
                 </Badge>
               )}
@@ -807,84 +836,80 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
         </div>
       </div>
 
-      {/* Contest Ended Dialog */}
+      {/* Contest Ended Dialog - Minimalist */}
       <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
-      <DialogContent className="sm:max-w-md border-border bg-background text-foreground">
-        <DialogHeader>
-          <DialogTitle className="text-center text-2xl font-bold tracking-wider">
-            CONTEST ENDED
-          </DialogTitle>
-        </DialogHeader>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">Contest Ended</DialogTitle>
+            <DialogDescription className="text-center">
+              {!showResult ? "Processing results..." : isWinner ? "Congratulations!" : "Better luck next time!"}
+            </DialogDescription>
+          </DialogHeader>
 
-        {!showResult ? (
-          <div className="py-6 text-center">
-            <p className="text-muted-foreground mb-6">
-              Results are being processed using ZK proof.
-            </p>
-            <div className={styles.puzzleLoader}>
-              <div className={styles.puzzlePiece}></div>
-              <div className={styles.puzzlePiece}></div>
-              <div className={styles.puzzlePiece}></div>
-              <div className={styles.puzzlePiece}></div>
+          {!showResult ? (
+            // Processing State
+            <div className="text-center space-y-4 py-4">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+              <p className="text-sm text-muted-foreground">Verifying trades with Zero Knowledge proofs</p>
             </div>
-          </div>
-        ) : isWinner ? (
-          <div className="py-6 text-center">
-            <Trophy className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-green-500 mb-2">
-              You Won!
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              Click the button below to claim your prize.
-            </p>
-            <Button
-              onClick={handleClaimPrize}
-              disabled={isClaimingPrize}
-              className="w-full bg-green-500 hover:bg-green-600 text-white"
-              size="lg"
-            >
-              {isClaimingPrize ? (
-                <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2"></div>
-                  Claiming Prize...
-                </>
-              ) : (
-                <>
-                  <Trophy className="h-4 w-4 mr-2" />
-                  Claim Your Prize
-                </>
+          ) : isWinner ? (
+            // Winner State
+            <div className="text-center space-y-4 py-4">
+              <Trophy className="h-12 w-12 text-primary mx-auto" />
+              <div>
+                <p className="font-semibold">You won!</p>
+                <p className="text-sm text-muted-foreground">
+                  P&L: {contestDetails.winnerPnl ? `+${(Number(contestDetails.winnerPnl) / 100).toFixed(2)}%` : "N/A"}
+                </p>
+              </div>
+              {canClaimPrize && (
+                <Button
+                  onClick={handleClaimPrize}
+                  disabled={isClaimingPrize}
+                  className="w-full bg-primary hover:bg-primary/90"
+                >
+                  {isClaimingPrize ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white mr-2"></div>
+                      Claiming...
+                    </>
+                  ) : (
+                    <>
+                      <Trophy className="h-4 w-4 mr-2" />
+                      Claim Prize
+                    </>
+                  )}
+                </Button>
               )}
-            </Button>
-          </div>
-        ) : (
-          <div className="py-6 text-center">
-            <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-red-500 mb-2">
-              You Lose
-            </h3>
-            <p className="text-muted-foreground">
-              Better luck next time!
-            </p>
-          </div>
-        )}
+            </div>
+          ) : (
+            // Defeat State
+            <div className="text-center space-y-4 py-4">
+              <XCircle className="h-12 w-12 text-muted-foreground mx-auto" />
+              <div>
+                <p className="font-semibold">Contest completed</p>
+                <p className="text-sm text-muted-foreground">Keep practicing and try again!</p>
+              </div>
+            </div>
+          )}
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button
-            onClick={() => router.push('/contests')}
-            variant="outline"
-            className="w-full sm:w-auto"
-          >
-            View Other Contests
-          </Button>
-          <Button
-            onClick={() => setShowEndDialog(false)}
-            className="w-full sm:w-auto bg-primary hover:bg-primary/90"
-          >
-            Stay Here
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="flex justify-center space-x-2">
+            <Button
+              onClick={() => router.push('/contests')}
+              variant="outline"
+              size="sm"
+            >
+              Browse Contests
+            </Button>
+            <Button
+              onClick={() => setShowEndDialog(false)}
+              size="sm"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     
     </div>
   )

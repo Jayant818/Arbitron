@@ -10,7 +10,7 @@ pub enum ContestState{
 #[account]
 #[derive(InitSpace)]
 pub struct Contest{
-    #[max_len(50)]
+    #[max_len(60)]
     pub name: String,
 
     pub duration : u64,

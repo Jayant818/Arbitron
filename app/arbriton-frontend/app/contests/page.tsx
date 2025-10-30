@@ -59,7 +59,7 @@ export default function ContestsPage() {
             />
           </div>
 
-          <Button variant="outline" className="glass glass-hover text-white font-semibold bg-transparent">
+          <Button variant="outline" className="glass glass-hove text-white font-semibold bg-transparent disabled">
             <Filter className="h-5 w-5 mr-2" />
             Filter
           </Button>
@@ -67,13 +67,13 @@ export default function ContestsPage() {
 
         <Tabs defaultValue="upcoming" className="w-full">
           <TabsList className="grid w-full max-w-2xl grid-cols-3 mb-8">
-            <TabsTrigger value="upcoming">
+            <TabsTrigger value="upcoming" className="cursor-pointer">
               Upcoming {filteredUpcoming && `(${filteredUpcoming.length})`}
             </TabsTrigger>
-            <TabsTrigger value="active">
+            <TabsTrigger value="active" className="cursor-pointer">
               Active {filteredActive && `(${filteredActive.length})`}
             </TabsTrigger>
-            <TabsTrigger value="completed">
+            <TabsTrigger value="completed" className="cursor-pointer">
               Completed {filteredCompleted && `(${filteredCompleted.length})`}
             </TabsTrigger>
           </TabsList>
