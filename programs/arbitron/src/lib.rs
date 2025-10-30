@@ -10,7 +10,7 @@ pub use handlers::*;
 pub use error::*;
 pub use state::*;
 
-declare_id!("Az76hMma5fAxYTM1u1XM3bveHpN9q3UgUXpNhMNdpHaA");
+declare_id!("2D9gngJocBN66ZLCfbk66fUnbWXpc8spbnHGhS3fBSbR");
 
 #[program]
 pub mod arbitron {

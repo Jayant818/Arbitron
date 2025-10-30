@@ -342,26 +342,28 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
     try {
       console.log("Starting prize claim for contest:", contestId);
       
-      // Fetch config account to get platform fee wallet
-            const [configPda] = await getProgramDerivedAddress({
-              programAddress: ARBITRON_PROGRAM_ADDRESS,
-              seeds: [new TextEncoder().encode("config")],
-            });
+      // Get config PDA - this should be automatically resolved by the instruction
+      const [configPda] = await getProgramDerivedAddress({
+        programAddress: ARBITRON_PROGRAM_ADDRESS,
+        seeds: [new TextEncoder().encode("config")],
+      });
       
-      console.log("Fetching config account at PDA:", configPda);
-            
-            const config = await fetchConfig(rpc as unknown as Parameters<typeof fetchConfig>[0], configPda);
-            console.log("Fetched config:", config);
-      console.log("Building claim prize instruction...");
-      // Get contest vault PDA
+      console.log("Config PDA:", configPda);
+      
+      // Fetch config to get platform fee wallet info
+      const config = await fetchConfig(rpc as unknown as Parameters<typeof fetchConfig>[0], configPda);
+      console.log("Fetched config:", config);
+      
+      // Get contest vault PDA - use the CORRECT seeds: "prize_pool_usdc" + contest.key()
       const [contestVaultPda] = await getProgramDerivedAddress({
         programAddress: ARBITRON_PROGRAM_ADDRESS,
         seeds: [
-          new TextEncoder().encode("contest_vault"),
+          new TextEncoder().encode("prize_pool_usdc"),
           getAddressEncoder().encode(address(contestId)),
         ],
       });
-      console.log("Building claim prize instruction...2");
+      
+      console.log("Contest Vault PDA:", contestVaultPda);
       
       // Get winner's USDC token account using findAssociatedTokenPda
       const [winnerUsdcAccount] = await findAssociatedTokenPda({
@@ -374,7 +376,6 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
       
       console.log("Building claim prize instruction with accounts:", {
         winner: selectedAccount.address,
-        config: configPda,
         contest: contestId,
         contestVault: contestVaultPda,
         winnerUsdcAccount: winnerUsdcAccount,
@@ -390,6 +391,8 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
         winnerUsdcAccount: winnerUsdcAccount,
         platformFeeWallet: config.data.platformFeeWallet,
         tokenMint: USDC_MINT_ADDRESS,
+        // config will be auto-resolved by the instruction
+        // tokenProgram will be auto-resolved by the instruction
       });
       
       // Get recent blockhash
@@ -413,24 +416,28 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
       triggerConfetti();
       
       // Refresh contest details to show updated state
-            const updatedContest = await fetchContest(rpc as unknown as any, address(contestId));
-            setContestDetails({
-              name: updatedContest.data.name,
-              duration: updatedContest.data.duration,
-              startTime: updatedContest.data.startTime,
-              host: updatedContest.data.host,
-              entryFees: updatedContest.data.entryFees,
-              maxParticipents: Number(updatedContest.data.maxParticipents),
-              participentsCount: Number(updatedContest.data.participentsCount),
-              status: updatedContest.data.status,
-              prizePoolVaultUsdc: updatedContest.data.prizePoolVaultUsdc,
-              winner: getOptionValue<string>(updatedContest.data.winner),
-              winnerPnl: getOptionValue<bigint>(updatedContest.data.winnerPnl),
-              isPrizeClaimed: updatedContest.data.isPrizeClaimed,
-            });
+      const updatedContest = await fetchContest(rpc as unknown as any, address(contestId));
+      setContestDetails({
+        name: updatedContest.data.name,
+        duration: updatedContest.data.duration,
+        startTime: updatedContest.data.startTime,
+        host: updatedContest.data.host,
+        entryFees: updatedContest.data.entryFees,
+        maxParticipents: Number(updatedContest.data.maxParticipents),
+        participentsCount: Number(updatedContest.data.participentsCount),
+        status: updatedContest.data.status,
+        prizePoolVaultUsdc: updatedContest.data.prizePoolVaultUsdc,
+        winner: getOptionValue<string>(updatedContest.data.winner),
+        winnerPnl: getOptionValue<bigint>(updatedContest.data.winnerPnl),
+        isPrizeClaimed: updatedContest.data.isPrizeClaimed,
+      });
       
     } catch (error: any) {
       console.error("Error claiming prize:", error);
+      // Try to get more detailed error information
+      if (error.cause && error.cause.logs) {
+        console.error("Transaction logs:", error.cause.logs);
+      }
       alert(`Failed to claim prize: ${error.message || "Unknown error"}`);
     } finally {
       setIsClaimingPrize(false);

@@ -66,7 +66,7 @@ export type RequestEndContestProofInstruction<
   TAccountDeploymentAccount extends string | AccountMeta<string> = string,
   TAccountArbitronProgram extends
     | string
-    | AccountMeta<string> = 'Az76hMma5fAxYTM1u1XM3bveHpN9q3UgUXpNhMNdpHaA',
+    | AccountMeta<string> = '2D9gngJocBN66ZLCfbk66fUnbWXpc8spbnHGhS3fBSbR',
   TAccountBonsolProgram extends
     | string
     | AccountMeta<string> = 'BoNsHRcyLLNdtnoDf8hiCNZpyehMC4FDMxs6NTxFi3ew',
@@ -254,7 +254,7 @@ export async function getRequestEndContestProofInstructionAsync<
   }
   if (!accounts.arbitronProgram.value) {
     accounts.arbitronProgram.value =
-      'Az76hMma5fAxYTM1u1XM3bveHpN9q3UgUXpNhMNdpHaA' as Address<'Az76hMma5fAxYTM1u1XM3bveHpN9q3UgUXpNhMNdpHaA'>;
+      '2D9gngJocBN66ZLCfbk66fUnbWXpc8spbnHGhS3fBSbR' as Address<'2D9gngJocBN66ZLCfbk66fUnbWXpc8spbnHGhS3fBSbR'>;
   }
   if (!accounts.bonsolProgram.value) {
     accounts.bonsolProgram.value =
@@ -383,7 +383,7 @@ export function getRequestEndContestProofInstruction<
   // Resolve default values.
   if (!accounts.arbitronProgram.value) {
     accounts.arbitronProgram.value =
-      'Az76hMma5fAxYTM1u1XM3bveHpN9q3UgUXpNhMNdpHaA' as Address<'Az76hMma5fAxYTM1u1XM3bveHpN9q3UgUXpNhMNdpHaA'>;
+      '2D9gngJocBN66ZLCfbk66fUnbWXpc8spbnHGhS3fBSbR' as Address<'2D9gngJocBN66ZLCfbk66fUnbWXpc8spbnHGhS3fBSbR'>;
   }
   if (!accounts.bonsolProgram.value) {
     accounts.bonsolProgram.value =
