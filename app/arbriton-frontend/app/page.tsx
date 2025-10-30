@@ -123,7 +123,7 @@ export default function HomePage() {
             <div className="md:col-span-2 lg:col-span-2 glass glass-hover rounded-2xl p-6 group relative overflow-hidden animate-slide-up bg-gradient-to-br from-green-500/10 to-emerald-600/10 border-green-500/30">
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="h-2 w-2 bg-yellow-500 rounded-full animate-pulse" />
+                  <div className="h-2 w-2 bg-yellow-500 rounded-full " />
                   <span className="text-white text-sm font-medium">Growth</span>
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">Live Analytics</h3>
@@ -156,7 +156,7 @@ export default function HomePage() {
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 bg-yellow-500 rounded-full animate-pulse" />
+                    <div className="h-2 w-2 bg-yellow-500 rounded-full " />
                     <span className=" text-sm font-medium">Real-time</span>
                   </div>
                   <Zap className="h-5 w-5 text-yellow-400 group-hover:rotate-12 transition-transform duration-300" />
@@ -219,17 +219,14 @@ export default function HomePage() {
                 {/* ZK Proof Visualization */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="h-3 w-3 bg-yellow-500 rounded-full animate-pulse" />
                     <span className="text-xs ">Contest data verified</span>
                     <CheckCircle className="h-4 w-4 text-yellow-400 ml-auto" />
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="h-3 w-3 bg-yellow-500 rounded-full animate-pulse" style={{ animationDelay: '500ms' }} />
                     <span className="text-xs ">Proof generated</span>
                     <CheckCircle className="h-4 w-4 text-yellow-400 ml-auto" />
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="h-3 w-3 bg-yellow-400 rounded-full animate-pulse" style={{ animationDelay: '1s' }} />
                     <span className="text-xs ">Winner determined</span>
                     <div className="h-4 w-4 border-2 border-yellow-400 rounded-full animate-spin ml-auto" />
                   </div>
@@ -245,11 +242,6 @@ export default function HomePage() {
                 </div>
               </div>
               
-              {/* Animated background pattern */}
-              <div className="absolute inset-0 opacity-5">
-                <div className="absolute top-1/4 left-1/4 w-16 h-16 border-2 border-indigo-400 rounded-full animate-ping" />
-                <div className="absolute bottom-1/4 right-1/4 w-12 h-12 border-2 border-violet-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
-              </div>
             </div>
 
             {/* Portfolio Drafting */}

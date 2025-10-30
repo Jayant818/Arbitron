@@ -559,7 +559,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
                         🎉 Congratulations! You Won! 🎉
                       </span>
                       <p className="text-sm text-muted-foreground">
-                        Winner P&L: {contestDetails.winnerPnl ? `${(Number(contestDetails.winnerPnl) / 100).toFixed(2)}%` : "N/A"}
+                        Winner P&L: {contestDetails.winnerPnl ? `${(Number(contestDetails.winnerPnl) / 1000000).toFixed(2)}` : "N/A"}
                       </p>
                     </div>
                   </>
@@ -572,7 +572,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
                       </span>
                       <p className="text-sm text-muted-foreground">
                         Winner: {contestDetails.winner.slice(0, 4)}...{contestDetails.winner.slice(-4)} | 
-                        P&L: {contestDetails.winnerPnl ? `${(Number(contestDetails.winnerPnl) / 100).toFixed(2)}%` : "N/A"}
+                        P&L: {contestDetails.winnerPnl ? `${(Number(contestDetails.winnerPnl) / 1000000).toFixed(2)}` : "N/A"}
                       </p>
                     </div>
                   </>
@@ -859,7 +859,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
               <div>
                 <p className="font-semibold">You won!</p>
                 <p className="text-sm text-muted-foreground">
-                  P&L: {contestDetails.winnerPnl ? `+${(Number(contestDetails.winnerPnl) / 100).toFixed(2)}%` : "N/A"}
+                  P&L: {contestDetails.winnerPnl ? `+${(Number(contestDetails.winnerPnl) / 1000000).toFixed(2)}%` : "N/A"}
                 </p>
               </div>
               {canClaimPrize && (

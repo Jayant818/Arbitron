@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, DotProps } from "recharts"
 
 const CustomDot = (props: DotProps & { participants: any[], history: any[] }) => {
-    const { cx, cy, stroke, payload, value, dataKey, index, participants, history } = props;
+  // @ts-ignore
+    const { cx, cy, stroke, dataKey, index, participants, history } = props;
     const isLastPoint = index === history.length - 1;
 
     if (isLastPoint) {

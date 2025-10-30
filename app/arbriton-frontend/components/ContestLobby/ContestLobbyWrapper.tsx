@@ -40,6 +40,7 @@ export const ContestLobbyWrapper = () => {
         });
 
         const participantInfo = await fetchMaybeParticipent(
+          // @ts-ignore
           rpc,
           participantPda
         );
@@ -54,6 +55,7 @@ export const ContestLobbyWrapper = () => {
 
         // 2. Check contest status
         const contestInfo = await fetchMaybeContest(
+          // @ts-ignore
           rpc,
           address(contestId as string)
         );

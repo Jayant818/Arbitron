@@ -50,7 +50,6 @@ import {
   getProgramDerivedAddress,
   pipe,
   createTransactionMessage,
-  setTransactionMessageFeePayer,
   setTransactionMessageLifetimeUsingBlockhash,
   setTransactionMessageFeePayerSigner,
   appendTransactionMessageInstructions,
@@ -168,6 +167,7 @@ function JoinContestPage() {
         });
 
         const participentInfo = await fetchMaybeParticipent(
+          // @ts-ignore
           rpc,
           participentPDA
         );
@@ -175,6 +175,7 @@ function JoinContestPage() {
         console.log("Participants Info", participentInfo);
 
         // // 2. Check contest status
+        // @ts-ignore
         const contestInfo = await fetchMaybeContest(rpc, address(id as string));
 
         if (contestInfo.exists) {
