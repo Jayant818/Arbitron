@@ -622,7 +622,18 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-1">
-            <Leaderboard players={processedLeaderboardData} />
+            {contestStatus === "completed" && processedLeaderboardData.length === 0 ? (
+                <Card className="border-border bg-card">
+                    <CardHeader>
+                        <CardTitle className="text-foreground">Live Leaderboard</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-center py-8">
+                        <p className="text-muted-foreground">The contest has ended.</p>
+                    </CardContent>
+                </Card>
+            ) : (
+                <Leaderboard players={processedLeaderboardData} />
+            )}
           </div>
 
           <div className="lg:col-span-2 space-y-6">
