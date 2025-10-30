@@ -2,12 +2,13 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
-import { Filter, Search } from "lucide-react"
+import { Filter, Search, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { ContestCard } from "@/components/contest-card"
 import { ContestCardSkeleton } from "@/components/contest-card-skeleton"
 import { useGetAllContestsQuery } from "@/hooks/api-hooks/useContestQuery"
+import { InitializeButton } from "@/components/InitializeButton"
 
 export default function ContestsPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -36,6 +37,17 @@ export default function ContestsPage() {
         </div>
 
         <div className="mb-8 flex flex-col sm:flex-row gap-4 max-w-2xl">
+        {/* <section className="py-8 border-t border-border/20">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Settings className="h-4 w-4" />
+                <span>Development Tools</span>
+              </div>
+              <InitializeButton />
+            </div>
+          </div>
+        </section> */}
           {/* Search bar with icon */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/70 z-10 pointer-events-none" />

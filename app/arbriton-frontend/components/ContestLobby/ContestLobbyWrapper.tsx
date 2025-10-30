@@ -63,7 +63,7 @@ export const ContestLobbyWrapper = () => {
           console.log("📊 Contest status:", status);
 
           // ContestState enum: 0 = Upcoming, 1 = Ongoing, 2 = Completed
-          if (status === 1) {
+          if (status >0) {
             // Ongoing
             // Contest is active - redirect to arena
             console.log("🎮 Contest is ongoing - redirecting to arena");

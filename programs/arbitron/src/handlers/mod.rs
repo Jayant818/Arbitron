@@ -10,6 +10,7 @@ pub mod claim_prize;
 pub mod store_contest_input;
 pub mod request_contest_proof;
 pub mod append_contest_inputs;
+pub mod set_contest_winner;
 
 pub use create_contest::*;
 pub use join_contest::*;
@@ -23,3 +24,4 @@ pub use claim_prize::*;
 pub use store_contest_input::*;
 pub use request_contest_proof::*;
 pub use append_contest_inputs::*;
+pub use set_contest_winner::*;

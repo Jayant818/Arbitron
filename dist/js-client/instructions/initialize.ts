@@ -76,11 +76,13 @@ export type InitializeInstructionData = {
   discriminator: ReadonlyUint8Array;
   platformFeeWallet: Address;
   platformFeeBps: number;
+  platformFeeWalletMint: Address;
 };
 
 export type InitializeInstructionDataArgs = {
   platformFeeWallet: Address;
   platformFeeBps: number;
+  platformFeeWalletMint: Address;
 };
 
 export function getInitializeInstructionDataEncoder(): FixedSizeEncoder<InitializeInstructionDataArgs> {
@@ -89,6 +91,7 @@ export function getInitializeInstructionDataEncoder(): FixedSizeEncoder<Initiali
       ['discriminator', fixEncoderSize(getBytesEncoder(), 8)],
       ['platformFeeWallet', getAddressEncoder()],
       ['platformFeeBps', getU16Encoder()],
+      ['platformFeeWalletMint', getAddressEncoder()],
     ]),
     (value) => ({ ...value, discriminator: INITIALIZE_DISCRIMINATOR })
   );
@@ -99,6 +102,7 @@ export function getInitializeInstructionDataDecoder(): FixedSizeDecoder<Initiali
     ['discriminator', fixDecoderSize(getBytesDecoder(), 8)],
     ['platformFeeWallet', getAddressDecoder()],
     ['platformFeeBps', getU16Decoder()],
+    ['platformFeeWalletMint', getAddressDecoder()],
   ]);
 }
 
@@ -122,6 +126,7 @@ export type InitializeAsyncInput<
   systemProgram?: Address<TAccountSystemProgram>;
   platformFeeWallet: InitializeInstructionDataArgs['platformFeeWallet'];
   platformFeeBps: InitializeInstructionDataArgs['platformFeeBps'];
+  platformFeeWalletMint: InitializeInstructionDataArgs['platformFeeWalletMint'];
 };
 
 export async function getInitializeInstructionAsync<
@@ -204,6 +209,7 @@ export type InitializeInput<
   systemProgram?: Address<TAccountSystemProgram>;
   platformFeeWallet: InitializeInstructionDataArgs['platformFeeWallet'];
   platformFeeBps: InitializeInstructionDataArgs['platformFeeBps'];
+  platformFeeWalletMint: InitializeInstructionDataArgs['platformFeeWalletMint'];
 };
 
 export function getInitializeInstruction<

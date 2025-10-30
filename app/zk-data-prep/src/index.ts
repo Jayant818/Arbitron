@@ -34,6 +34,24 @@ interface IPriceUpdate {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function calculatePnl(
+  finalPrice: bigint,
+  entryPrice: bigint,
+  quantity: bigint,
+  isPowerToken: boolean
+): bigint {
+  try {
+    let pnl = (finalPrice - entryPrice) * quantity;
+    if (isPowerToken) {
+      pnl = pnl * 2n; // 2n is BigInt for 2
+    }
+    return pnl;
+  } catch (e) {
+    console.error("Error in PNL calculation:", e);
+    return 0n; // Return 0 as a BigInt
+  }
+}
+
 async function getJupiterPrices(
   tokenMints: Set<string>
 ): Promise<Map<string, bigint>> {
@@ -283,6 +301,38 @@ async function main() {
       console.log(`[Worker]: Resuming proof request.`);
       // --- END OF ADDED DELAY ---
 
+      console.log(
+        `[Worker]: Verifying account data on-chain to prevent 0x26 error...`
+      );
+      const expectedDataLength = payloadBytes.length;
+      let onChainDataLength = 0;
+
+      while (onChainDataLength < expectedDataLength) {
+        try {
+          const contestInputsAccount = await connection.getAccountInfo(
+            contestInputsPDA
+          );
+          if (contestInputsAccount && contestInputsAccount.data) {
+            // Read actual data length from the Anchor account
+            // 8 (disc) + 32 (pubkey) = 40. Length is at byte 40.
+            const dataVecLength = contestInputsAccount.data.readUInt32LE(40);
+            onChainDataLength = dataVecLength;
+          }
+        } catch (e) {
+          console.warn("[Worker]: Polling... account not found yet.");
+        }
+
+        if (onChainDataLength < expectedDataLength) {
+          console.log(
+            `[Worker]: Polling... On-chain data ${onChainDataLength} bytes. Waiting for ${expectedDataLength} bytes.`
+          );
+          await sleep(2000); // Wait 2 seconds
+        }
+      }
+      console.log(
+        `[Worker]: ✅ RPC node is synced! On-chain data ${onChainDataLength} bytes.`
+      );
+
       // --- Request Proof ---
       console.log(`[Worker]: Building final transaction: Request Proof...`);
       const executionId = randomBytes(16).toString("hex");
@@ -319,6 +369,95 @@ async function main() {
       const proofSig = await provider.sendAndConfirm(proofTx);
       console.log(
         `[Worker]: ✅ Final transaction confirmed! Signature: ${proofSig}`
+      );
+      console.log(
+        `[Worker]: Successfully processed contest ${contestId.element}.`
+      );
+
+      // --- Calculate Winner Off-Chain ---
+      console.log(`[Worker]: Calculating winner off-chain...`);
+
+      let maxPnl = -Infinity; // Use regular number for comparison
+      let winnerPublicKey = SystemProgram.programId; // Default to system program
+
+      // Convert prices map to BigInt
+      const finalPricesBigInt = new Map<string, bigint>();
+      for (const [mint, priceStr] of finalPricesMap.entries()) {
+        finalPricesBigInt.set(mint, BigInt(priceStr));
+      }
+
+      for (const participant of jobPayload.participants) {
+        let participantPnl = 0n; // Use BigInt for calculation
+
+        for (const token of participant.selectedTokens) {
+          const finalPrice = finalPricesBigInt.get(token.mint);
+          if (finalPrice === undefined) {
+            console.warn(
+              `Missing final price for ${token.mint}, skipping token.`
+            );
+            continue;
+          }
+
+          const entryPrice = BigInt(token.entryPrice || 0);
+          const quantity = BigInt(token.quantity);
+
+          const tokenPnl = calculatePnl(
+            finalPrice,
+            entryPrice,
+            quantity,
+            token.isPowerToken
+          );
+
+          participantPnl += tokenPnl;
+        }
+
+        console.log(
+          `[Worker]: Participant ${
+            participant.userPublicKey
+          } PNL: ${participantPnl.toString()}`
+        );
+
+        // Compare using BigInt
+        if (
+          maxPnl === -Infinity ||
+          participantPnl > BigInt(maxPnl.toString())
+        ) {
+          maxPnl = Number(participantPnl.toString()); // Store as number for easy comparison
+          winnerPublicKey = new PublicKey(participant.userPublicKey);
+        }
+      }
+
+      // Handle case where no participants or all PNLs are negative
+      if (maxPnl === -Infinity) {
+        maxPnl = 0;
+      }
+
+      const maxPnlBN = new BN(maxPnl.toString());
+
+      console.log(
+        `[Worker]: Off-chain winner determined: ${winnerPublicKey.toString()}`
+      );
+      console.log(`[Worker]: Off-chain Max PNL: ${maxPnlBN.toString()}`);
+
+      // --- Call new 'setContestWinner' instruction ---
+      console.log(
+        `[Worker]: Building final transaction: Set Contest Winner...`
+      );
+
+      const setWinnerIx = await program.methods
+        .setContestWinner(winnerPublicKey, maxPnlBN)
+        .accounts({
+          host: payerKeypair.publicKey, // The signer
+          contest: contestPDA,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+
+      const proof_Tx = new anchor.web3.Transaction().add(setWinnerIx);
+      const proof_Sig = await provider.sendAndConfirm(proof_Tx);
+
+      console.log(
+        `[Worker]: ✅ Final transaction confirmed! Signature: ${proof_Sig}`
       );
       console.log(
         `[Worker]: Successfully processed contest ${contestId.element}.`

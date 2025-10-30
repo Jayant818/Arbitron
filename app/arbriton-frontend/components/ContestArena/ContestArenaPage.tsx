@@ -13,7 +13,7 @@ import { useGetParticipantsByContestIdQuery } from "@/hooks/api-hooks/useUserQue
 import { useSolana } from "@/components/solana-provider"
 import { SignalingManager } from "@/lib/SinglingManager"
 import { useRouter } from "next/navigation"
-import { address, createSolanaRpc, createSolanaRpcSubscriptions, generateKeyPairSigner, getAddressFromPublicKey, pipe, getProgramDerivedAddress, getAddressEncoder } from "@solana/kit"
+import { address, createSolanaRpc, createSolanaRpcSubscriptions, generateKeyPairSigner, getAddressFromPublicKey, pipe, getProgramDerivedAddress, getAddressEncoder, fetchEncodedAccount } from "@solana/kit"
 import { fetchContest } from "../../../../dist/js-client/accounts/contest"
 import { ContestState } from "../../../../dist/js-client/types/contestState"
 import { fetchConfig } from "../../../../dist/js-client/accounts/config"
@@ -343,14 +343,16 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
       console.log("Starting prize claim for contest:", contestId);
       
       // Fetch config account to get platform fee wallet
-      const [configPda] = await getProgramDerivedAddress({
-        programAddress: ARBITRON_PROGRAM_ADDRESS,
-        seeds: [new TextEncoder().encode("config")],
-      });
+            const [configPda] = await getProgramDerivedAddress({
+              programAddress: ARBITRON_PROGRAM_ADDRESS,
+              seeds: [new TextEncoder().encode("config")],
+            });
       
-      const config = await fetchConfig(rpc, configPda);
-      console.log("Fetched config:", config);
-      
+      console.log("Fetching config account at PDA:", configPda);
+            
+            const config = await fetchConfig(rpc as unknown as Parameters<typeof fetchConfig>[0], configPda);
+            console.log("Fetched config:", config);
+      console.log("Building claim prize instruction...");
       // Get contest vault PDA
       const [contestVaultPda] = await getProgramDerivedAddress({
         programAddress: ARBITRON_PROGRAM_ADDRESS,
@@ -359,6 +361,7 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
           getAddressEncoder().encode(address(contestId)),
         ],
       });
+      console.log("Building claim prize instruction...2");
       
       // Get winner's USDC token account using findAssociatedTokenPda
       const [winnerUsdcAccount] = await findAssociatedTokenPda({
@@ -366,6 +369,8 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
         owner: address(selectedAccount.address),
         tokenProgram: TOKEN_PROGRAM_ADDRESS,
       });
+
+      console.log("Winner USDC Account:", winnerUsdcAccount);
       
       console.log("Building claim prize instruction with accounts:", {
         winner: selectedAccount.address,
@@ -408,21 +413,21 @@ export default function ContestArenaPage({ contestId }: ContestArenaPageProps) {
       triggerConfetti();
       
       // Refresh contest details to show updated state
-      const updatedContest = await fetchContest(rpc, address(contestId));
-      setContestDetails({
-        name: updatedContest.data.name,
-        duration: updatedContest.data.duration,
-        startTime: updatedContest.data.startTime,
-        host: updatedContest.data.host,
-        entryFees: updatedContest.data.entryFees,
-        maxParticipents: Number(updatedContest.data.maxParticipents),
-        participentsCount: Number(updatedContest.data.participentsCount),
-        status: updatedContest.data.status,
-        prizePoolVaultUsdc: updatedContest.data.prizePoolVaultUsdc,
-        winner: getOptionValue<string>(updatedContest.data.winner),
-        winnerPnl: getOptionValue<bigint>(updatedContest.data.winnerPnl),
-        isPrizeClaimed: updatedContest.data.isPrizeClaimed,
-      });
+            const updatedContest = await fetchContest(rpc as unknown as any, address(contestId));
+            setContestDetails({
+              name: updatedContest.data.name,
+              duration: updatedContest.data.duration,
+              startTime: updatedContest.data.startTime,
+              host: updatedContest.data.host,
+              entryFees: updatedContest.data.entryFees,
+              maxParticipents: Number(updatedContest.data.maxParticipents),
+              participentsCount: Number(updatedContest.data.participentsCount),
+              status: updatedContest.data.status,
+              prizePoolVaultUsdc: updatedContest.data.prizePoolVaultUsdc,
+              winner: getOptionValue<string>(updatedContest.data.winner),
+              winnerPnl: getOptionValue<bigint>(updatedContest.data.winnerPnl),
+              isPrizeClaimed: updatedContest.data.isPrizeClaimed,
+            });
       
     } catch (error: any) {
       console.error("Error claiming prize:", error);

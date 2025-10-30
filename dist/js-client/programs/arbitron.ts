@@ -22,6 +22,7 @@ import {
   type ParsedJoinContestInstruction,
   type ParsedReceiveEndContestProofInstruction,
   type ParsedRequestEndContestProofInstruction,
+  type ParsedSetContestWinnerInstruction,
   type ParsedStartContestInstruction,
   type ParsedStoreContestInputsInstruction,
   type ParsedUpdatePortfolioInstruction,
@@ -123,6 +124,7 @@ export enum ArbitronInstruction {
   JoinContest,
   ReceiveEndContestProof,
   RequestEndContestProof,
+  SetContestWinner,
   StartContest,
   StoreContestInputs,
   UpdatePortfolio,
@@ -224,6 +226,17 @@ export function identifyArbitronInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([205, 219, 178, 214, 121, 1, 138, 112])
+      ),
+      0
+    )
+  ) {
+    return ArbitronInstruction.SetContestWinner;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([97, 146, 213, 7, 230, 233, 121, 237])
       ),
       0
@@ -285,6 +298,9 @@ export type ParsedArbitronInstruction<
   | ({
       instructionType: ArbitronInstruction.RequestEndContestProof;
     } & ParsedRequestEndContestProofInstruction<TProgram>)
+  | ({
+      instructionType: ArbitronInstruction.SetContestWinner;
+    } & ParsedSetContestWinnerInstruction<TProgram>)
   | ({
       instructionType: ArbitronInstruction.StartContest;
     } & ParsedStartContestInstruction<TProgram>)

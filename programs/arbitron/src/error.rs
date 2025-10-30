@@ -118,4 +118,7 @@ pub enum ErrorCode {
 
     #[msg("No input data found in contest inputs account")]
     NoInputData,
+
+    #[msg("Unauthorized Host")]
+    Unauthorized,
 }

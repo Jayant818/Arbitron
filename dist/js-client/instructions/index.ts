@@ -14,6 +14,7 @@ export * from './initialize';
 export * from './joinContest';
 export * from './receiveEndContestProof';
 export * from './requestEndContestProof';
+export * from './setContestWinner';
 export * from './startContest';
 export * from './storeContestInputs';
 export * from './updatePortfolio';

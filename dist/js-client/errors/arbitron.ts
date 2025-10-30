@@ -92,6 +92,8 @@ export const ARBITRON_ERROR__INVALID_CALLBACK_OWNER = 0x1794; // 6036
 export const ARBITRON_ERROR__PROOF_REQUEST_PENDING = 0x1795; // 6037
 /** NoInputData: No input data found in contest inputs account */
 export const ARBITRON_ERROR__NO_INPUT_DATA = 0x1796; // 6038
+/** Unauthorized: Unauthorized Host */
+export const ARBITRON_ERROR__UNAUTHORIZED = 0x1797; // 6039
 
 export type ArbitronError =
   | typeof ARBITRON_ERROR__ALREADY_CLAIMED
@@ -129,6 +131,7 @@ export type ArbitronError =
   | typeof ARBITRON_ERROR__OFFSET_OUT_OF_RANGE
   | typeof ARBITRON_ERROR__OVERFLOW
   | typeof ARBITRON_ERROR__PROOF_REQUEST_PENDING
+  | typeof ARBITRON_ERROR__UNAUTHORIZED
   | typeof ARBITRON_ERROR__UNAUTHORIZED_ACTION
   | typeof ARBITRON_ERROR__UNAUTHORIZED_HOST
   | typeof ARBITRON_ERROR__VAULT_EMPTY
@@ -172,6 +175,7 @@ if (process.env.NODE_ENV !== 'production') {
     [ARBITRON_ERROR__OFFSET_OUT_OF_RANGE]: `Offset is out of range`,
     [ARBITRON_ERROR__OVERFLOW]: `Overflow Occurred`,
     [ARBITRON_ERROR__PROOF_REQUEST_PENDING]: `Proof request already pending`,
+    [ARBITRON_ERROR__UNAUTHORIZED]: `Unauthorized Host`,
     [ARBITRON_ERROR__UNAUTHORIZED_ACTION]: `Unauthorized action`,
     [ARBITRON_ERROR__UNAUTHORIZED_HOST]: `Unauthorized host`,
     [ARBITRON_ERROR__VAULT_EMPTY]: `The vault is Empty`,

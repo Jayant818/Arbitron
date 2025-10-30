@@ -16,8 +16,8 @@ declare_id!("Az76hMma5fAxYTM1u1XM3bveHpN9q3UgUXpNhMNdpHaA");
 pub mod arbitron {
     use super::*;
 
-    pub fn initialize(context: Context<Initialize>,platform_fee_wallet:Pubkey,platform_fee_bps:u16) -> Result<()> {
-        handlers::initialize(context, platform_fee_wallet, platform_fee_bps)?;
+    pub fn initialize(context: Context<Initialize>,platform_fee_wallet:Pubkey,platform_fee_bps:u16, platform_fee_wallet_mint: Pubkey) -> Result<()> {
+        handlers::initialize(context, platform_fee_wallet, platform_fee_bps, platform_fee_wallet_mint)?;
         Ok(())
     }
 
@@ -79,6 +79,14 @@ pub mod arbitron {
         handlers::append_contest_inputs(context, offset, chunk)?;
 
         Ok(())
+    }
+
+    pub fn set_contest_winner(
+        ctx: Context<SetContestWinner>,
+        winner_pubkey: Pubkey,
+        max_pnl: i128,
+    ) -> Result<()> {
+        handlers::set_contest_winner(ctx, winner_pubkey, max_pnl)
     }
 
 
