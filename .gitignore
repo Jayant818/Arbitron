@@ -7,5 +7,4 @@ test-ledger
 .yarn
 .env
 .turbo
-dist
 docs

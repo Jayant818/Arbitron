@@ -17,6 +17,7 @@
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
     "show-versions": "bash show-versions.sh",
     "regenerate-client": "anchor build && npx tsx create-codama-client.ts",
+    "generate-client": "npm run regenerate-client",
     "dev": "turbo dev"
   },
   "dependencies": {

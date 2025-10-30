@@ -3,8 +3,12 @@
   "globalDependencies": ["**/.env.*"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "generate-client"],
       "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "generate-client": {
+      "cache": false,
+      "outputs": ["dist/js-client/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]
