@@ -22,10 +22,15 @@ export function Navbar() {
         <div className="container mx-auto px-4 py-1">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 transition-smooth hover:opacity-80">
+            <Link href="/" className="flex items-center gap-3 transition-smooth hover:opacity-80">
               {/* <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
               </div> */}
-              <span className="text-2xl font-bold text-white uppercase leading-tight border-dashed border-2 border-[#a99145] p-2 ">Arbitron</span>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold text-white uppercase leading-tight border-dashed border-2 border-[#a99145] p-2">Arbitron</span>
+                <span className="px-2 py-1 text-xs font-semibold text-orange-400 border border-orange-400/50 rounded bg-orange-400/10">
+                  DEVNET
+                </span>
+              </div>
             </Link>
 
             {/* Navigation Links */}
