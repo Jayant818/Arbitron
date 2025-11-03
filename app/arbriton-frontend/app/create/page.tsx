@@ -250,8 +250,8 @@ function ContestForm() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass-card border-white/10 bg-background backdrop-blur-md">
-                  <SelectItem value="1">1 Minutes - Quick Battle</SelectItem>
-                  <SelectItem value="2">2 Minutes - Quick Battle</SelectItem>
+                  {/* <SelectItem value="1">1 Minutes - Quick Battle</SelectItem>
+                  <SelectItem value="2">2 Minutes - Quick Battle</SelectItem> */}
                     
                     <SelectItem value="5">5 Minutes - Quick Battle</SelectItem>
                     <SelectItem value="15">15 Minutes - Standard</SelectItem>
